@@ -1,0 +1,19 @@
+# GitHub Pages 자동 배포: main 브랜치에 올리면 https://<아이디>.github.io/<저장소>/ 에 게임이 올라감
+# 처음 한 번: 저장소 Settings → Pages → Source 를 "GitHub Actions" 로
+name: pages
+on:
+  push: { branches: [main] }
+  workflow_dispatch:
+permissions: { contents: read, pages: write, id-token: write }
+concurrency: { group: pages, cancel-in-progress: true }
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+    environment: { name: github-pages, url: '${{ steps.d.outputs.page_url }}' }
+    steps:
+      - uses: actions/checkout@v4
+      - run: mkdir site && cp -r index.html manifest.webmanifest sw.js icons data dist site/
+      - uses: actions/upload-pages-artifact@v3
+        with: { path: site }
+      - id: d
+        uses: actions/deploy-pages@v4

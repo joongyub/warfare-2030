@@ -1,0 +1,10 @@
+{
+  "name": "warfare-2030-1",
+  "version": "0.10.0",
+  "private": true,
+  "description": "글로벌 프론트라인 2030 — 3D 타워디펜스",
+  "scripts": {
+    "build": "esbuild src/main.js --bundle --minify --format=iife --target=es2020 --outfile=dist/game.js"
+  },
+  "devDependencies": { "esbuild": "^0.25.0", "three": "^0.186.1" }
+}
