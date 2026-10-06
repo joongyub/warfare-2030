@@ -9,6 +9,7 @@ import { Sound } from './audio.js';
 import { layout, isTouch } from './layout.js';
 import { getTower } from './models.js';
 import { Look } from './look.js';
+import { Backdrop, exportGuide } from './backdrop.js';
 
 class App {
   constructor() {
@@ -45,6 +46,9 @@ class App {
     this.ui = new UI(this);
     this.game = new Game(this);
     this.paused = false;
+    // 그림 배경이 있는 스테이지는 코드로 만든 도시 대신 그림을 깔고 그 위에 3D 무기·적만 그림
+    if (this.stage.backdrop && GF.SETTINGS.useBackdrop !== false) this.backdrop = new Backdrop(this, this.stage.backdrop);
+    this.exportGuide = (w, h) => exportGuide(this, w, h);
 
     this.icons = this.makeIcons();
     this.ui.showTitle(this.icons);
