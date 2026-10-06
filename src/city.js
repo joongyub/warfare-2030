@@ -9,7 +9,7 @@ import {
 
 // 도시 테마 → 전투 구역 바닥 무늬
 import { DETAILED } from './landmarks.js';
-import { realLawn, realRoad, realWalk, realConcrete } from './textures_real.js';
+import { realLawn, realRoad, realWalk, realConcrete, realBoulevard, zebraTex, shopFacade, officeFacade } from './textures_real.js';
 // 반복 횟수를 따로 주려고 복제 (그림은 공유)
 function rep(t, x, y) { const c = t.clone(); c.needsUpdate = true; c.repeat.set(x, y); return c; }
 const GROUNDS = { hangangPark: lawnStripeTex, grass: grassTex, dirt: dirtTex, snow: snowTex };
@@ -267,6 +267,8 @@ export class City {
     this.anim = [];
     this.labels = [];
     this.rnd = makeRng(stage.seed);
+    // 적 침투로 양옆에 상가 건물이 늘어서면 그만큼 무기 배치 거리도 늘어남
+    this.roadClear = ROAD_CLEAR + (stage.streetFront ? stage.streetFront.depth : 0);
     this.mats();
     this.buildRoute();
     this.buildGround();
@@ -275,6 +277,7 @@ export class City {
     this.buildLandmarks();
     this.buildBattleDecor();
     this.buildGateBase();
+    this.buildStreetFront();
     this.buildTrees();
   }
 
@@ -401,7 +404,7 @@ export class City {
   blockReason(x, z) {
     const b = this.S.bounds;
     if (x < b.x0 + 0.5 || x > b.x1 - 0.5 || z < b.z0 + 0.5 || z > b.z1 - 0.5) return '작전 구역 밖';
-    if (this.roadDist(x, z) < ROAD_CLEAR) return '도로 배치 불가';
+    if (this.roadDist(x, z) < this.roadClear) return '적 침투로 배치 불가';
     for (const k of this.S.blockers) {
       if (k.kind === 'pond') { if (((x - k.x) / (k.rx + 0.4)) ** 2 + ((z - k.z) / (k.rz + 0.4)) ** 2 < 1) return '연못 배치 불가'; }
       else if (Math.abs(x - k.x) < k.w / 2 + 0.6 && Math.abs(z - k.z) < k.d / 2 + 0.6) return k.label + ' 자리 배치 불가';
@@ -420,11 +423,23 @@ export class City {
     // 전투 구역 = 화면 전체를 채우는 깨끗한 배치 공간 (도시 테마 바닥)
     const W = b.x1 - b.x0, H = b.z1 - b.z0, th = S.theme || {};
     let parkM;
-    if (th.ground === 'hangangPark' || !th.ground) { const L = realLawn(); parkM = new THREE.MeshStandardMaterial({ map: rep(L.map, W / 14, H / 14), bumpMap: rep(L.bump, W / 14, H / 14), bumpScale: 2, roughness: 0.97 }); }
+    if (th.ground === 'boulevard') {
+      // 무기 배치 공간 = 넓은 대로. 줄(도로 줄 사이) 가운데가 중앙선이 되도록 UV를 직접 맞춤
+      const BV = realBoulevard(), U = 8.5, ph = th.laneCenter ?? 4.25;
+      const geo = new THREE.PlaneGeometry(W, H); geo.rotateX(-Math.PI / 2);
+      const P = geo.attributes.position, uv = geo.attributes.uv;
+      for (let i = 0; i < P.count; i++) { const x = P.getX(i) + (b.x0 + b.x1) / 2, z = P.getZ(i) + (b.z0 + b.z1) / 2; uv.setXY(i, x / U, (z - ph) / U + 0.5); }
+      const blvd = new THREE.Mesh(geo, new THREE.MeshStandardMaterial({ map: BV.map, bumpMap: BV.bump, bumpScale: 1.2, roughness: 0.86 }));
+      blvd.position.set((b.x0 + b.x1) / 2, 0.005, (b.z0 + b.z1) / 2); blvd.receiveShadow = true;
+      this.group.add(blvd);
+      this.buildCrosswalks();
+    } else if (th.ground === 'hangangPark' || !th.ground) { const L = realLawn(); parkM = new THREE.MeshStandardMaterial({ map: rep(L.map, W / 14, H / 14), bumpMap: rep(L.bump, W / 14, H / 14), bumpScale: 2, roughness: 0.97 }); }
     else { const gt = GROUNDS[th.ground]().clone(); gt.needsUpdate = true; gt.wrapS = gt.wrapT = THREE.RepeatWrapping; gt.repeat.set(W / 8, H / 8); parkM = new THREE.MeshStandardMaterial({ map: gt, roughness: 1 }); }
-    const park = new THREE.Mesh(new THREE.PlaneGeometry(W, H), parkM);
-    park.rotation.x = -Math.PI / 2; park.position.set((b.x0 + b.x1) / 2, 0.005, (b.z0 + b.z1) / 2); park.receiveShadow = true;
-    this.group.add(park);
+    if (parkM) {
+      const park = new THREE.Mesh(new THREE.PlaneGeometry(W, H), parkM);
+      park.rotation.x = -Math.PI / 2; park.position.set((b.x0 + b.x1) / 2, 0.005, (b.z0 + b.z1) / 2); park.receiveShadow = true;
+      this.group.add(park);
+    }
     // 구역 테두리: 돌담 + 바깥쪽 산울타리 (입체감, 배치 공간 밖)
     const B = new Buckets();
     const edge = mat(th.edge || 0xbdb8ac), hedge = mat(th.hedge || 0x4c7a34, { roughness: 1 });
@@ -696,6 +711,68 @@ export class City {
     this.labels.push({ text: '연합 지휘부', pos: V(bx, 3.4, bz), kind: 'base' });
   }
 
+  // ---------- 대로 횡단보도: 대로마다 몇 군데, 랜드마크 자리는 피함 ----------
+  buildCrosswalks() {
+    const S = this.S, b = S.bounds, th = S.theme || {}, ph = th.laneCenter ?? 4.25, half = 4.25 - this.roadClear + 0.55;
+    const m = new THREE.MeshStandardMaterial({ map: zebraTex(), transparent: true, roughness: 0.8, depthWrite: false, polygonOffset: true, polygonOffsetFactor: -1, polygonOffsetUnits: -1 });
+    const B = new Buckets();
+    for (let zc = ph - 8.5 * 4; zc <= b.z1; zc += 8.5) {
+      if (zc - half < b.z0 || zc + half > b.z1) continue;
+      for (const xc of th.crosswalkX || [-21, -2, 21]) {
+        if (S.blockers.some((k) => Math.abs(xc - k.x) < k.w / 2 + 0.8 && Math.abs(zc - k.z) < k.d / 2 + 2)) continue;
+        const g = new THREE.PlaneGeometry(0.75, half * 2); g.rotateX(-Math.PI / 2); g.translate(xc, 0.012, zc);
+        const uv = g.attributes.uv; for (let i = 0; i < uv.count; i++) uv.setY(i, uv.getY(i) * half * 2 / 2.2);
+        B.push(m, g);
+      }
+    }
+    B.build(this.group, false);
+  }
+
+  // ---------- 적 침투로 = 도심 거리: 보도 바깥으로 상가 건물이 줄지어 섬 ----------
+  buildStreetFront() {
+    const F = this.S.streetFront; if (!F) return;
+    const S = this.S, b = S.bounds, rnd = makeRng(S.seed + 'street'), B = new Buckets();
+    const shopM = [0, 1, 2, 3, 4, 5].map((v) => new THREE.MeshStandardMaterial({ map: shopFacade(v), roughness: 0.8 }));
+    const offM = [0, 1, 2].map((v) => new THREE.MeshStandardMaterial({ map: officeFacade(v), roughness: 0.25, metalness: 0.4 }));
+    const roofM = mat(0x8d8f91, { roughness: 0.95 }), tankM = mat(0x3f8fc9, { roughness: 0.6 }), acM = mat(0xc9cbcc);
+    const off0 = (ROAD_W + 0.9) / 2 + 0.03, dep = F.depth;
+    const free = (x, z, r) => {
+      if (x - r < b.x0 + 0.05 || x + r > b.x1 - 0.05 || z - r < b.z0 + 0.05 || z + r > b.z1 - 0.05) return false;
+      if (S.blockers.some((k) => Math.abs(x - k.x) < k.w / 2 + r + 0.2 && Math.abs(z - k.z) < k.d / 2 + r + 0.2)) return false;
+      if (this.base && Math.hypot(x - this.base.x, z - this.base.z) < 2.6) return false;
+      if (S.gate && Math.hypot(x - S.gate[0], z - S.gate[1]) < 2.4) return false;
+      return this.roadDist(x, z) > off0 + dep * 0.3;
+    };
+    for (const st of S.route) {
+      const P = st.pts;
+      for (let i = 0; i < P.length - 1; i++) {
+        const [ax, az] = P[i], [bx, bz] = P[i + 1], L = Math.hypot(bx - ax, bz - az), dx = (bx - ax) / L, dz = (bz - az) / L;
+        for (const side of [-1, 1]) {
+          const nx = -dz * side, nz = dx * side, cOff = off0 + dep / 2;
+          let t = i === 0 ? 0.3 : cOff + 0.3, run = 0;
+          const tEnd = L - (i === P.length - 2 ? 0.3 : cOff + 0.3);
+          while (t < tEnd - 0.5) {
+            const w = Math.min(tEnd - t, rnd.range(0.9, 1.9));
+            const mx = ax + dx * (t + w / 2) + nx * cOff, mz = az + dz * (t + w / 2) + nz * cOff;
+            if (free(mx, mz, Math.max(w, dep) / 2 * 0.7)) {
+              // 카메라 쪽(남쪽) 줄은 낮게: 적이 건물에 가려지지 않도록. 먼 쪽 줄만 높은 빌딩
+              const near = nz > 0.5, tall = !near && rnd() < 0.1;
+              const h = tall ? rnd.range(1.6, 2.4) : near ? rnd.range(0.3, 0.6) : rnd.range(0.5, 1.3);
+              const ry = Math.atan2(-dz, dx) + (side > 0 ? Math.PI : 0);   // 긴 면이 도로를 따라, 정면이 도로 쪽
+              const m = tall ? offM[Math.floor(rnd() * 3)] : shopM[Math.floor(rnd() * 6)];
+              boxWalls(B, mx, 0, mz, w - 0.06, h, dep, ry, m, roofM, tall ? 0.8 : 1, tall ? 0.8 : 1.5);
+              // 옥상: 물탱크·실외기
+              if (rnd() < 0.5) { const g = new THREE.CylinderGeometry(0.09, 0.09, 0.14, 8); g.translate(mx + nx * 0.05, h + 0.07, mz + nz * 0.05); B.push(tankM, g); }
+              if (rnd() < 0.6) { const g = new THREE.BoxGeometry(0.16, 0.1, 0.12); g.translate(mx - dx * w * 0.25, h + 0.05, mz - dz * w * 0.25); B.push(acM, g); }
+            }
+            t += w + (++run % 5 === 0 ? 0.45 : 0.04);   // 다섯 채마다 골목
+          }
+        }
+      }
+    }
+    B.build(this.group);
+  }
+
   // ---------- 나무 (전투 구역 나무는 무기를 놓으면 치워짐) ----------
   buildTrees() {
     const S = this.S, b = S.bounds, rnd = makeRng(S.seed + 'trees');
@@ -703,7 +780,7 @@ export class City {
     for (let i = 0; i < 2600 && pts.length < (S.parkTrees || 0); i++) {   // 전투 구역 안 나무: 기본 없음
       const x = rnd.range(b.x0 + 0.6, b.x1 - 0.6), z = rnd.range(b.z0 + 0.6, b.z1 - 0.6);
       if (this.roadDist(x, z) < 1.6) continue;
-      if (this.blockReason(x, z) && this.blockReason(x, z) !== '도로 배치 불가') continue;
+      if (this.blockReason(x, z) && this.blockReason(x, z) !== '적 침투로 배치 불가') continue;
       if (pts.some((p) => (p[0] - x) ** 2 + (p[1] - z) ** 2 < 0.8)) continue;
       pts.push([x, z, rnd.range(0.75, 1.15), rnd() < 0.12]);
     }

@@ -157,3 +157,105 @@ export function realConcrete() {
     }
   });
 }
+
+// 무기 배치 공간 = 넓은 대로 (8차로). 한 장 = 가로 8.5 × 세로 8.5, 세로 가운데(v=0.5)가 중앙선
+// 가운데 노란 겹선, 흰 점선 차선, 바깥 흰 실선, 바퀴 자국, 맨홀
+export function realBoulevard() {
+  const S = 512, U = 8.5;
+  const paintFn = (c, hb) => {
+    const rnd = makeRng('rblvd');
+    const big = fbm(S, S, 2, 3, rnd), agg = fbm(S, S, 64, 2, rnd), patch = fbm(S, S, 3, 2, rnd);
+    for (let y = 0; y < S; y++) for (let x = 0; x < S; x++) {
+      const i = y * S + x, p = i * 4, g = rnd();
+      const zu = Math.abs((y / S - 0.5) * U);                          // 중앙선에서 거리(유닛)
+      const inLane = zu % 0.8, track = Math.exp(-Math.pow((inLane - 0.25) / 0.07, 2)) + Math.exp(-Math.pow((inLane - 0.55) / 0.07, 2));
+      let l = 64 + (big[i] - 0.5) * 20 + (agg[i] - 0.5) * 24 + (g - 0.5) * 26 - (zu < 2.2 ? track * 7 : 0);
+      if (patch[i] > 0.7) l -= 9;
+      if (g > 0.986) l += 36;
+      c[p] = clamp(l); c[p + 1] = clamp(l + 1); c[p + 2] = clamp(l + 4); c[p + 3] = 255;
+      const hv = clamp(120 + (agg[i] - 0.5) * 130 + (g - 0.5) * 100);
+      hb[p] = hb[p + 1] = hb[p + 2] = hv; hb[p + 3] = 255;
+    }
+  };
+  paintFn.after = (g, bg) => {
+    const rnd = makeRng('rblvd2'), px = S / U;
+    const line = (zu, w, color, dash) => {
+      for (const s of zu === 0 ? [1] : [-1, 1]) {
+        const y0 = S / 2 + s * zu * px - w * px / 2;
+        for (let x = 0; x < S; x += 2) {
+          if (dash && ((x / px) % (U / 2)) > U / 4) continue;
+          g.globalAlpha = rnd() < 0.07 ? 0.35 : 0.85 + rnd() * 0.15; g.fillStyle = color; g.fillRect(x, y0, 2, w * px);
+          bg.fillStyle = 'rgba(255,255,255,0.3)'; bg.fillRect(x, y0, 2, w * px);
+        }
+        g.globalAlpha = 1;
+      }
+    };
+    line(0.07, 0.06, '#e2b93b'); line(0.8, 0.05, '#ebe9e2', true); line(1.6, 0.05, '#ebe9e2', true); line(2.2, 0.06, '#ebe9e2');
+    // 맨홀 뚜껑
+    for (const [ux, uz] of [[1.7, 1.2], [6.1, -1.25]]) {
+      const cx = ux * px, cy = S / 2 + uz * px, r = 0.16 * px;
+      g.fillStyle = '#2c2d2f'; g.beginPath(); g.arc(cx, cy, r, 0, 7); g.fill();
+      g.strokeStyle = '#4a4b4e'; g.lineWidth = 2; g.beginPath(); g.arc(cx, cy, r * 0.7, 0, 7); g.stroke();
+      bg.fillStyle = '#222'; bg.beginPath(); bg.arc(cx, cy, r, 0, 7); bg.fill();
+    }
+  };
+  return build('blvd', S, S, paintFn);
+}
+
+// 횡단보도 (흰 줄무늬), 투명 바탕
+export function zebraTex() {
+  if (cache.zebra) return cache.zebra;
+  const c = document.createElement('canvas'); c.width = 64; c.height = 256;
+  const g = c.getContext('2d'), rnd = makeRng('zebra');
+  for (let y = 0; y < 256; y += 32) for (let k = 0; k < 64; k += 2) { g.globalAlpha = 0.75 + rnd() * 0.25; g.fillStyle = '#ecebe6'; g.fillRect(k, y + 4, 2, 18); }
+  const t = new THREE.CanvasTexture(c); t.colorSpace = THREE.SRGBColorSpace; t.anisotropy = 8;
+  return (cache.zebra = t);
+}
+
+// 도심 상가 건물 벽 (가로 1 × 세로 1.5 유닛 = 1층 상점 + 위로 4개 층). v: 0~5 종류
+const WALLS = ['#c9b79c', '#9c9a95', '#b46a4f', '#d8d4cb', '#8a7d6b', '#a7b0b5'];
+const SIGNS = ['#d23b2f', '#1f6fc2', '#f2c230', '#2e9c5a', '#e26c1f', '#7a3fb0', '#ffffff'];
+export function shopFacade(v) {
+  if (cache['shop' + v]) return cache['shop' + v];
+  const W = 128, H = 192, c = document.createElement('canvas'); c.width = W; c.height = H;
+  const g = c.getContext('2d'), rnd = makeRng('shop' + v), fh = H / 5;
+  g.fillStyle = WALLS[v % WALLS.length]; g.fillRect(0, 0, W, H);
+  for (let k = 0; k < 500; k++) { g.fillStyle = `rgba(0,0,0,${rnd() * 0.06})`; g.fillRect(rnd() * W, rnd() * H, 2, 2); }
+  // 위층 창문 (4개 층)
+  const n = 2 + (v % 2);
+  for (let f = 0; f < 4; f++) {
+    const y = f * fh + fh * 0.22;
+    for (let i = 0; i < n; i++) {
+      const cw = W / n, x = i * cw + cw * 0.14, lit = rnd() < 0.2;
+      g.fillStyle = lit ? '#e6d6a4' : (rnd() < 0.5 ? '#3c4651' : '#4d5a66'); g.fillRect(x, y, cw * 0.72, fh * 0.55);
+      g.fillStyle = 'rgba(255,255,255,0.12)'; g.fillRect(x, y, cw * 0.25, fh * 0.55);
+    }
+    if (rnd() < 0.55) {   // 층마다 붙은 가로 간판
+      g.fillStyle = SIGNS[Math.floor(rnd() * SIGNS.length)]; g.fillRect(4, y + fh * 0.58, W - 8, fh * 0.18);
+      g.fillStyle = 'rgba(255,255,255,0.85)'; for (let k = 0; k < 5; k++) g.fillRect(12 + k * 20, y + fh * 0.62, 12, fh * 0.1);
+    }
+  }
+  // 세로 간판
+  if (rnd() < 0.7) { g.fillStyle = SIGNS[Math.floor(rnd() * SIGNS.length)]; g.fillRect(W - 18, fh * 0.3, 14, fh * 3.2); g.fillStyle = '#fff'; for (let k = 0; k < 6; k++) g.fillRect(W - 14, fh * 0.5 + k * fh * 0.5, 6, fh * 0.28); }
+  // 1층 상점: 유리 + 간판 띠
+  g.fillStyle = SIGNS[v % SIGNS.length]; g.fillRect(0, 4 * fh, W, fh * 0.26);
+  g.fillStyle = 'rgba(255,255,255,0.9)'; for (let k = 0; k < 4; k++) g.fillRect(14 + k * 26, 4 * fh + fh * 0.07, 16, fh * 0.12);
+  g.fillStyle = '#2b3138'; g.fillRect(4, 4 * fh + fh * 0.3, W - 8, fh * 0.7);
+  g.fillStyle = 'rgba(240,226,180,0.55)'; g.fillRect(8, 4 * fh + fh * 0.36, W * 0.55, fh * 0.6);
+  g.fillStyle = '#6a6e73'; g.fillRect(W * 0.66, 4 * fh + fh * 0.3, 3, fh * 0.7);
+  const t = new THREE.CanvasTexture(c); t.colorSpace = THREE.SRGBColorSpace; t.anisotropy = 4; t.wrapS = THREE.RepeatWrapping;
+  return (cache['shop' + v] = t);
+}
+// 높은 사무실 건물: 유리 커튼월
+export function officeFacade(v) {
+  if (cache['office' + v]) return cache['office' + v];
+  const W = 128, H = 128, c = document.createElement('canvas'); c.width = W; c.height = H;
+  const g = c.getContext('2d'), rnd = makeRng('office' + v);
+  g.fillStyle = ['#5d6e7c', '#6b7a70', '#4f5b6a'][v % 3]; g.fillRect(0, 0, W, H);
+  for (let y = 0; y < H; y += 16) for (let x = 0; x < W; x += 16) {
+    const l = rnd() < 0.15; g.fillStyle = l ? '#d9cfa2' : `rgb(${120 + rnd() * 30},${150 + rnd() * 30},${170 + rnd() * 30})`;
+    g.fillRect(x + 1, y + 1, 14, 13);
+  }
+  const t = new THREE.CanvasTexture(c); t.colorSpace = THREE.SRGBColorSpace; t.anisotropy = 4; t.wrapS = t.wrapT = THREE.RepeatWrapping;
+  return (cache['office' + v] = t);
+}

@@ -64,7 +64,7 @@ export class UI {
       const ip = window.__installPrompt; if (!ip) return;
       ip.prompt(); ip.userChoice.then(() => { window.__installPrompt = null; document.body.classList.remove('can-install'); });
     };
-    if (this.L.mobile) t.querySelector('.help').textContent = '조작: 무기 카드 터치 → 잔디 터치로 배치 · 한 손가락 끌기 이동 · 두 손가락 확대 · 무기 터치로 강화 · 같은 카드 다시 터치하면 취소';
+    if (this.L.mobile) t.querySelector('.help').textContent = '조작: 무기 카드 터치 → 대로 터치로 배치 · 한 손가락 끌기 이동 · 두 손가락 확대 · 무기 터치로 강화 · 같은 카드 다시 터치하면 취소';
     this.refreshProfile();
   }
   hideTitle() { if (this.title) { this.title.remove(); this.title = null; } }
@@ -293,8 +293,8 @@ export class UI {
     const M = this.L.mobile, tap = M ? '터치' : '클릭', esc = M ? '버튼 다시 누르면 취소' : 'ESC 취소';
     if (g.mode === 'strat') hint = GF.STRATEGIC[g.stratSel].name + `: 떨어뜨릴 곳을 ${tap} · ${esc}`;
     else if (g.mode === 'card') hint = GF.CARDS[g.hand[g.cardSel]].name + `: 지도에서 위치 ${tap} · ${esc}`;
-    else if (g.mode) hint = GF.wname(g.mode) + ` 설치: 도로 밖 아무 곳이나 ${tap} · ${M ? '카드 다시 누르면 취소' : '오른쪽 클릭/ESC 취소'}`;
-    else if (g.state === 'ready') hint = this.L.mobile ? '무기 카드를 누르고 잔디를 터치해 배치 · 두 손가락으로 확대 · 한 손가락 끌기로 이동' : '도로와 랜드마크 건물만 빼고 어디든 무기를 놓으세요. 도로 사이에 놓으면 위아래 도로를 동시에 공격합니다 · 휠: 커서 쪽 확대 · 0: 전체 보기';
+    else if (g.mode) hint = GF.wname(g.mode) + ` 설치: 대로 아무 곳이나 ${tap} · ${M ? '카드 다시 누르면 취소' : '오른쪽 클릭/ESC 취소'}`;
+    else if (g.state === 'ready') hint = this.L.mobile ? '무기 카드를 누르고 대로를 터치해 배치 · 두 손가락으로 확대 · 한 손가락 끌기로 이동' : '적이 오는 도심 거리·건물·랜드마크만 빼고 대로 어디든 무기를 놓으세요. 거리 사이 대로에 놓으면 위아래 거리를 동시에 공격합니다 · 휠: 커서 쪽 확대 · 0: 전체 보기';
     this.eHint.textContent = hint;
   }
 

@@ -17,7 +17,9 @@ GF.STAGES = GF.STAGES || {};
     bounds: { x0: -32, x1: 32, z0: -21.6, z1: 21.6 },
     gate: [-32, -17], base: [30.4, 17],
     // 도시 테마: 전투 구역 바닥과 가장자리 장식 (도시마다 다르게)
-    theme: { ground: 'hangangPark', groundColor: 0x8fbf5a, edge: 0xc9c4b6, road: 'asphalt' },
+    theme: { ground: 'boulevard', laneCenter: 4.25, crosswalkX: [-21, -2, 21], groundColor: 0x8fbf5a, edge: 0xc9c4b6, road: 'asphalt' },
+    // 적 침투로 = 도심 거리: 보도 바깥으로 상가 건물(깊이 depth)이 줄지어 섬. 무기 배치는 그 바깥 대로에서
+    streetFront: { depth: 0.55 },
     // 직각으로 꺾이는 지그재그 도로 하나 (우회로 없음)
     route: [
       { id: 'R', sharp: true, pts: [[-32, Z[0]], [27, Z[0]], [27, Z[1]], [-27, Z[1]], [-27, Z[2]], [27, Z[2]], [27, Z[3]], [-27, Z[3]], [-27, Z[4]], [29.4, Z[4]]] }
