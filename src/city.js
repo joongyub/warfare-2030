@@ -8,6 +8,9 @@ import {
 } from './textures.js';
 
 // 도시 테마 → 전투 구역 바닥 무늬
+import { realLawn, realRoad, realWalk, realConcrete } from './textures_real.js';
+// 반복 횟수를 따로 주려고 복제 (그림은 공유)
+function rep(t, x, y) { const c = t.clone(); c.needsUpdate = true; c.repeat.set(x, y); return c; }
 const GROUNDS = { hangangPark: lawnStripeTex, grass: grassTex, dirt: dirtTex, snow: snowTex };
 import { makeBase, mat } from './models.js';
 
@@ -290,8 +293,9 @@ export class City {
       const opts = (st.choice || [st]).map((o) => Object.assign({ id: o.id, pts: o.pts }, o.sharp ? samplePoly(o.pts) : sampleCurve(o.pts)));
       return { opts, choice: !!st.choice, open: 0 };
     });
-    const roadM = new THREE.MeshStandardMaterial({ map: roadStripTex(), roughness: 0.9, polygonOffset: true, polygonOffsetFactor: -2, polygonOffsetUnits: -2 });
-    const walkM = new THREE.MeshStandardMaterial({ map: sidewalkTex(), roughness: 0.95, side: THREE.DoubleSide, polygonOffset: true, polygonOffsetFactor: -1, polygonOffsetUnits: -1 });
+    const RR = realRoad(), RW = realWalk();
+    const roadM = new THREE.MeshStandardMaterial({ map: RR.map, bumpMap: RR.bump, bumpScale: 1.2, roughness: 0.88, polygonOffset: true, polygonOffsetFactor: -2, polygonOffsetUnits: -2 });
+    const walkM = new THREE.MeshStandardMaterial({ map: RW.map, bumpMap: RW.bump, bumpScale: 1.5, roughness: 0.92, side: THREE.DoubleSide, polygonOffset: true, polygonOffsetFactor: -1, polygonOffsetUnits: -1 });
     const ghostM = new THREE.MeshBasicMaterial({ map: ghostRoadTex(), transparent: true, depthWrite: false });
     const curbM = new THREE.MeshStandardMaterial({ color: 0xb9b6ae, roughness: 0.9, side: THREE.DoubleSide });
     const lampM = mat(0x40454c);
@@ -313,7 +317,7 @@ export class City {
     const sh = new THREE.Shape();
     sh.moveTo(-0.32, 0.36); sh.lineTo(0.18, 0); sh.lineTo(-0.32, -0.36); sh.lineTo(-0.1, -0.36); sh.lineTo(0.4, 0); sh.lineTo(-0.1, 0.36); sh.closePath();
     const cg = new THREE.ShapeGeometry(sh); cg.rotateX(-Math.PI / 2);
-    this.chevM = new THREE.MeshBasicMaterial({ color: 0xff3b30, transparent: true, opacity: 0.85, depthWrite: false });
+    this.chevM = new THREE.MeshBasicMaterial({ color: 0xd8473c, transparent: true, opacity: 0.5, depthWrite: false });
     this.chev = new THREE.InstancedMesh(cg, this.chevM, 600);
     this.chev.frustumCulled = false;
     this.group.add(this.chev);
@@ -407,14 +411,16 @@ export class City {
   // ---------- 땅 ----------
   buildGround() {
     const S = this.S, b = S.bounds;
-    const cg = cityGroundTex().clone(); cg.needsUpdate = true; cg.wrapS = cg.wrapT = THREE.RepeatWrapping; cg.repeat.set(120, 120);
-    const ground = new THREE.Mesh(new THREE.PlaneGeometry(520, 520), new THREE.MeshStandardMaterial({ map: cg, roughness: 1, color: 0xd0d0d0 }));
+    const RC = realConcrete();
+    const ground = new THREE.Mesh(new THREE.PlaneGeometry(520, 520), new THREE.MeshStandardMaterial({ map: rep(RC.map, 90, 90), bumpMap: rep(RC.bump, 90, 90), roughness: 0.95 }));
     ground.rotation.x = -Math.PI / 2; ground.position.y = -0.02; ground.receiveShadow = true;
     this.group.add(ground);
     // 전투 구역 = 화면 전체를 채우는 깨끗한 배치 공간 (도시 테마 바닥)
     const W = b.x1 - b.x0, H = b.z1 - b.z0, th = S.theme || {};
-    const gt = (GROUNDS[th.ground] || grassTex)().clone(); gt.needsUpdate = true; gt.wrapS = gt.wrapT = THREE.RepeatWrapping; gt.repeat.set(W / 8, H / 8);
-    const park = new THREE.Mesh(new THREE.PlaneGeometry(W, H), new THREE.MeshStandardMaterial({ map: gt, roughness: 1 }));
+    let parkM;
+    if (th.ground === 'hangangPark' || !th.ground) { const L = realLawn(); parkM = new THREE.MeshStandardMaterial({ map: rep(L.map, W / 14, H / 14), bumpMap: rep(L.bump, W / 14, H / 14), bumpScale: 2, roughness: 0.97 }); }
+    else { const gt = GROUNDS[th.ground]().clone(); gt.needsUpdate = true; gt.wrapS = gt.wrapT = THREE.RepeatWrapping; gt.repeat.set(W / 8, H / 8); parkM = new THREE.MeshStandardMaterial({ map: gt, roughness: 1 }); }
+    const park = new THREE.Mesh(new THREE.PlaneGeometry(W, H), parkM);
     park.rotation.x = -Math.PI / 2; park.position.set((b.x0 + b.x1) / 2, 0.005, (b.z0 + b.z1) / 2); park.receiveShadow = true;
     this.group.add(park);
     // 구역 테두리: 돌담 + 바깥쪽 산울타리 (입체감, 배치 공간 밖)
@@ -744,7 +750,7 @@ export class City {
 
   update(dt, t) {
     for (const f of this.anim) f(dt, t);
-    this.chevM.opacity = 0.6 + Math.sin(t * 4) * 0.25;
+    this.chevM.opacity = 0.42 + Math.sin(t * 4) * 0.14;
     this.ghostM.opacity = 0.65 + Math.sin(t * 3) * 0.3;
   }
 }

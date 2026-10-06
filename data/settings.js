@@ -2,7 +2,7 @@
 window.GF = window.GF || {};
 
 GF.SETTINGS = {
-  version: '0.10.0 (베타 · 크롬·앱 설치)',
+  version: '0.11.0 (베타 · 실사화 1단계)',
   // true: 실제 무기 이름 (K9 썬더, 재블린 …) / false: 살짝 바꾼 이름 (K9-X 썬더, 재블런스 …)
   // 출시 직전 상표 검토 후 결정 (문서 10번 2장 참고)
   useRealWeaponNames: true,
@@ -22,5 +22,6 @@ GF.SETTINGS = {
   music: true,              // 배경 음악 켜기/끄기
   musicVolume: 0.35,        // 배경 음악 크기 (0~1)
   shadows: true,            // 그림자 (느린 컴퓨터는 false)
+  graphics: 'auto',         // 그래픽 품질: 'auto'(PC 높음·휴대폰 보통) / 'high' / 'medium' / 'low'(느린 기기)
   comboWindow: 2.5          // 이 시간(초) 안에 연속으로 처치하면 연쇄 격파 보너스
 };

@@ -8,17 +8,18 @@ import { UI } from './ui.js';
 import { Sound } from './audio.js';
 import { layout, isTouch } from './layout.js';
 import { getTower } from './models.js';
+import { Look } from './look.js';
 
 class App {
   constructor() {
     this.stage = GF.STAGES.seoul;
-    const r = this.renderer = new THREE.WebGLRenderer({ antialias: true, alpha: true });
+    const r = this.renderer = new THREE.WebGLRenderer({ antialias: true, powerPreference: 'high-performance' });
     r.setPixelRatio(Math.min(window.devicePixelRatio, 2));
     r.setSize(window.innerWidth, window.innerHeight);
     r.shadowMap.enabled = GF.SETTINGS.shadows;
     r.shadowMap.type = THREE.PCFShadowMap;
     r.toneMapping = THREE.ACESFilmicToneMapping;
-    r.toneMappingExposure = 0.95;
+    r.toneMappingExposure = 0.82;
     document.getElementById('view').appendChild(r.domElement);
 
     this.scene = new THREE.Scene();
@@ -27,17 +28,17 @@ class App {
     this.EL = 0.84;
     this.cam = { target: new THREE.Vector3(0, 0, 0), zoom: 1, zoomGoal: 1, shake: 0, anchor: null };
 
-    // 조명: 하늘빛 + 해 (그림자)
-    this.scene.add(new THREE.HemisphereLight(0xd6ebff, 0x6b6450, 0.85));
-    const sun = this.sun = new THREE.DirectionalLight(0xfff0d8, 2.2);
+    // 조명: 하늘빛 + 해 (그림자). 사방에서 오는 하늘 반사광은 look.js 환경광이 담당
+    this.scene.add(new THREE.HemisphereLight(0xd6ebff, 0x6b6450, 0.4));
+    const sun = this.sun = new THREE.DirectionalLight(0xffe6c4, 2.3);
     sun.position.set(-34, 40, 18);   // 낮은 해 → 긴 그림자로 입체감
     sun.target.position.set(0, 0, 0); this.scene.add(sun.target);
     sun.castShadow = true;
-    sun.shadow.mapSize.set(2048, 2048);
     Object.assign(sun.shadow.camera, { left: -48, right: 48, top: 40, bottom: -40, near: 1, far: 180 });
     sun.shadow.mapSize.set(4096, 4096);
-    sun.shadow.bias = -0.0005; sun.shadow.normalBias = 0.04;
+    sun.shadow.bias = -0.0005; sun.shadow.normalBias = 0.04; sun.shadow.radius = 2.5;
     this.scene.add(sun);
+    this.look = new Look(r, this.scene, this.camera, sun);
 
     this.city = new City(this.scene, this.stage);
     this.sound = new Sound();
@@ -93,6 +94,8 @@ class App {
   }
   applySettings() {
     this.sound.apply();
+    const q = GF.SETTINGS.graphics === 'auto' ? this.look.q : GF.SETTINGS.graphics;
+    if (q && q !== this.look.q) this.look.setQuality(q);
     const on = GF.SETTINGS.shadows;
     if (this.renderer.shadowMap.enabled !== on) {
       this.renderer.shadowMap.enabled = on;
@@ -108,6 +111,7 @@ class App {
     Object.assign(v.style, { left: L.x + 'px', top: L.y + 'px', width: w + 'px', height: h + 'px' });
     document.body.classList.toggle('portrait', L.portrait && isTouch());
     this.renderer.setSize(w, h);
+    this.look.resize();
     this.W = w; this.H = h;
     this.camera.aspect = w / h; this.camera.updateProjectionMatrix();
     this.fitView();
@@ -285,7 +289,8 @@ class App {
     this.city.update(real, this.time);
     this.game.update(dt, this.time);
     this.updateCamera(real);
-    this.renderer.render(this.scene, this.camera);
+    this.look.update(this.cam.dist);
+    this.look.render();
     this.ui.update(dt || 0);
   }
 }

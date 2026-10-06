@@ -148,8 +148,10 @@ export class UI {
       <label><input type="checkbox" data-k="sound" ${SET.sound ? 'checked' : ''}> 효과음</label>
       <label><input type="checkbox" data-k="music" ${SET.music ? 'checked' : ''}> 배경 음악</label>
       <label><input type="checkbox" data-k="shadows" ${SET.shadows ? 'checked' : ''}> 그림자 <small>(느리면 끄기)</small></label>
+      <label>그래픽 <select class="gq">${[['high', '높음'], ['medium', '보통'], ['low', '낮음 (느린 기기)']].map(([v, n]) => `<option value="${v}" ${this.app.look.q === v ? 'selected' : ''}>${n}</option>`).join('')}</select></label>
       <div class="row"><button class="home">처음 화면</button><button class="close">닫기</button></div>`;
     s.querySelectorAll('input').forEach((inp) => { inp.onchange = () => { SET[inp.dataset.k] = inp.checked; this.app.applySettings(); }; });
+    s.querySelector('.gq').onchange = (e) => { SET.graphics = e.target.value; this.app.applySettings(); };
     s.querySelector('.home').onclick = () => { this.toggleSettings(false); this.app.toTitle(); };
     s.querySelector('.close').onclick = () => this.toggleSettings(false);
   }
