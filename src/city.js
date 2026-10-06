@@ -8,6 +8,7 @@ import {
 } from './textures.js';
 
 // 도시 테마 → 전투 구역 바닥 무늬
+import { DETAILED } from './landmarks.js';
 import { realLawn, realRoad, realWalk, realConcrete } from './textures_real.js';
 // 반복 횟수를 따로 주려고 복제 (그림은 공유)
 function rep(t, x, y) { const c = t.clone(); c.needsUpdate = true; c.repeat.set(x, y); return c; }
@@ -90,6 +91,7 @@ function miniLandmark(k) {
   };
   // 바닥 광장 (점유 표시)
   const pl = new THREE.Mesh(new THREE.BoxGeometry(k.w, 0.06, k.d), M.plaza); pl.position.y = 0.03; pl.receiveShadow = true; G.add(pl);
+  if (DETAILED[k.id]) { DETAILED[k.id](G, k); return G; }   // 실제 모양으로 다시 만든 랜드마크
   switch (k.id) {
     case 'namdaemun': { // 숭례문: 돌 축대 + 무지개 문 + 2층 누각
       box(3.8, 1.0, 2.0, M.stone);
