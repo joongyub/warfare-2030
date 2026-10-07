@@ -478,12 +478,14 @@ export class City {
   blockReason(x, z) {
     const b = this.S.bounds;
     if (x < b.x0 + 0.5 || x > b.x1 - 0.5 || z < b.z0 + 0.5 || z > b.z1 - 0.5) return '작전 구역 밖';
+    const O = this.S.round; if (O && Math.hypot(x - O.x, z - O.z) > O.r - 0.6) return '작전 구역 밖';
     if (this.roadDist(x, z) < this.roadClear) return '적 침투로 배치 불가';
     for (const q of this.streetBlocks) if (Math.abs(x - q.x) < q.hx + 0.45 && Math.abs(z - q.z) < q.hz + 0.45) return '건물 자리 배치 불가';
     for (const k of this.S.blockers) {
       if (k.kind === 'pond') { if (((x - k.x) / (k.rx + 0.4)) ** 2 + ((z - k.z) / (k.rz + 0.4)) ** 2 < 1) return '연못 배치 불가'; }
       else if (Math.abs(x - k.x) < k.w / 2 + 0.6 && Math.abs(z - k.z) < k.d / 2 + 0.6) return k.label + ' 자리 배치 불가';
     }
+    if (this.S.baseArc && Math.abs(x - this.base.x) < 4.4 && Math.abs(z - this.base.z) < 3.0) return '개선문 자리 배치 불가';
     if (Math.hypot(x - this.base.x, z - this.base.z) < 2.2) return '지휘부 배치 불가';
     return null;
   }
@@ -514,6 +516,18 @@ export class City {
       this.buildCrosswalks();
     } else if (th.ground === 'hangangPark' || !th.ground) { const L = realLawn(); parkM = new THREE.MeshStandardMaterial({ map: rep(L.map, W / 14, H / 14), bumpMap: rep(L.bump, W / 14, H / 14), bumpScale: 2, roughness: 0.97 }); }
     else { const gt = GROUNDS[th.ground]().clone(); gt.needsUpdate = true; gt.wrapS = gt.wrapT = THREE.RepeatWrapping; gt.repeat.set(W / 8, H / 8); parkM = new THREE.MeshStandardMaterial({ map: gt, roughness: 1 }); }
+    const O = S.round;
+    if (parkM && O) {
+      // 둥근 광장 (에투알): 원판 바닥 + 돌 테두리 + 산울타리 고리
+      const park = new THREE.Mesh(new THREE.CircleGeometry(O.r, 96), parkM);
+      park.rotation.x = -Math.PI / 2; park.position.set(O.x, 0.005, O.z); park.receiveShadow = true;
+      this.group.add(park);
+      const ringG = (r0, r1, h) => new THREE.LatheGeometry([new THREE.Vector2(r0, 0), new THREE.Vector2(r1, 0), new THREE.Vector2(r1, h), new THREE.Vector2(r0, h), new THREE.Vector2(r0, 0)], 128);
+      const e = new THREE.Mesh(ringG(O.r, O.r + 0.35, 0.32), mat(th.edge || 0xbdb8ac)); e.position.set(O.x, 0, O.z); e.castShadow = e.receiveShadow = true;
+      const h = new THREE.Mesh(ringG(O.r + 0.35, O.r + 1.25, 0.55), mat(th.hedge || 0x4c7a34, { roughness: 1 })); h.position.set(O.x, 0, O.z); h.castShadow = true;
+      this.group.add(e, h);
+      return;
+    }
     if (parkM) {
       const park = new THREE.Mesh(new THREE.PlaneGeometry(W, H), parkM);
       park.rotation.x = -Math.PI / 2; park.position.set((b.x0 + b.x1) / 2, 0.005, (b.z0 + b.z1) / 2); park.receiveShadow = true;
@@ -634,7 +648,8 @@ export class City {
     for (const L of S.landmarks) if (EDGE[L.id]) reserved.push([L.x, L.z, EDGE[L.id].r]);
     for (const [gx, gz, dx, dz] of this.gateDirs || [[S.gate[0], S.gate[1], 1, 0]]) reserved.push([gx - dx * 2, gz - dz * 2, 4.5]);
     const free = (x, z, r) => {
-      if (x > b.x0 - 3.5 && x < b.x1 + 3.8 && z > b.z0 - 3.4 && z < b.z1 + 3.4) return false;   // 공원 + 둘레 큰길
+      if (S.round) { if (Math.hypot(x - S.round.x, z - S.round.z) < S.round.r + 3.6 + r) return false; }   // 둥근 광장 + 둘레 큰길
+      else if (x > b.x0 - 3.5 && x < b.x1 + 3.8 && z > b.z0 - 3.4 && z < b.z1 + 3.4) return false;   // 공원 + 둘레 큰길
       if (R && z > R.z - R.w / 2 - 2.5 - r && z < R.z + R.w / 2 + 2.5 + r) return false;          // 강·둔치
       for (const [rx, rz, rr] of reserved) if (Math.hypot(x - rx, z - rz) < rr + r) return false;
       return true;
@@ -815,7 +830,7 @@ export class City {
     const S = this.S;
     this.gate = V(S.gate[0], 0, S.gate[1]);
     // 적 진입 터널: 본 도로 입구 + 갈래 길 입구마다. 터널 입이 도로 진행 방향을 봄
-    const gates = [{ pts: this.steps[0].opts[0].pts, label: '적 진입' }].concat(this.branches.map((b) => ({ pts: b.pts, label: '적 진입 · ' + b.name, br: b })));
+    const gates = [{ pts: this.steps[0].opts[0].pts, label: '적 진입' + (S.route[0].name ? ' · ' + S.route[0].name : '') }].concat(this.branches.map((b) => ({ pts: b.pts, label: '적 진입 · ' + b.name, br: b })));
     const conc = mat(0x8d8a83), dark = new THREE.MeshBasicMaterial({ color: 0x0b0b0c }), hillM = mat(0x557a3c, { roughness: 1 });
     const neonM = new THREE.MeshBasicMaterial({ color: 0xff3030 });
     const city = (S.theme || {}).city, wallM = city && ashlarMat('gate' + city, city === 'paris' ? 0xcbbd9e : 0x8a7a6a), capM = mat(city === 'paris' ? 0xe0d4b8 : 0x9c958a), railM = mat(0x2a2c2e, { metalness: 0.5 });
@@ -825,9 +840,9 @@ export class City {
       const T = new THREE.Group(); T.position.set(gx, 0, gz); T.rotation.y = -dir;
       if (city) {
         // 뉴욕·파리: 언덕 대신 석축 옹벽 지하차도 입구 (위에 난간)
-        const wall = new THREE.Mesh(sbox(4.4, 2.2, 6.4, 0.8, 0.55), wallM); wall.position.set(-2.0, 1.1, 0); wall.castShadow = wall.receiveShadow = true; T.add(wall);
-        const cap = new THREE.Mesh(new THREE.BoxGeometry(4.6, 0.16, 6.6), capM); cap.position.set(-2.0, 2.28, 0); T.add(cap);
-        for (const s of [-1, 1]) { const r = new THREE.Mesh(new THREE.BoxGeometry(4.4, 0.32, 0.08), railM); r.position.set(-2.0, 2.52, s * 3.2); T.add(r); }
+        const sm = S.round ? 0.7 : 1, wall = new THREE.Mesh(sbox(4.4 * sm, 2.2, 6.4 * sm, 0.8, 0.55), wallM); wall.position.set(-2.0 * sm, 1.1, 0); wall.castShadow = wall.receiveShadow = true; T.add(wall);
+        const cap = new THREE.Mesh(new THREE.BoxGeometry(4.6 * sm, 0.16, 6.6 * sm), capM); cap.position.set(-2.0 * sm, 2.28, 0); T.add(cap);
+        for (const s of [-1, 1]) { const r = new THREE.Mesh(new THREE.BoxGeometry(4.4 * sm, 0.32, 0.08), railM); r.position.set(-2.0 * sm, 2.52, s * 3.2 * sm); T.add(r); }
       } else {
         const hill = new THREE.Mesh(new THREE.SphereGeometry(1, 20, 10, 0, Math.PI * 2, 0, Math.PI / 2), hillM);
         hill.scale.set(3, 2.6, 3.4); hill.position.set(-2.4, 0, 0); hill.castShadow = true; T.add(hill);
@@ -846,12 +861,18 @@ export class City {
     const [bx, bz] = S.base;
     this.base = V(bx, 0, bz);
     const bm = makeBase();
-    bm.root.scale.setScalar(2.4); bm.root.position.set(bx, 0, bz); bm.root.rotation.y = Math.PI / 2;
+    bm.root.scale.setScalar(S.baseArc ? 2.0 : 2.4); bm.root.position.set(bx, 0, bz); bm.root.rotation.y = Math.PI / 2;
+    if (S.baseArc) {
+      // 개선문을 크게 세우고 그 아치 밑에 지휘부 (적은 아치 밑으로 들어옴)
+      const A = new THREE.Group(); FIELD.arc(A, { w: 3, d: 3, noFlag: true }); A.scale.setScalar(3); A.position.set(bx, 0, bz);
+      this.group.add(A); compactNode(A, () => false, true);
+    }
     this.group.add(bm.root);
     for (const [o, ax, sp] of bm.spin) this.anim.push((dt) => { o.rotation[ax] += sp * dt; });
     this.anim.push((dt, t) => { bm.flag.rotation.y = Math.sin(t * 2.2) * 0.25; });
     this.baseModel = bm;
-    this.labels.push({ text: '연합 지휘부', pos: V(bx, 3.4, bz), kind: 'base' });
+    if (S.baseArc) this.labels.push({ text: '개선문', pos: V(bx, 9.6, bz), kind: 'landmark' });
+    this.labels.push({ text: '연합 지휘부', pos: V(bx, S.baseArc ? 6.2 : 3.4, bz), kind: 'base' });
   }
 
   // ---------- 대로 횡단보도: 대로마다 몇 군데, 랜드마크 자리는 피함 ----------

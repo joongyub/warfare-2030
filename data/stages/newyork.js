@@ -12,7 +12,7 @@ GF.STAGES = GF.STAGES || {};
     name: '뉴욕', nameEn: 'NEW YORK', alias: '허드슨시', title: '맨해튼 방어전',
     briefing: '부카니스탄 원정군이 링컨 터널, 브로드웨이, 퀸즈보로 다리, 할렘에서 맨해튼으로 몰려온다. 브로드웨이가 격자를 비스듬히 가르는 타임스스퀘어 교차로가 첫 고비다. 모든 길은 미드타운 격자를 지나 남쪽 지휘부로 이어진다.',
     seed: 'newyork-2030',
-    lives: 20, startMoney: 750, hpScale: 0.17, hpQuad: 0.0062, bossHp: 0.4,
+    lives: 20, startMoney: 750, hpScale: 0.17, hpQuad: 0.0066, bossHp: 0.42,
     bounds: { x0: -32, x1: 32, z0: -21.6, z1: 21.6 },
     gate: [-32, -16], base: [-30.4, 16],
     theme: { city: 'newyork', ground: 'plaza', groundTint: 0xd9dde2, edge: 0xb8b4aa, hedge: 0x3f6a32 },

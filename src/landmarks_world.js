@@ -350,8 +350,10 @@ function arc(G, k) {
     const sa = new THREE.Shape(); sa.moveTo(-0.22, 0); sa.lineTo(-0.22, 0.55); sa.absarc(0, 0.55, 0.22, Math.PI, 0, true); sa.lineTo(0.22, 0); sa.closePath();
     const sg = new THREE.ShapeGeometry(sa, 10); const m = add(sg, dark, sx * (W / 2 + 0.006), 0.06 + 0.12, 0); m.rotation.y = sx * Math.PI / 2;
   }
+  if (!k.noFlag) {
   const f = new THREE.Mesh(new THREE.PlaneGeometry(0.62, 0.9), new THREE.MeshStandardMaterial({ map: flagTex('fr'), side: THREE.DoubleSide }));
-  f.position.set(0, 0.06 + 0.95, 0); G.add(f);
+    f.position.set(0, 0.06 + 0.95, 0); G.add(f);
+  }
   // 둘레 바닥 장식(별 모양 포석 대신 동그란 화강암 띠)
   add(new THREE.RingGeometry(1.25, 1.42, 40).rotateX(-Math.PI / 2), std(0x9b958a), 0, 0.065, 0);
 }
