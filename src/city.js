@@ -16,7 +16,7 @@ function rep(t, x, y) { const c = t.clone(); c.needsUpdate = true; c.repeat.set(
 const GROUNDS = { hangangPark: lawnStripeTex, grass: grassTex, dirt: dirtTex, snow: snowTex };
 import { makeBase, mat, compactNode } from './models.js';
 import { buildNYCity, buildParisCity } from './world_city.js';
-import { EDGE, FIELD } from './landmarks_world.js';
+import { EDGE, FIELD, ashlarMat, sbox } from './landmarks_world.js';
 import { nyShopHD, haussmannHD } from './textures_world.js';
 
 const V = (x = 0, y = 0, z = 0) => new THREE.Vector3(x, y, z);
@@ -818,12 +818,20 @@ export class City {
     const gates = [{ pts: this.steps[0].opts[0].pts, label: '적 진입' }].concat(this.branches.map((b) => ({ pts: b.pts, label: '적 진입 · ' + b.name, br: b })));
     const conc = mat(0x8d8a83), dark = new THREE.MeshBasicMaterial({ color: 0x0b0b0c }), hillM = mat(0x557a3c, { roughness: 1 });
     const neonM = new THREE.MeshBasicMaterial({ color: 0xff3030 });
+    const city = (S.theme || {}).city, wallM = city && ashlarMat('gate' + city, city === 'paris' ? 0xcbbd9e : 0x8a7a6a), capM = mat(city === 'paris' ? 0xe0d4b8 : 0x9c958a), railM = mat(0x2a2c2e, { metalness: 0.5 });
     this.anim.push((dt, t) => { neonM.color.setHSL(0, 1, 0.45 + Math.sin(t * 4) * 0.12); });
     for (const G of gates) {
       const [gx, gz] = G.pts[0], [nx, nz] = G.pts[1], dir = Math.atan2(nz - gz, nx - gx);
       const T = new THREE.Group(); T.position.set(gx, 0, gz); T.rotation.y = -dir;
-      const hill = new THREE.Mesh(new THREE.SphereGeometry(1, 20, 10, 0, Math.PI * 2, 0, Math.PI / 2), hillM);
-      hill.scale.set(3, 2.6, 3.4); hill.position.set(-2.4, 0, 0); hill.castShadow = true; T.add(hill);
+      if (city) {
+        // 뉴욕·파리: 언덕 대신 석축 옹벽 지하차도 입구 (위에 난간)
+        const wall = new THREE.Mesh(sbox(4.4, 2.2, 6.4, 0.8, 0.55), wallM); wall.position.set(-2.0, 1.1, 0); wall.castShadow = wall.receiveShadow = true; T.add(wall);
+        const cap = new THREE.Mesh(new THREE.BoxGeometry(4.6, 0.16, 6.6), capM); cap.position.set(-2.0, 2.28, 0); T.add(cap);
+        for (const s of [-1, 1]) { const r = new THREE.Mesh(new THREE.BoxGeometry(4.4, 0.32, 0.08), railM); r.position.set(-2.0, 2.52, s * 3.2); T.add(r); }
+      } else {
+        const hill = new THREE.Mesh(new THREE.SphereGeometry(1, 20, 10, 0, Math.PI * 2, 0, Math.PI / 2), hillM);
+        hill.scale.set(3, 2.6, 3.4); hill.position.set(-2.4, 0, 0); hill.castShadow = true; T.add(hill);
+      }
       const portal = new THREE.Mesh(new THREE.BoxGeometry(1.2, 2.4, 4.2), conc); portal.position.set(0.2, 1.2, 0); portal.castShadow = true; T.add(portal);
       const hole = new THREE.Mesh(new THREE.PlaneGeometry(2.4, 1.7), dark); hole.rotation.y = Math.PI / 2; hole.position.set(0.81, 0.85, 0); T.add(hole);
       const neon = new THREE.Mesh(new THREE.BoxGeometry(0.08, 0.12, 2.8), neonM); neon.position.set(0.84, 1.85, 0); T.add(neon);
