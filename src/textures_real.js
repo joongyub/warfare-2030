@@ -24,7 +24,7 @@ function tileNoise(w, h, cellsX, cellsY, rnd) {
   return out;
 }
 // 여러 크기 노이즈를 겹침 (큰 얼룩 + 잔 무늬)
-function fbm(w, h, base, oct, rnd, aspect = 1) {
+export function fbm(w, h, base, oct, rnd, aspect = 1) {
   const out = new Float32Array(w * h); let amp = 1, tot = 0;
   for (let o = 0; o < oct; o++) {
     const c = base << o, n = tileNoise(w, h, Math.max(1, Math.round(c * aspect)), c, rnd);

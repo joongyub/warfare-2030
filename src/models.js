@@ -356,6 +356,8 @@ export const camo = () => camoM || (camoM = new THREE.MeshStandardMaterial({ map
 function wheels(p, xs, z, r = 0.075, y = 0.08) { for (const x of xs) for (const zz of [-z, z]) add(p, C(r, r, 0.07, 12), 0x1b1b1b, x, y, zz, Math.PI / 2, 0, 0); }
 
 export function makeTowerV4(type) {
+  const hd = makeTowerHD(type);
+  if (hd) return hd;
   if (type === 'ewcar') type = 'jammer';
   if (!['patriot', 'type16', 'irondome', 'hyunmoo'].includes(type)) {
     const m = makeTower(type);
@@ -446,6 +448,7 @@ function compactNode(node, isStop) {
   }
 }
 import { mergeGeometries } from 'three/examples/jsm/utils/BufferGeometryUtils.js';
+import { makeTowerHD, makeEnemyHD } from './units_hd.js';
 
 const towerProto = {}, enemyProto = {};
 function tagSpin(list) { for (const [o, ax, sp] of list) o.userData.spin = [ax, sp]; }
@@ -460,7 +463,7 @@ export function getTower(type) {
     const m = makeTowerV4(type);
     tagSpin(m.spin); m.glow.forEach((g) => (g.userData.glow = true));
     m.yaw.name = 'yaw'; m.pitch.name = 'pitch'; m.muzzle.name = 'muzzle';
-    const special = (o) => o.userData.spin || o.userData.glow;
+    const special = (o) => o.userData.spin || o.userData.glow || o.userData.keep;
     compactNode(m.pitch, special);
     compactNode(m.yaw, (o) => o === m.pitch || special(o));
     compactNode(m.root, (o) => o === m.yaw || special(o));
@@ -473,10 +476,10 @@ export function getTower(type) {
 
 export function getEnemy(type) {
   if (!enemyProto[type]) {
-    const m = makeEnemy(type);
+    const m = makeEnemyHD(type) || makeEnemy(type);
     tagSpin(m.spin);
     m.body.name = 'body';
-    compactNode(m.body, (o) => o.userData.spin);
+    compactNode(m.body, (o) => o.userData.spin || o.userData.keep);
     enemyProto[type] = { root: m.root, hpY: m.hpY };
   }
   const p = enemyProto[type];
@@ -489,7 +492,7 @@ const ghostMat = new THREE.MeshBasicMaterial({ color: 0x6ff3ff, transparent: tru
 const ghostBad = new THREE.MeshBasicMaterial({ color: 0xff5a5f, transparent: true, opacity: 0.45, depthWrite: false });
 export function getGhost(type) {
   const m = getTower(type);
-  m.root.traverse((o) => { if (o.isMesh) { o.material = ghostMat; o.castShadow = false; } });
-  m.setOk = (ok) => m.root.traverse((o) => { if (o.isMesh) o.material = ok ? ghostMat : ghostBad; });
+  m.root.traverse((o) => { if (o.userData.keep) o.visible = false; else if (o.isMesh) { o.material = ghostMat; o.castShadow = false; } });
+  m.setOk = (ok) => m.root.traverse((o) => { if (o.isMesh && !o.userData.keep) o.material = ok ? ghostMat : ghostBad; });
   return m;
 }
