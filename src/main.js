@@ -14,11 +14,12 @@ import { Backdrop, exportGuide } from './backdrop.js';
 class App {
   constructor() {
     this.stage = GF.STAGES.seoul;
-    const r = this.renderer = new THREE.WebGLRenderer({ antialias: true, powerPreference: 'high-performance' });
+    const r = this.renderer = new THREE.WebGLRenderer({ antialias: false, powerPreference: 'high-performance' });   // 계단 현상은 후처리(MSAA·FXAA)가 처리
     r.setPixelRatio(Math.min(window.devicePixelRatio, 2));
     r.setSize(window.innerWidth, window.innerHeight);
     r.shadowMap.enabled = GF.SETTINGS.shadows;
     r.shadowMap.type = THREE.PCFShadowMap;
+    r.shadowMap.autoUpdate = false;   // 도시 그림자는 바뀔 때만 (city.shadowDirty)
     r.toneMapping = THREE.ACESFilmicToneMapping;
     r.toneMappingExposure = 0.82;
     document.getElementById('view').appendChild(r.domElement);
@@ -36,7 +37,7 @@ class App {
     sun.target.position.set(0, 0, 0); this.scene.add(sun.target);
     sun.castShadow = true;
     Object.assign(sun.shadow.camera, { left: -48, right: 48, top: 40, bottom: -40, near: 1, far: 180 });
-    sun.shadow.mapSize.set(4096, 4096);
+    sun.shadow.mapSize.set(2048, 2048);
     sun.shadow.bias = -0.0005; sun.shadow.normalBias = 0.04; sun.shadow.radius = 2.5;
     this.scene.add(sun);
     this.look = new Look(r, this.scene, this.camera, sun);
@@ -99,11 +100,12 @@ class App {
   applySettings() {
     this.sound.apply();
     const q = GF.SETTINGS.graphics === 'auto' ? this.look.q : GF.SETTINGS.graphics;
-    if (q && q !== this.look.q) this.look.setQuality(q);
+    if (q && q !== this.look.q) { this.look.setQuality(q); this.resize(); this.city.shadowDirty = true; }
     const on = GF.SETTINGS.shadows;
     if (this.renderer.shadowMap.enabled !== on) {
       this.renderer.shadowMap.enabled = on;
       this.scene.traverse((o) => { if (o.material) [].concat(o.material).forEach((m) => { m.needsUpdate = true; }); });
+      this.city.shadowDirty = true;
     }
   }
   togglePause() { if (!this.game.isOver()) this.paused = !this.paused; }
@@ -279,6 +281,16 @@ class App {
     if (k === 0) { t.x = cxm; t.z = czm; }
   }
 
+  // 자동 그래픽: 4초 동안 평균 프레임이 느리면(약 40fps 미만) 한 단계 낮춤
+  autoQuality(dt) {
+    if (GF.SETTINGS.graphics !== 'auto' || document.hidden) return;
+    this.fpsT = (this.fpsT || 0) + dt; this.fpsN = (this.fpsN || 0) + 1;
+    if (this.fpsT < 4) return;
+    const avg = this.fpsT / this.fpsN; this.fpsT = 0; this.fpsN = 0;
+    const next = { ultra: 'high', high: 'medium', medium: 'low' }[this.look.q];
+    if (avg > 1 / 40 && next) { this.look.setQuality(next); this.resize(); this.city.shadowDirty = true; }
+  }
+
   frame() {
     const now = performance.now(); const real = Math.min((now - this.last) / 1000, 0.1); this.last = now;
     this.time += real;
@@ -294,7 +306,9 @@ class App {
     this.game.update(dt, this.time);
     this.updateCamera(real);
     this.look.update(this.cam.dist);
+    if (this.city.shadowDirty) { this.renderer.shadowMap.needsUpdate = true; this.city.shadowDirty = false; }
     this.look.render();
+    this.autoQuality(real);
     this.ui.update(dt || 0);
   }
 }

@@ -420,20 +420,37 @@ export function makeTowerV4(type) {
 }
 
 // 같은 재질끼리 합쳐 그리기 횟수를 줄임 (stop 안쪽은 건드리지 않음)
-function compactNode(node, isStop) {
+// bake: 그림 없는 단색 재질은 색을 꼭짓점에 구워 넣고 "무광/금속" 공용 재질 2개로 합침 → 모델당 그리기 3~5번
+const vcMatte = new THREE.MeshStandardMaterial({ vertexColors: true, roughness: 0.72, metalness: 0.15 });
+const vcMetal = new THREE.MeshStandardMaterial({ vertexColors: true, roughness: 0.45, metalness: 0.6 });
+function bakeable(m) {
+  return m.isMeshStandardMaterial && !m.map && !m.transparent && !m.vertexColors && !m.onBeforeCompile.toString().includes('vOP') &&
+    (m.emissiveIntensity === 0 || m.emissive.getHex() === 0) && (m.envMapIntensity ?? 1) <= 1.01;
+}
+export function compactNode(node, isStop, bake = false) {
   node.updateMatrixWorld(true);
   const inv = new THREE.Matrix4().copy(node.matrixWorld).invert();
   const groups = new Map(), victims = [];
   const walk = (o) => {
     for (const c of o.children) {
       if (isStop(c)) continue;
-      if (c.isMesh && !Array.isArray(c.material) && c.geometry.index) {
+      if (c.isMesh && !c.isInstancedMesh && !c.isSkinnedMesh && !Array.isArray(c.material) && c.geometry.attributes.position) {
         const m = new THREE.Matrix4().multiplyMatrices(inv, c.matrixWorld);
-        const key = c.material.uuid;
-        if (!groups.has(key)) groups.set(key, { mat: c.material, geos: [] });
+        let mm = c.material, col = null;
+        if (bake && bakeable(mm)) { col = mm.color; mm = mm.metalness > 0.4 ? vcMetal : vcMatte; }
+        const key = mm.uuid + (c.geometry.index ? 'i' : 'n');
+        if (!groups.has(key)) groups.set(key, { mat: mm, geos: [], shadow: false });
         const gg = c.geometry.clone().applyMatrix4(m);
         for (const n of Object.keys(gg.attributes)) if (!['position', 'normal', 'uv'].includes(n)) gg.deleteAttribute(n);
-        groups.get(key).geos.push(gg);
+        if (!gg.attributes.uv) gg.setAttribute('uv', new THREE.BufferAttribute(new Float32Array(gg.attributes.position.count * 2), 2));
+        if (!gg.attributes.normal) gg.computeVertexNormals();
+        if (mm === vcMatte || mm === vcMetal) {
+          const n = gg.attributes.position.count, a = new Float32Array(n * 3);
+          for (let i = 0; i < n; i++) { a[i * 3] = col.r; a[i * 3 + 1] = col.g; a[i * 3 + 2] = col.b; }
+          gg.setAttribute('color', new THREE.BufferAttribute(a, 3));
+        }
+        const gr = groups.get(key);
+        gr.geos.push(gg); gr.shadow = gr.shadow || c.castShadow;
         victims.push(c);
       }
       walk(c);
@@ -441,9 +458,11 @@ function compactNode(node, isStop) {
   };
   walk(node);
   for (const v of victims) v.parent.remove(v);
-  for (const { mat: mm, geos } of groups.values()) {
-    const mesh = new THREE.Mesh(mergeGeometries(geos, false), mm);
-    mesh.castShadow = mesh.receiveShadow = true;
+  for (const { mat: mm, geos, shadow } of groups.values()) {
+    const merged = mergeGeometries(geos, false);
+    if (!merged) continue;
+    const mesh = new THREE.Mesh(merged, mm);
+    mesh.castShadow = shadow; mesh.receiveShadow = true;
     node.add(mesh);
   }
 }
@@ -462,11 +481,13 @@ export function getTower(type) {
   if (!towerProto[type]) {
     const m = makeTowerV4(type);
     tagSpin(m.spin); m.glow.forEach((g) => (g.userData.glow = true));
+    for (const [o] of m.spin) compactNode(o, () => false, true);
     m.yaw.name = 'yaw'; m.pitch.name = 'pitch'; m.muzzle.name = 'muzzle';
     const special = (o) => o.userData.spin || o.userData.glow || o.userData.keep;
-    compactNode(m.pitch, special);
-    compactNode(m.yaw, (o) => o === m.pitch || special(o));
-    compactNode(m.root, (o) => o === m.yaw || special(o));
+    compactNode(m.pitch, special, true);
+    compactNode(m.yaw, (o) => o === m.pitch || special(o), true);
+    compactNode(m.root, (o) => o === m.yaw || special(o), true);
+    m.root.traverse((o) => { o.castShadow = false; });   // 움직이는 유닛은 실시간 그림자 대신 바닥 그림자 얼룩
     towerProto[type] = m.root;
   }
   const root = towerProto[type].clone(true);
@@ -478,8 +499,10 @@ export function getEnemy(type) {
   if (!enemyProto[type]) {
     const m = makeEnemyHD(type) || makeEnemy(type);
     tagSpin(m.spin);
+    for (const [o] of m.spin) compactNode(o, () => false, true);
     m.body.name = 'body';
-    compactNode(m.body, (o) => o.userData.spin || o.userData.keep);
+    compactNode(m.body, (o) => o.userData.spin || o.userData.keep, true);
+    m.root.traverse((o) => { o.castShadow = false; });
     enemyProto[type] = { root: m.root, hpY: m.hpY };
   }
   const p = enemyProto[type];

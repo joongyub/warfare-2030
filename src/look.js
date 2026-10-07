@@ -1,5 +1,6 @@
 // 실사 화면 품질: 하늘 조명(환경광), 공기 원근감(안개), 구석 그림자(AO), 빛 번짐(블룸), 영화 색감, 가장자리 어둡게
-// 그래픽 품질: high(PC) / medium(휴대폰) / low(느린 기기: 후처리 없음)
+// 그래픽 품질: ultra(고사양 PC, 구석 그림자) / high(PC) / medium(휴대폰) / low(느린 기기: 후처리 없음)
+// 자동이면 프레임이 느릴 때 한 단계씩 스스로 낮춤 (main.js)
 import * as THREE from 'three';
 import { Sky } from 'three/examples/jsm/objects/Sky.js';
 import { EffectComposer } from 'three/examples/jsm/postprocessing/EffectComposer.js';
@@ -72,13 +73,17 @@ export class Look {
     this.q = q;
     if (this.composer) { this.composer.dispose(); this.composer = null; }
     const r = this.r;
-    r.setPixelRatio(Math.min(window.devicePixelRatio, q === 'high' ? 2 : 1.5));
+    r.setPixelRatio(Math.min(window.devicePixelRatio, { ultra: 2, high: 1.5, medium: 1.25, low: 1 }[q] || 1));
+    // 그림자 지도 크기 (도시 그림자는 멈춰 있어 바뀔 때만 다시 그림)
+    const ms = { ultra: 4096, high: 4096, medium: 2048, low: 1024 }[q] || 2048;
+    if (this.sun.shadow.mapSize.x !== ms) { this.sun.shadow.mapSize.set(ms, ms); if (this.sun.shadow.map) { this.sun.shadow.map.dispose(); this.sun.shadow.map = null; } }
     if (q === 'low') return;
     const size = r.getDrawingBufferSize(new THREE.Vector2());
-    const rt = new THREE.WebGLRenderTarget(size.x, size.y, { type: THREE.HalfFloatType, samples: q === 'high' ? 4 : 0 });
+    const msaa = q === 'ultra' ? 4 : q === 'high' ? 2 : 0;
+    const rt = new THREE.WebGLRenderTarget(size.x, size.y, { type: THREE.HalfFloatType, samples: msaa });
     const c = this.composer = new EffectComposer(r, rt);
     c.addPass(new RenderPass(this.scene, this.camera));
-    if (q === 'high') {
+    if (q === 'ultra') {
       const ao = this.ao = new GTAOPass(this.scene, this.camera, size.x, size.y);
       ao.updateGtaoMaterial({ radius: 0.9, distanceExponent: 1.4, thickness: 1.2, scale: 1.1, samples: 12 });
       ao.blendIntensity = 0.85;
@@ -88,7 +93,7 @@ export class Look {
     c.addPass(this.bloom);
     c.addPass(new OutputPass());
     this.grade = new ShaderPass(GradeShader); c.addPass(this.grade);
-    if (q !== 'high') { this.fxaa = new ShaderPass(FXAAShader); c.addPass(this.fxaa); } else this.fxaa = null;
+    if (!msaa) { this.fxaa = new ShaderPass(FXAAShader); c.addPass(this.fxaa); } else this.fxaa = null;
     this.resize();
   }
 

@@ -9,11 +9,11 @@ import {
 
 // 도시 테마 → 전투 구역 바닥 무늬
 import { DETAILED } from './landmarks.js';
-import { realLawn, realRoad, realWalk, realConcrete, realBoulevard, zebraTex, shopFacade, officeFacade } from './textures_real.js';
+import { realLawn, realRoad, realWalk, realConcrete, realBoulevard, realPlaza, zebraTex, shopFacade, officeFacade } from './textures_real.js';
 // 반복 횟수를 따로 주려고 복제 (그림은 공유)
 function rep(t, x, y) { const c = t.clone(); c.needsUpdate = true; c.repeat.set(x, y); return c; }
 const GROUNDS = { hangangPark: lawnStripeTex, grass: grassTex, dirt: dirtTex, snow: snowTex };
-import { makeBase, mat } from './models.js';
+import { makeBase, mat, compactNode } from './models.js';
 
 const V = (x = 0, y = 0, z = 0) => new THREE.Vector3(x, y, z);
 const ROAD_W = 1.9;          // 도로 폭
@@ -265,6 +265,7 @@ export class City {
     this.S = stage;
     this.group = new THREE.Group(); scene.add(this.group);
     this.anim = [];
+    this.shadowDirty = true;   // 도시 그림자는 멈춰 있으니 바뀔 때만 다시 그림
     this.labels = [];
     this.rnd = makeRng(stage.seed);
     // 적 침투로 양옆에 상가 건물이 늘어서면 그만큼 무기 배치 거리도 늘어남
@@ -423,7 +424,11 @@ export class City {
     // 전투 구역 = 화면 전체를 채우는 깨끗한 배치 공간 (도시 테마 바닥)
     const W = b.x1 - b.x0, H = b.z1 - b.z0, th = S.theme || {};
     let parkM;
-    if (th.ground === 'boulevard') {
+    if (th.ground === 'plaza') {
+      // 무기 배치 공간 = 밝은 회색 한 가지 톤 (적 침투로 아스팔트와 확실히 구분)
+      const PZ = realPlaza();
+      parkM = new THREE.MeshStandardMaterial({ map: rep(PZ.map, W / 6, H / 6), bumpMap: rep(PZ.bump, W / 6, H / 6), bumpScale: 0.6, roughness: 0.9 });
+    } else if (th.ground === 'boulevard') {
       // 무기 배치 공간 = 넓은 대로. 줄(도로 줄 사이) 가운데가 중앙선이 되도록 UV를 직접 맞춤
       const BV = realBoulevard(), U = 8.5, ph = th.laneCenter ?? 4.25;
       const geo = new THREE.PlaneGeometry(W, H); geo.rotateX(-Math.PI / 2);
@@ -671,7 +676,7 @@ export class City {
         f.rotation.x = -Math.PI / 2; f.position.set(k.x, 0.016, k.z); f.receiveShadow = true; this.group.add(f);
         for (const s of [-1, 1]) { const goal = new THREE.BoxGeometry(0.1, 0.35, 0.9); goal.translate(k.x + s * k.w / 2, 0.18, k.z); B.push(mat(0xffffff), goal); }
       } else if (k.kind === 'landmark') {
-        this.group.add(miniLandmark(k));
+        const lm = miniLandmark(k); this.group.add(lm); compactNode(lm, () => false, true);
         if (k.label) this.labels.push({ text: k.label, pos: V(k.x, k.y || 2.6, k.z), kind: 'landmark' });
       } else if (k.kind === 'apts') {
         const n = Math.max(1, Math.round(k.w / 3.4));
@@ -822,10 +827,10 @@ export class City {
   clearTreesAt(x, z, r = 0.95) {
     let n = 0;
     for (const p of this.parkTrees) if (!this.hiddenTrees.has(p) && (p[0] - x) ** 2 + (p[1] - z) ** 2 < r * r) { this.hiddenTrees.add(p); n++; }
-    if (n) this.refreshTrees();
+    if (n) { this.refreshTrees(); this.shadowDirty = true; }
     return n;
   }
-  resetTrees() { this.hiddenTrees.clear(); this.refreshTrees(); }
+  resetTrees() { this.hiddenTrees.clear(); this.refreshTrees(); this.shadowDirty = true; }
 
   update(dt, t) {
     for (const f of this.anim) f(dt, t);

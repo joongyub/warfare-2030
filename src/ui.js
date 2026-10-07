@@ -2,6 +2,12 @@
 // 배치는 서울 시안 그대로: 왼쪽 위 제목, 오른쪽 위 기지·보급·웨이브·배속·일시정지·설정, 아래 카드 줄 + 다음 웨이브
 import { Profile } from './profile.js';
 import { layout } from './layout.js';
+// 화면 글자·위치가 바뀔 때만 실제로 씀 (매 프레임 다시 쓰면 휴대폰에서 끊김)
+const putCache = new WeakMap();
+function put(o, k, v) {
+  let c = putCache.get(o); if (!c) putCache.set(o, (c = {}));
+  if (c[k] !== v) { c[k] = v; o[k] = v; }
+}
 const won = (n) => '₩' + n.toLocaleString('ko-KR');
 const h = (tag, cls, html, parent) => { const e = document.createElement(tag); if (cls) e.className = cls; if (html != null) e.innerHTML = html; if (parent) parent.appendChild(e); return e; };
 
@@ -64,7 +70,7 @@ export class UI {
       const ip = window.__installPrompt; if (!ip) return;
       ip.prompt(); ip.userChoice.then(() => { window.__installPrompt = null; document.body.classList.remove('can-install'); });
     };
-    if (this.L.mobile) t.querySelector('.help').textContent = '조작: 무기 카드 터치 → 대로 터치로 배치 · 한 손가락 끌기 이동 · 두 손가락 확대 · 무기 터치로 강화 · 같은 카드 다시 터치하면 취소';
+    if (this.L.mobile) t.querySelector('.help').textContent = '조작: 무기 카드 터치 → 회색 공간 터치로 배치 · 한 손가락 끌기 이동 · 두 손가락 확대 · 무기 터치로 강화 · 같은 카드 다시 터치하면 취소';
     this.refreshProfile();
   }
   hideTitle() { if (this.title) { this.title.remove(); this.title = null; } }
@@ -148,7 +154,7 @@ export class UI {
       <label><input type="checkbox" data-k="sound" ${SET.sound ? 'checked' : ''}> 효과음</label>
       <label><input type="checkbox" data-k="music" ${SET.music ? 'checked' : ''}> 배경 음악</label>
       <label><input type="checkbox" data-k="shadows" ${SET.shadows ? 'checked' : ''}> 그림자 <small>(느리면 끄기)</small></label>
-      <label>그래픽 <select class="gq">${[['high', '높음'], ['medium', '보통'], ['low', '낮음 (느린 기기)']].map(([v, n]) => `<option value="${v}" ${this.app.look.q === v ? 'selected' : ''}>${n}</option>`).join('')}</select></label>
+      <label>그래픽 <select class="gq">${[['auto', '자동 (추천)'], ['ultra', '최고 (고사양 PC)'], ['high', '높음'], ['medium', '보통'], ['low', '낮음 (느린 기기)']].map(([v, n]) => `<option value="${v}" ${(SET.graphics === 'auto' ? 'auto' : this.app.look.q) === v ? 'selected' : ''}>${n}</option>`).join('')}</select></label>
       <div class="row"><button class="home">처음 화면</button><button class="close">닫기</button></div>`;
     s.querySelectorAll('input').forEach((inp) => { inp.onchange = () => { SET[inp.dataset.k] = inp.checked; this.app.applySettings(); }; });
     s.querySelector('.gq').onchange = (e) => { SET.graphics = e.target.value; this.app.applySettings(); };
@@ -200,9 +206,9 @@ export class UI {
     for (const { L, e } of this.labelEls) {
       const vis = inGame && (L.kind !== 'landmark' || GF.SETTINGS.showLandmarkLabels);
       const p = vis ? this.project(L.pos) : null;
-      if (!p || p.x < -100 || p.x > 2020 || p.y < -50 || p.y > 1130) { e.style.display = 'none'; continue; }
-      e.style.display = 'block';
-      e.style.left = Math.max(70, Math.min(this.BW - 70, p.x)) + 'px'; e.style.top = Math.max(40, p.y) + 'px';
+      if (!p || p.x < -100 || p.x > 2020 || p.y < -50 || p.y > 1130) { put(e.style, 'display', 'none'); continue; }
+      put(e.style, 'display', 'block');
+      put(e.style, 'left', Math.max(70, Math.min(this.BW - 70, p.x)) + 'px'); put(e.style, 'top', Math.max(40, p.y) + 'px');
     }
   }
 
@@ -211,15 +217,15 @@ export class UI {
     const g = this.g;
     if (!this.hud || !g) return;
     const S = this.app.stage;
-    this.eLives.innerHTML = `<i class="shield"></i><span>기지</span>${g.lives}/${S.lives}`;
-    this.eMoney.innerHTML = `<i class="box"></i><span>보급</span>${Math.floor(g.money)}`;
-    this.eWave.innerHTML = `<span>웨이브</span>${Math.max(1, g.waveNo)}/${S.waves.length}`;
-    this.eKills.innerHTML = `격파 <b>${g.kills}</b>${g.combo >= 5 ? ` <em>연쇄 ${g.combo}</em>` : ''} · 남은 적 ${g.enemies.length + g.queue.length}`;
-    this.bSpeed.innerHTML = `▶▶<small>${g.speed}x</small>`;
-    this.bPause.textContent = this.app.paused ? '▶' : '❚❚';
-    this.ePaused.style.display = this.app.paused ? 'block' : 'none';
+    put(this.eLives, 'innerHTML', `<i class="shield"></i><span>기지</span>${g.lives}/${S.lives}`);
+    put(this.eMoney, 'innerHTML', `<i class="box"></i><span>보급</span>${Math.floor(g.money)}`);
+    put(this.eWave, 'innerHTML', `<span>웨이브</span>${Math.max(1, g.waveNo)}/${S.waves.length}`);
+    put(this.eKills, 'innerHTML', `격파 <b>${g.kills}</b>${g.combo >= 5 ? ` <em>연쇄 ${g.combo}</em>` : ''} · 남은 적 ${g.enemies.length + g.queue.length}`);
+    put(this.bSpeed, 'innerHTML', `▶▶<small>${g.speed}x</small>`);
+    put(this.bPause, 'textContent', this.app.paused ? '▶' : '❚❚');
+    put(this.ePaused.style, 'display', this.app.paused ? 'block' : 'none');
     this.cards.forEach(({ id, c, n }) => {
-      n.textContent = GF.wname(id);
+      put(n, 'textContent', GF.wname(id));
       c.classList.toggle('sel', g.mode === id);
       c.classList.toggle('off', g.money < GF.WEAPONS[id].cost);
     });
@@ -230,61 +236,61 @@ export class UI {
     else if (g.waveNo >= S.waves.length) { nb = `<b>마지막 웨이브</b><small>남은 적 ${g.enemies.length + g.queue.length}</small>`; cls += ' busy'; }
     else if (g.queue.length) { nb = `<b>다음 웨이브 ≫</b><small>적 출현 중 · ${g.queue.length}</small>`; cls += ' busy'; }
     else nb = `<b>다음 웨이브 ≫</b><small>${Math.ceil(g.nextT)}초 후 자동 · 지금 누르면 +${Math.ceil(g.nextT) * 3}</small>`;
-    if (this.bNext.innerHTML !== nb) this.bNext.innerHTML = nb;
-    this.bNext.className = cls;
+    put(this.bNext, 'innerHTML', nb);
+    put(this.bNext, 'className', cls);
 
     this.ops.forEach((o, i) => {
       const id = g.hand[i], C = GF.CARDS[id];
       const html = `<i>${'QWE'[i]}</i><b>${C.name}</b><span>${C.desc}</span><em>${C.cost}</em>`;
-      if (o.innerHTML !== html) o.innerHTML = html;
+      put(o, 'innerHTML', html);
       o.classList.toggle('off', g.cp < C.cost);
       o.classList.toggle('sel', g.cardSel === i);
     });
-    this.eNext.textContent = '다음 카드: ' + GF.CARDS[g.deck[0]].name;
+    put(this.eNext, 'textContent', '다음 카드: ' + GF.CARDS[g.deck[0]].name);
     for (const { id, C, o } of this.strats) {
       const st = g.strat[id], open = g.stratOpen(id);
       const sub = !open ? `스테이지 ${C.unlockStage}부터` : st.charges ? `사용 가능 ${st.charges}/${C.max}` : `웨이브 ${g.stratNext(id)}에 재보급`;
       const html = `<i>${C.key}</i><b>${id === 'nuke' ? '☢ ' : '🚀 '}${C.name}</b><span>${sub}</span>`;
-      if (o.innerHTML !== html) o.innerHTML = html;
+      put(o, 'innerHTML', html);
       o.classList.toggle('ready', open && st.charges > 0);
       o.classList.toggle('sel', g.mode === 'strat' && g.stratSel === id);
     }
     const part = g.cp < GF.SETTINGS.cpMax ? g.cpT / GF.SETTINGS.cpEverySec : 0;
-    this.cpSegs.forEach((s, i) => { s.firstChild.style.width = (i < g.cp ? 100 : i === g.cp ? part * 100 : 0) + '%'; });
-    this.eCp.textContent = 'CP ' + g.cp + ' / ' + GF.SETTINGS.cpMax;
+    this.cpSegs.forEach((s, i) => { put(s.firstChild.style, 'width', (i < g.cp ? 100 : i === g.cp ? part * 100 : 0) + '%'); });
+    put(this.eCp, 'textContent', 'CP ' + g.cp + ' / ' + GF.SETTINGS.cpMax);
 
     // 무기 정보 창
     const tw = g.selected;
-    this.panel.style.display = tw ? 'block' : 'none';
+    put(this.panel.style, 'display', tw ? 'block' : 'none');
     if (tw) {
       const st = g.stats(tw), max = tw.level >= GF.SETTINGS.maxTowerLevel;
       const sp = this.project(tw.pos.clone().setY(0.6)) || { x: 900, y: 500 };
-      this.panel.style.left = Math.max(20, Math.min(this.BW - 420, sp.x + 60)) + 'px'; this.panel.style.top = Math.max(this.L.mobile ? 60 : 110, Math.min(this.BH - (this.L.mobile ? 400 : 520), sp.y - 160)) + 'px';
-      this.panel.querySelector('.pt').textContent = GF.wname(tw.type) + '  Lv.' + tw.level;
-      this.panel.querySelector('.pi').innerHTML = `${tw.W.nation} · ${tw.W.role}<br>${this.upLine(g, tw, st, max)}누적 피해 <b>${fmt(tw.dmgTotal)}</b> · 격파 <b>${tw.kills}</b><br><small>${tw.W.desc}</small>`;
+      put(this.panel.style, 'left', Math.max(20, Math.min(this.BW - 420, sp.x + 60)) + 'px'); put(this.panel.style, 'top', Math.max(this.L.mobile ? 60 : 110, Math.min(this.BH - (this.L.mobile ? 400 : 520), sp.y - 160)) + 'px');
+      put(this.panel.querySelector('.pt'), 'textContent', GF.wname(tw.type) + '  Lv.' + tw.level);
+      put(this.panel.querySelector('.pi'), 'innerHTML', `${tw.W.nation} · ${tw.W.role}<br>${this.upLine(g, tw, st, max)}누적 피해 <b>${fmt(tw.dmgTotal)}</b> · 격파 <b>${tw.kills}</b><br><small>${tw.W.desc}</small>`);
       const up = this.panel.querySelector('.up'), all = this.panel.querySelector('.all');
-      up.textContent = max ? '최대 강화 (Lv.4)' : `강화 Lv.${tw.level + 1}/4  (${g.upgradeCost(tw)})`;
+      put(up, 'textContent', max ? '최대 강화 (Lv.4)' : `강화 Lv.${tw.level + 1}/4  (${g.upgradeCost(tw)})`);
       up.disabled = max || g.money < g.upgradeCost(tw);
       const n = g.bulkList(tw.type).length, bc = g.bulkCost(tw.type);
-      all.textContent = n ? `같은 무기 ${n}대 모두 강화  (${bc})` : '같은 무기 모두 최대 강화';
+      put(all, 'textContent', n ? `같은 무기 ${n}대 모두 강화  (${bc})` : '같은 무기 모두 최대 강화');
       all.disabled = !n || g.money < bc;
-      this.panel.querySelector('.sell').textContent = '판매 +' + Math.round(tw.invested * GF.SETTINGS.sellRefund);
+      put(this.panel.querySelector('.sell'), 'textContent', '판매 +' + Math.round(tw.invested * GF.SETTINGS.sellRefund));
     }
 
     // 커서 옆 안내 (자유 배치 가능 / 도로 배치 불가)
     if (g.tip && this.app.mouse) {
       const m = this.app.mouse, rr = this.root.getBoundingClientRect();
-      this.eTip.style.display = 'block';
-      this.eTip.className = 'tip ' + (g.tip.ok ? 'ok' : 'bad');
-      this.eTip.textContent = (g.tip.ok ? '✓ ' : '✕ ') + g.tip.text;
-      this.eTip.style.left = ((m.x - rr.left) / this.scale + 24) + 'px'; this.eTip.style.top = ((m.y - rr.top) / this.scale + 18) + 'px';
-    } else this.eTip.style.display = 'none';
+      put(this.eTip.style, 'display', 'block');
+      put(this.eTip, 'className', 'tip ' + (g.tip.ok ? 'ok' : 'bad'));
+      put(this.eTip, 'textContent', (g.tip.ok ? '✓ ' : '✕ ') + g.tip.text);
+      put(this.eTip.style, 'left', ((m.x - rr.left) / this.scale + 24) + 'px'); put(this.eTip.style, 'top', ((m.y - rr.top) / this.scale + 18) + 'px');
+    } else put(this.eTip.style, 'display', 'none');
 
     for (const f of this.floats) {
       f.t += dt;
       const p = this.project(f.v);
-      if (p) { f.e.style.left = p.x + 'px'; f.e.style.top = (p.y - f.t * 50) + 'px'; }
-      f.e.style.opacity = 1 - f.t / 0.9;
+      if (p) { put(f.e.style, 'left', p.x + 'px'); put(f.e.style, 'top', (p.y - f.t * 50) + 'px'); }
+      put(f.e.style, 'opacity', 1 - f.t / 0.9);
       if (f.t > 0.9) { f.e.remove(); f.done = true; }
     }
     this.floats = this.floats.filter((f) => !f.done);
@@ -293,9 +299,9 @@ export class UI {
     const M = this.L.mobile, tap = M ? '터치' : '클릭', esc = M ? '버튼 다시 누르면 취소' : 'ESC 취소';
     if (g.mode === 'strat') hint = GF.STRATEGIC[g.stratSel].name + `: 떨어뜨릴 곳을 ${tap} · ${esc}`;
     else if (g.mode === 'card') hint = GF.CARDS[g.hand[g.cardSel]].name + `: 지도에서 위치 ${tap} · ${esc}`;
-    else if (g.mode) hint = GF.wname(g.mode) + ` 설치: 대로 아무 곳이나 ${tap} · ${M ? '카드 다시 누르면 취소' : '오른쪽 클릭/ESC 취소'}`;
-    else if (g.state === 'ready') hint = this.L.mobile ? '무기 카드를 누르고 대로를 터치해 배치 · 두 손가락으로 확대 · 한 손가락 끌기로 이동' : '적이 오는 도심 거리·건물·랜드마크만 빼고 대로 어디든 무기를 놓으세요. 거리 사이 대로에 놓으면 위아래 거리를 동시에 공격합니다 · 휠: 커서 쪽 확대 · 0: 전체 보기';
-    this.eHint.textContent = hint;
+    else if (g.mode) hint = GF.wname(g.mode) + ` 설치: 회색 공간 아무 곳이나 ${tap} · ${M ? '카드 다시 누르면 취소' : '오른쪽 클릭/ESC 취소'}`;
+    else if (g.state === 'ready') hint = this.L.mobile ? '무기 카드를 누르고 회색 공간을 터치해 배치 · 두 손가락으로 확대 · 한 손가락 끌기로 이동' : '적이 오는 도심 거리·건물·랜드마크만 빼고 회색 공간 어디든 무기를 놓으세요. 거리 사이 회색 공간에 놓으면 위아래 거리를 동시에 공격합니다 · 휠: 커서 쪽 확대 · 0: 전체 보기';
+    put(this.eHint, 'textContent', hint);
   }
 
   // 무기 창: 강화 단계(1~4) + 현재 → 다음 단계 DPS·사거리

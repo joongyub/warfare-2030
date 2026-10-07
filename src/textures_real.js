@@ -106,8 +106,8 @@ export function realRoad() {
       // 바퀴 자국: 각 차로 가운데 두 줄이 조금 더 어둡고 매끈
       const lane = (u < 0.5 ? u / 0.5 : (u - 0.5) / 0.5);
       const track = Math.exp(-Math.pow((lane - 0.3) / 0.08, 2)) + Math.exp(-Math.pow((lane - 0.72) / 0.08, 2));
-      let l = 66 + (big[i] - 0.5) * 22 + (agg[i] - 0.5) * 26 + (grain - 0.5) * 30 - track * 9;
-      if (patch[i] > 0.66) l -= 10;                        // 땜질한 새 아스팔트(더 짙음)
+      let l = 98 + (big[i] - 0.5) * 20 + (agg[i] - 0.5) * 24 + (grain - 0.5) * 26 - track * 8;   // 밝은 아스팔트 (적 침투로가 눈에 띄게)
+      if (patch[i] > 0.66) l -= 9;                        // 땜질한 새 아스팔트(더 짙음)
       if (grain > 0.985) l += 40;                           // 반짝이는 돌 알갱이
       c[p] = clamp(l); c[p + 1] = clamp(l + 1); c[p + 2] = clamp(l + 4); c[p + 3] = 255;
       const hv = clamp(120 + (agg[i] - 0.5) * 140 + (grain - 0.5) * 110 - track * 25);
@@ -200,6 +200,23 @@ export function realBoulevard() {
     }
   };
   return build('blvd', S, S, paintFn);
+}
+
+// 무기 배치 공간 = 밝은 회색 광장 바닥 (아주 옅은 돌판 이음, 거의 한 가지 색으로 통일)
+export function realPlaza() {
+  const S = 256;
+  return build('plaza', S, S, (c, hb) => {
+    const rnd = makeRng('rplaza');
+    const n = fbm(S, S, 3, 4, rnd);
+    for (let y = 0; y < S; y++) for (let x = 0; x < S; x++) {
+      const i = y * S + x, p = i * 4, gr = rnd();
+      const joint = x % 64 < 1 || y % 64 < 1;
+      let l = 176 + (n[i] - 0.5) * 12 + (gr - 0.5) * 8; if (joint) l -= 14;
+      c[p] = clamp(l); c[p + 1] = clamp(l + 1); c[p + 2] = clamp(l + 3); c[p + 3] = 255;
+      const hv = joint ? 90 : clamp(140 + (gr - 0.5) * 30);
+      hb[p] = hb[p + 1] = hb[p + 2] = hv; hb[p + 3] = 255;
+    }
+  });
 }
 
 // 횡단보도 (흰 줄무늬), 투명 바탕
