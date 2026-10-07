@@ -278,9 +278,9 @@ export class VFX {
   trail(p, prev, heavy = false, dt = 1 / 60) {
     const k = heavy ? 1.8 : 1;
     this.emit(this.glow, { x: p.x, y: p.y, z: p.z, life: 0.06, s0: 0.14 * k, c0: C(0xffd890, 2), tile: 2 });
-    const steps = Math.max(1, Math.min(4, Math.ceil(p.distanceTo(prev) / 0.12)));
+    const steps = Math.max(1, Math.min(heavy ? 10 : 5, Math.ceil(p.distanceTo(prev) / 0.12)));
     for (let i = 0; i < steps; i++) {
-      if (Math.random() > 0.85 * this.q + 0.15) continue;
+      if (Math.random() > 0.9 * this.q + 0.1) continue;
       const t = i / steps, x = prev.x + (p.x - prev.x) * t, y = prev.y + (p.y - prev.y) * t, z = prev.z + (p.z - prev.z) * t;
       this.emit(this.smoke, { x, y, z, v: [R(-0.08, 0.08), R(0.05, 0.2), R(-0.08, 0.08)], life: R(1.2, 2) * (heavy ? 1.6 : 1), s0: 0.12 * k, s1: R(0.4, 0.6) * k, c0: C(0xe4e2de), c1: C(0xc8c6c2), a: 0.5, tile: 0, drag: 1.5, fin: 0.04, rv: R(-0.5, 0.5) });
     }

@@ -10,6 +10,7 @@ import { layout, isTouch } from './layout.js';
 import { getTower } from './models.js';
 import { Look } from './look.js';
 import { Backdrop, exportGuide } from './backdrop.js';
+import { TitleScene } from './titlescene.js';
 
 class App {
   constructor() {
@@ -122,6 +123,7 @@ class App {
     this.look.resize();
     this.W = w; this.H = h;
     this.camera.aspect = w / h; this.camera.updateProjectionMatrix();
+    if (this.title) this.title.resize(w, h);
     this.fitView();
   }
 
@@ -344,8 +346,13 @@ class App {
     this.game.update(dt, this.time);
     this.updateCamera(real);
     this.look.update(this.cam.dist);
-    if (this.city.shadowDirty) { this.renderer.shadowMap.needsUpdate = true; this.city.shadowDirty = false; }
-    this.look.render();
+    if (this.game.state === 'title') {   // 처음 화면: 서울 맵 대신 전투 장면
+      if (!this.title) { this.title = new TitleScene(this.renderer); this.title.resize(this.W, this.H); }
+      this.title.update(real); this.title.render();
+    } else {
+      if (this.city.shadowDirty) { this.renderer.shadowMap.needsUpdate = true; this.city.shadowDirty = false; }
+      this.look.render();
+    }
     this.autoQuality(real);
     this.ui.update(dt || 0);
   }
