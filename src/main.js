@@ -1,6 +1,7 @@
 // 게임 시작점: 3D 화면, 카메라, 조명, 마우스·키보드
 // 카메라: 시안처럼 비스듬히 내려다보는 3D 원근 시점. 각도는 하나로 고정, 전투 구역이 화면을 꽉 채우도록 맞춤.
 // 확대·축소는 같은 각도 그대로 카메라만 앞뒤로 움직임(커서 아래 지점이 그대로 유지됨)
+import { Saves } from './save.js';
 import * as THREE from 'three';
 import { City } from './city.js';
 import { Game } from './game.js';
@@ -106,6 +107,22 @@ class App {
     this.game.start();
     this.ui.buildHud();
   }
+  // 저장한 게임 이어하기 (처음 화면에서)
+  loadGame(id) {
+    const d = Saves.get(id); if (!d) return;
+    if (GF.STAGES[id] !== this.stage) this.selectStage(id);
+    this.startGame();
+    this.game.restore(d);
+  }
+  // 전투 중 저장 (exit = 저장하고 처음 화면으로)
+  saveGame(exit) {
+    const d = this.game.serialize();
+    if (!d) { this.ui.toast('지금은 저장할 수 없습니다'); return false; }
+    if (!Saves.put(d)) { this.ui.toast('저장 실패: 브라우저 저장 공간을 쓸 수 없습니다', '#FF8A8E'); return false; }
+    if (exit) { this.paused = false; this.toTitle(); this.ui.toastAny(`저장 완료 · ${this.stage.name} 웨이브 ${d.wave + 1}부터 이어하기`); }
+    else this.ui.toast(`저장 완료 · 웨이브 ${d.wave + 1}부터 이어할 수 있어요`, '#8FF3FF', 3000);
+    return true;
+  }
   // 처음 화면에서 스테이지 바꾸기: 도시를 새로 지음
   selectStage(id) {
     const S = GF.STAGES[id];
@@ -122,7 +139,7 @@ class App {
     this.ui.hideTitle(); this.ui.showTitle(this.icons);
   }
   toTitle() {
-    this.game.state = 'title';
+    this.game.state = 'title'; this.paused = false;
     this.game.cancelMode();
     this.ui.clearHud(); this.ui.clearResult();
     this.ui.showTitle(this.icons);

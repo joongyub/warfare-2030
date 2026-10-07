@@ -3,6 +3,7 @@
 import { Profile } from './profile.js';
 import { layout } from './layout.js';
 import { HEROES, HERO_IDS, GACHA } from './heroes.js';
+import { Saves } from './save.js';
 // 화면 글자·위치가 바뀔 때만 실제로 씀 (매 프레임 다시 쓰면 휴대폰에서 끊김)
 const putCache = new WeakMap();
 function put(o, k, v) {
@@ -49,6 +50,7 @@ export class UI {
         <button class="pc-hero">🎖 전설의 영웅 보기</button>
         <button class="pc-fs">⛶ 전체 화면으로 하기</button>
         <button class="pc-install">📲 앱으로 설치하기</button>
+        <div class="pc-saves"></div>
       </div>
       <div class="brief">
         <div class="stages">${this.stageList().map((X) => `<button class="st${X === S ? ' on' : ''}" data-id="${X.id}"><small>STAGE ${X.no}</small>${X.name}<i>${'★'.repeat(this.best(X.id))}${'☆'.repeat(3 - this.best(X.id))}</i></button>`).join('')}</div>
@@ -58,11 +60,12 @@ export class UI {
         <div class="meta">웨이브 ${S.waves.length} · 기지 체력 ${S.lives} · 적 진입로 ${1 + (S.branches || []).length}곳 · 최고 기록 <b>${'★'.repeat(best)}${'☆'.repeat(3 - best)}</b></div>
         <div class="label">장착 무기 ${GF.LOADOUT.length} <small>도로·랜드마크만 빼고 어디든 배치</small> · 전략 무기 <small>ICBM · 전략핵미사일 (웨이브마다 재보급)</small></div>
         <div class="loadout">${GF.LOADOUT.map((id) => `<div class="lo"><img src="${icons[id]}"><b>${GF.wname(id)}</b><span>${GF.WEAPONS[id].role}</span></div>`).join('')}</div>
-        <button class="go">출격</button>
+        <div class="go-row"><button class="go">출격</button></div>
         <div class="help">조작: 마우스 끌기·방향키 지도 이동 · 휠 확대·축소 · 오른쪽 버튼 끌기 또는 [ ] 키 시점 회전 · R 기본 시점 · 1~9 무기 · Q W E 작전 카드 · Z ICBM · X 전략핵 · 스페이스 일시정지 · N 다음 웨이브</div>
         <div class="disc">이 게임은 가상의 이야기입니다. 실제 국가·단체·사건과 관계없습니다. · v${GF.SETTINGS.version}</div>
       </div>`;
     t.querySelector('.go').onclick = () => this.app.startGame();
+    this.renderSaves();
     t.querySelectorAll('.stages .st').forEach((b) => { b.onclick = () => this.app.selectStage(b.dataset.id); });
     const inp = t.querySelector('.pc-name'); inp.value = Profile.data.name || '';
     const saveName = () => { Profile.setName(inp.value); this.toastAny('지휘관 이름 저장: ' + Profile.name); };
@@ -77,6 +80,31 @@ export class UI {
     };
     if (this.L.mobile) t.querySelector('.help').textContent = '조작: 무기 카드 터치 → 회색 공간 터치로 배치 · 한 손가락 끌기 이동 · 두 손가락 벌리기 확대 · 두 손가락 비틀기 회전 · 무기 터치로 강화 · 같은 카드 다시 터치하면 취소';
     this.refreshProfile();
+  }
+  // 처음 화면: 저장된 게임 목록 + 이어하기 버튼
+  renderSaves() {
+    const t = this.title; if (!t) return;
+    const S = this.app.stage, all = Saves.all();
+    const list = this.stageList().filter((X) => all[X.id]);
+    const box = t.querySelector('.pc-saves');
+    box.innerHTML = `<div class="pc-title sv-t">💾 저장된 게임</div>` + (list.length ? list.map((X) => {
+      const d = all[X.id];
+      return `<div class="sv" data-id="${X.id}"><div class="sv-i"><b>${X.name}</b><span>웨이브 ${d.wave + 1}/${X.waves.length} · 기지 ${d.lives}/${X.lives} · 보급 ${d.money}</span><small>${Saves.when(d.time)} 저장 · 무기 ${d.towers.length}대</small></div><button class="sv-load">불러오기</button><button class="sv-del" title="삭제">✕</button></div>`;
+    }).join('') : '<div class="sv-none">아직 없어요. 전투 중 💾 버튼으로 저장하세요.</div>');
+    box.querySelectorAll('.sv').forEach((row) => {
+      const id = row.dataset.id;
+      row.querySelector('.sv-load').onclick = () => this.app.loadGame(id);
+      const del = row.querySelector('.sv-del');
+      del.onclick = () => {
+        if (!del.classList.contains('ask')) { del.classList.add('ask'); del.textContent = '삭제?'; setTimeout(() => { if (del.isConnected) { del.classList.remove('ask'); del.textContent = '✕'; } }, 2500); return; }
+        Saves.remove(id); this.renderSaves(); this.toastAny('저장된 게임을 지웠어요');
+      };
+    });
+    // 지금 고른 스테이지에 저장이 있으면 출격 옆에 이어하기
+    const row = t.querySelector('.go-row'), d = all[S.id];
+    row.querySelector('.cont')?.remove();
+    t.querySelector('.go').textContent = d ? '새로 출격' : '출격';
+    if (d) { const c = h('button', 'go cont', `▶ 이어하기<small>웨이브 ${d.wave + 1}부터</small>`, row); c.onclick = () => this.app.loadGame(S.id); }
   }
   hideTitle() { if (this.title) { this.title.remove(); this.title = null; } }
   best(id = this.app.stage.id) { try { return JSON.parse(localStorage.getItem('gf_progress') || '{}')[id] || 0; } catch (e) { return 0; } }
@@ -95,13 +123,14 @@ export class UI {
     this.eKills = h('div', 'kills', '', hud);
     const tr = h('div', 'tr', null, hud);
     const hq = h('button', 'sq hq', '<span>🎖</span><b>영웅 · 뽑기</b>', tr); hq.title = '영웅 모집 · 보급 뽑기 · 보급 충전 (H 키)'; hq.onclick = () => this.openShop('hero');
-    this.bench = h('div', 'hbench', '', hud);
+    this.bench = h('div', 'hbench', '', hud); this.benchKey = null;
     this.eLives = h('div', 'pill lives', '', tr);
     this.eMoney = h('div', 'pill money', '', tr);
     this.eWave = h('div', 'pill wave', '', tr);
     this.bSpeed = h('button', 'sq speed', '', tr); this.bSpeed.onclick = () => { g.speed = g.speed >= 3 ? 1 : g.speed + 1; };
     this.bPause = h('button', 'sq', '', tr); this.bPause.onclick = () => this.app.togglePause();
     h('button', 'sq fs-btn', '⛶', tr).onclick = () => this.fullscreen();
+    const sv = h('button', 'sq save-btn', '💾', tr); sv.title = '저장하기 · 저장하고 나가기'; sv.onclick = () => this.toggleSaveBox();
     h('button', 'sq gear', '⚙', tr).onclick = () => this.toggleSettings();
     // 시점 회전 버튼 (누르고 있으면 계속 돌아감) · 가운데는 기본 시점
     const rv = h('div', 'rotv', null, hud);
@@ -153,6 +182,8 @@ export class UI {
     this.panel.querySelector('.sell').onclick = () => g.sellTower(g.selected);
     this.panel.querySelector('.close').onclick = () => g.select(null);
 
+    // 저장 창
+    this.saveBox = h('div', 'settings savebox', '', hud);
     // 설정 창
     this.settings = h('div', 'settings', '', hud);
     this.renderSettings();
@@ -174,14 +205,35 @@ export class UI {
       <label><input type="checkbox" data-k="sound" ${SET.sound ? 'checked' : ''}> 효과음</label>
       <label><input type="checkbox" data-k="shadows" ${SET.shadows ? 'checked' : ''}> 그림자 <small>(느리면 끄기)</small></label>
       <label>그래픽 <select class="gq">${[['auto', '자동 (추천)'], ['ultra', '최고 (고사양 PC)'], ['high', '높음'], ['medium', '보통'], ['low', '낮음 (느린 기기)']].map(([v, n]) => `<option value="${v}" ${(SET.graphics === 'auto' ? 'auto' : this.app.look.q) === v ? 'selected' : ''}>${n}</option>`).join('')}</select></label>
-      <div class="row"><button class="home">처음 화면</button><button class="close">닫기</button></div>`;
+      <div class="row"><button class="save">💾 저장하기</button><button class="savex">저장하고 나가기</button></div>
+      <div class="row"><button class="home">저장 안 하고 나가기</button><button class="close">닫기</button></div>`;
     s.querySelectorAll('input').forEach((inp) => { inp.onchange = () => { SET[inp.dataset.k] = inp.checked; this.app.applySettings(); }; });
     s.querySelector('.gq').onchange = (e) => { SET.graphics = e.target.value; this.app.applySettings(); };
+    s.querySelector('.save').onclick = () => { if (this.app.saveGame(false)) this.toggleSettings(false); };
+    s.querySelector('.savex').onclick = () => { this.toggleSettings(false); this.app.saveGame(true); };
     s.querySelector('.home').onclick = () => { this.toggleSettings(false); this.app.toTitle(); };
     s.querySelector('.close').onclick = () => this.toggleSettings(false);
   }
+  toggleSaveBox(on) {
+    const b = this.saveBox, show = on == null ? b.style.display !== 'block' : on;
+    if (show) {
+      const g = this.g, S = this.app.stage, d = g.serialize(), old = Saves.get(S.id);
+      this.toggleSettings(false);
+      b.innerHTML = `<b>게임 저장</b>
+        <div class="sv-now">${d ? `지금 저장하면 <em>웨이브 ${d.wave + 1}</em>부터 이어서 해요.<br>기지 ${d.lives}/${S.lives} · 보급 ${d.money} · 무기 ${d.towers.length}대` : '지금은 저장할 수 없어요.'}</div>
+        ${d && d.wave < g.waveNo ? '<small>웨이브 도중이라 이 웨이브는 처음부터 다시 시작해요.</small>' : ''}
+        ${old ? `<small>이전 저장(${Saves.when(old.time)}, 웨이브 ${old.wave + 1})은 덮어써요.</small>` : ''}
+        <div class="row"><button class="save">💾 저장하기</button><button class="savex">저장하고 나가기</button></div>
+        <div class="row"><button class="close">계속하기</button></div>`;
+      b.querySelector('.save').onclick = () => { if (this.app.saveGame(false)) this.toggleSaveBox(false); };
+      b.querySelector('.savex').onclick = () => { this.toggleSaveBox(false); this.app.saveGame(true); };
+      b.querySelector('.close').onclick = () => this.toggleSaveBox(false);
+    }
+    b.style.display = show ? 'block' : 'none';
+  }
   toggleSettings(on) {
     const show = on == null ? this.settings.style.display !== 'block' : on;
+    if (show && this.saveBox) this.saveBox.style.display = 'none';
     this.settings.style.display = show ? 'block' : 'none';
   }
 
@@ -225,7 +277,7 @@ export class UI {
     for (const { L, e } of this.labelEls) {
       const vis = inGame && (L.kind !== 'landmark' || GF.SETTINGS.showLandmarkLabels);
       const p = vis ? this.project(L.pos) : null;
-      if (!p || p.x < -100 || p.x > 2020 || p.y < -50 || p.y > 1130) { put(e.style, 'display', 'none'); continue; }
+      if (!p || p.x < -100 || p.x > 2020 || p.y < -50 || p.y > 1130 || (L.kind === 'landmark' && p.y < this.L.base.top + 34)) { put(e.style, 'display', 'none'); continue; }   // 위쪽 정보줄 밑에 깔리는 이름표는 숨김
       put(e.style, 'display', 'block');
       put(e.style, 'left', Math.max(70, Math.min(this.BW - 70, p.x)) + 'px'); put(e.style, 'top', Math.max(40, p.y) + 'px');
     }
@@ -238,7 +290,7 @@ export class UI {
     const S = this.app.stage;
     put(this.eLives, 'innerHTML', `<i class="shield"></i><span>기지</span>${g.lives}/${S.lives}`);
     put(this.eMoney, 'innerHTML', `<i class="box"></i><span>보급</span>${Math.floor(g.money)}`);
-    put(this.eWave, 'innerHTML', `<span>웨이브</span>${Math.max(1, g.waveNo)}/${S.waves.length}`);
+    put(this.eWave, 'innerHTML', `<span>웨이브</span>${Math.max(1, g.waveNo + (g.state === 'ready' ? 1 : 0))}/${S.waves.length}`);
     put(this.eKills, 'innerHTML', `격파 <b>${g.kills}</b>${g.combo >= 5 ? ` <em>연쇄 ${g.combo}</em>` : ''} · 남은 적 ${g.enemies.length + g.queue.length}`);
     put(this.bSpeed, 'innerHTML', `▶▶<small>${g.speed}x</small>`);
     put(this.bPause, 'textContent', this.app.paused ? '▶' : '❚❚');
@@ -253,14 +305,14 @@ export class UI {
     const bk = g.heroBench.map((id) => id + (g.heroBonus[id] || 0) + (g.mode === 'hero' && g.heroSel === id ? '*' : '')).join(',');
     if (this.benchKey !== bk) {
       this.benchKey = bk;
-      this.bench.innerHTML = g.heroBench.length ? '<div class="hb-t">배치 대기 영웅</div>' + g.heroBench.map((id) => `<button class="hb${g.mode === 'hero' && g.heroSel === id ? ' sel' : ''}" data-id="${id}"><img src="${this.icons['hero_' + id]}"><b>${HEROES[id].short}</b><small>Lv.${1 + (g.heroBonus[id] || 0)} · 눌러서 배치</small></button>`).join('') : '';
+      this.bench.innerHTML = g.heroBench.length ? '<div class="hb-t">배치 대기 영웅</div>' + g.heroBench.map((id) => `<button class="hb${g.mode === 'hero' && g.heroSel === id ? ' sel' : ''}" data-id="${id}"><img src="${this.icons['hero_' + id]}"><b>${HEROES[id].short}</b><small>Lv.${1 + (g.heroBonus[id] || 0)} · 눌러 배치</small></button>`).join('') : '';
       this.bench.querySelectorAll('.hb').forEach((b) => { b.onclick = () => g.pickHero(b.dataset.id); });
     }
     if (this.shopEl) { const m = this.shopEl.querySelector('.sh-money'); if (m) put(m, 'textContent', Math.floor(g.money).toLocaleString('ko-KR')); }
 
     // 다음 웨이브 버튼
     let nb = '', cls = 'nextwave';
-    if (g.state === 'ready') nb = '<b>작전 개시 ≫</b><small>첫 웨이브 출격</small>';
+    if (g.state === 'ready') nb = `<b>작전 개시 ≫</b><small>${g.waveNo ? `웨이브 ${g.waveNo + 1} 출격` : '첫 웨이브 출격'}</small>`;
     else if (g.waveNo >= S.waves.length) { nb = `<b>마지막 웨이브</b><small>남은 적 ${g.enemies.length + g.queue.length}</small>`; cls += ' busy'; }
     else if (g.queue.length) { nb = `<b>다음 웨이브 ≫</b><small>적 출현 중 · ${g.queue.length}</small>`; cls += ' busy'; }
     else nb = `<b>다음 웨이브 ≫</b><small>${Math.ceil(g.nextT)}초 후 자동 · 지금 누르면 +${Math.ceil(g.nextT) * 3}</small>`;
@@ -491,6 +543,8 @@ export class UI {
         <div class="row"><button class="again">다시 하기</button><button class="home">처음 화면</button></div>
       </div>`, this.root);
     r.querySelector('.again').onclick = () => { r.remove(); this.result = null; this.app.startGame(); };
+    const sv = !won && Saves.get(this.app.stage.id);
+    if (sv) { const b = h('button', 'load', `저장한 곳부터 (웨이브 ${sv.wave + 1})`, r.querySelector('.row')); b.onclick = () => { r.remove(); this.result = null; this.app.loadGame(this.app.stage.id); }; }
     r.querySelector('.home').onclick = () => { r.remove(); this.result = null; this.app.toTitle(); };
   }
   clearResult() { if (this.result) { this.result.remove(); this.result = null; } }

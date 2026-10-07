@@ -41,7 +41,7 @@ export class Game {
   }
 
   ui() { return this.app.ui; }
-  snd(name, vol) { if (this.app.sound) this.app.sound.play(name, vol); }
+  snd(name, vol) { if (this.app.sound && !this.quiet) this.app.sound.play(name, vol); }
 
   // ---------- 새 판 시작 ----------
   start() {
@@ -154,6 +154,60 @@ export class Game {
     }
     this.ui().showResult(won, stars);
     this.snd(won ? 'win' : 'lose');
+  }
+
+  // ---------- 저장 · 불러오기 ----------
+  // 웨이브 도중에 저장하면 그 웨이브를 처음부터 다시 함 (그 웨이브 시작 보급·재보급은 빼고 저장)
+  serialize() {
+    if (this.state !== 'ready' && this.state !== 'battle') return null;
+    const mid = this.state === 'battle' && (this.queue.length > 0 || this.enemies.length > 0);
+    const wave = mid ? this.waveNo - 1 : this.waveNo;
+    let money = this.money;
+    const strat = {};
+    for (const [id, C] of Object.entries(GF.STRATEGIC)) {
+      let c = this.strat[id].charges;
+      if (mid && this.stratOpen(id) && this.waveNo % C.every === 0 && c > 0) c--;
+      strat[id] = c;
+    }
+    if (mid && this.waveNo > 1) money -= 40 + this.waveNo * 8;
+    return {
+      v: 1, stage: this.S.id, time: Date.now(),
+      wave, money: Math.max(0, Math.floor(money)), lives: this.lives, kills: this.kills, cp: this.cp, bestCombo: this.bestCombo,
+      towers: this.towers.map((t) => ({ type: t.type, x: +t.pos.x.toFixed(2), z: +t.pos.z.toFixed(2), level: t.level, invested: t.invested, dmg: Math.round(t.dmgTotal), kills: t.kills })),
+      detours: this.city.steps.map((st, i) => (st.open ? i : -1)).filter((i) => i >= 0),
+      deck: this.deck.slice(), hand: this.hand.slice(), strat,
+      heroBench: this.heroBench.slice(), heroBonus: Object.assign({}, this.heroBonus), lucky: this.luckyLeft
+    };
+  }
+  restore(d) {
+    this.start();
+    this.quiet = true;
+    for (const i of d.detours || []) this.city.openDetour(i);
+    this.updateRemain();
+    for (const s of d.towers || []) {
+      if (!GF.WEAPONS[s.type]) continue;
+      const tw = this.addTower(s.type, s.x, s.z);
+      tw.invested = s.invested; tw.dmgTotal = s.dmg || 0; tw.kills = s.kills || 0;
+      if (tw.W.hero) {
+        tw.level = s.level;
+        tw.model.root.scale.setScalar(HERO_SCALE * (1 + 0.06 * (tw.level - 1)));
+        tw.label = { text: '★ ' + HEROES[tw.W.hero].short, pos: V(s.x, 2.5, s.z), kind: 'hero' };
+        this.city.labels.push(tw.label);
+      } else {
+        this.money = 1e12;
+        while (tw.level < s.level && this.upgradeTower(tw, true));
+      }
+    }
+    this.ui().resetLabels();
+    this.money = d.money; this.lives = d.lives; this.kills = d.kills || 0; this.cp = d.cp ?? this.cp; this.bestCombo = d.bestCombo || 0;
+    this.waveNo = Math.min(d.wave || 0, this.S.waves.length - 1);
+    const known = (id) => GF.CARDS[id];
+    if (Array.isArray(d.hand) && d.hand.length === this.hand.length && d.hand.every(known)) { this.hand = d.hand.slice(); this.deck = (d.deck || []).filter(known); }
+    for (const id of Object.keys(this.strat)) if (d.strat && d.strat[id] != null) this.strat[id].charges = d.strat[id];
+    this.heroBench = (d.heroBench || []).filter((id) => HEROES[id]); this.heroBonus = Object.assign({}, d.heroBonus || {});
+    this.luckyLeft = d.lucky ?? this.luckyLeft;
+    this.quiet = false;
+    this.ui().toast(`저장한 게임을 불러왔습니다 · 웨이브 ${this.waveNo + 1}부터`, '#8FF3FF', 4200);
   }
 
   isOver() { return this.state === 'won' || this.state === 'lost' || this.state === 'title'; }
@@ -345,7 +399,7 @@ export class Game {
     const tw = { type, W: GF.WEAPONS[type], pos, model: m, level: 1, invested: GF.WEAPONS[type].hero ? Math.round(GACHA.heroCost * 0.4) : GF.WEAPONS[type].cost, cd: 0.3, dmgTotal: 0, kills: 0, ang, pulse: 0, marks: [] };
     this.towers.push(tw);
     this.city.clearTreesAt(x, z);
-    this.spawnPuff(pos, 0xcdb68a, 6);
+    if (!this.quiet) this.spawnPuff(pos, 0xcdb68a, 6);
     this.snd('place');
     return tw;
   }
