@@ -511,8 +511,8 @@ export function getEnemy(type) {
 }
 
 // 유령 모델(설치 미리보기)
-const ghostMat = new THREE.MeshBasicMaterial({ color: 0x6ff3ff, transparent: true, opacity: 0.45, depthWrite: false });
-const ghostBad = new THREE.MeshBasicMaterial({ color: 0xff5a5f, transparent: true, opacity: 0.45, depthWrite: false });
+export const ghostMat = new THREE.MeshBasicMaterial({ color: 0x6ff3ff, transparent: true, opacity: 0.45, depthWrite: false });
+export const ghostBad = new THREE.MeshBasicMaterial({ color: 0xff5a5f, transparent: true, opacity: 0.45, depthWrite: false });
 export function getGhost(type) {
   const m = getTower(type);
   m.root.traverse((o) => { if (o.userData.keep) o.visible = false; else if (o.isMesh) { o.material = ghostMat; o.castShadow = false; } });

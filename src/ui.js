@@ -2,6 +2,7 @@
 // 배치는 서울 시안 그대로: 왼쪽 위 제목, 오른쪽 위 기지·보급·웨이브·배속·일시정지·설정, 아래 카드 줄 + 다음 웨이브
 import { Profile } from './profile.js';
 import { layout } from './layout.js';
+import { HEROES, HERO_IDS, GACHA } from './heroes.js';
 // 화면 글자·위치가 바뀔 때만 실제로 씀 (매 프레임 다시 쓰면 휴대폰에서 끊김)
 const putCache = new WeakMap();
 function put(o, k, v) {
@@ -45,6 +46,7 @@ export class UI {
         <div class="pc-stat"><span>보급창</span><b class="pc-cred"></b></div>
         <div class="pc-stat"><span>${S.name} 최고 기록</span><b>${'★'.repeat(best)}${'☆'.repeat(3 - best)}</b></div>
         <button class="pc-shop">🛒 상점 · 보급 충전</button>
+        <button class="pc-hero">🎖 전설의 영웅 보기</button>
         <button class="pc-fs">⛶ 전체 화면으로 하기</button>
         <button class="pc-install">📲 앱으로 설치하기</button>
       </div>
@@ -66,7 +68,8 @@ export class UI {
     const saveName = () => { Profile.setName(inp.value); this.toastAny('지휘관 이름 저장: ' + Profile.name); };
     t.querySelector('.pc-save').onclick = saveName;
     inp.onkeydown = (e) => { if (e.key === 'Enter') saveName(); };
-    t.querySelector('.pc-shop').onclick = () => this.openShop();
+    t.querySelector('.pc-shop').onclick = () => this.openShop('charge');
+    t.querySelector('.pc-hero').onclick = () => this.openShop('hero');
     t.querySelector('.pc-fs').onclick = () => this.fullscreen();
     t.querySelector('.pc-install').onclick = () => {
       const ip = window.__installPrompt; if (!ip) return;
@@ -88,9 +91,11 @@ export class UI {
     h('div', 'tl', `<div class="logo">2030 Warfare 1</div><div class="sub">${GF.SETTINGS.useCityAlias ? this.cityName() + ' 방어전' : S.nameEn + ' · ' + S.title}</div>`, hud);
     // 내 프로필 바 (작게)
     const pb = h('div', 'pbar', `<span class="pb-ava"></span><b class="pb-name"></b><span class="pb-cred"></span><button class="pb-shop">＋ 충전</button>`, hud);
-    pb.querySelector('.pb-shop').onclick = () => this.openShop();
+    pb.querySelector('.pb-shop').onclick = () => this.openShop('charge');
     this.eKills = h('div', 'kills', '', hud);
     const tr = h('div', 'tr', null, hud);
+    const hq = h('button', 'sq hq', '<span>🎖</span><b>영웅 · 뽑기</b>', tr); hq.title = '영웅 모집 · 보급 뽑기 · 보급 충전 (H 키)'; hq.onclick = () => this.openShop('hero');
+    this.bench = h('div', 'hbench', '', hud);
     this.eLives = h('div', 'pill lives', '', tr);
     this.eMoney = h('div', 'pill money', '', tr);
     this.eWave = h('div', 'pill wave', '', tr);
@@ -244,6 +249,15 @@ export class UI {
       c.classList.toggle('off', g.money < GF.WEAPONS[id].cost);
     });
 
+    // 대기 중인 영웅 (눌러서 배치)
+    const bk = g.heroBench.map((id) => id + (g.heroBonus[id] || 0) + (g.mode === 'hero' && g.heroSel === id ? '*' : '')).join(',');
+    if (this.benchKey !== bk) {
+      this.benchKey = bk;
+      this.bench.innerHTML = g.heroBench.length ? '<div class="hb-t">배치 대기 영웅</div>' + g.heroBench.map((id) => `<button class="hb${g.mode === 'hero' && g.heroSel === id ? ' sel' : ''}" data-id="${id}"><img src="${this.icons['hero_' + id]}"><b>${HEROES[id].short}</b><small>Lv.${1 + (g.heroBonus[id] || 0)} · 눌러서 배치</small></button>`).join('') : '';
+      this.bench.querySelectorAll('.hb').forEach((b) => { b.onclick = () => g.pickHero(b.dataset.id); });
+    }
+    if (this.shopEl) { const m = this.shopEl.querySelector('.sh-money'); if (m) put(m, 'textContent', Math.floor(g.money).toLocaleString('ko-KR')); }
+
     // 다음 웨이브 버튼
     let nb = '', cls = 'nextwave';
     if (g.state === 'ready') nb = '<b>작전 개시 ≫</b><small>첫 웨이브 출격</small>';
@@ -281,14 +295,14 @@ export class UI {
       const sp = this.project(tw.pos.clone().setY(0.6)) || { x: 900, y: 500 };
       put(this.panel.style, 'left', Math.max(20, Math.min(this.BW - 420, sp.x + 60)) + 'px'); put(this.panel.style, 'top', Math.max(this.L.mobile ? 60 : 110, Math.min(this.BH - (this.L.mobile ? 400 : 520), sp.y - 160)) + 'px');
       put(this.panel.querySelector('.pt'), 'textContent', GF.wname(tw.type) + '  Lv.' + tw.level);
-      put(this.panel.querySelector('.pi'), 'innerHTML', `${tw.W.nation} · ${tw.W.role}<br>${this.upLine(g, tw, st, max)}누적 피해 <b>${fmt(tw.dmgTotal)}</b> · 격파 <b>${tw.kills}</b><br><small>${tw.W.desc}</small>`);
+      put(this.panel.querySelector('.pi'), 'innerHTML', `${tw.W.hero ? '<span style="color:#ffd36a">★ 전설의 영웅 · ' + tw.W.title + '</span><br>' : ''}${tw.W.nation} · ${tw.W.role}<br>${this.upLine(g, tw, st, max)}누적 피해 <b>${fmt(tw.dmgTotal)}</b> · 격파 <b>${tw.kills}</b><br><small>${tw.W.desc}</small>`);
       const up = this.panel.querySelector('.up'), all = this.panel.querySelector('.all');
       put(up, 'textContent', max ? '최대 강화 (Lv.4)' : `강화 Lv.${tw.level + 1}/4  (${g.upgradeCost(tw)})`);
       up.disabled = max || g.money < g.upgradeCost(tw);
       const n = g.bulkList(tw.type).length, bc = g.bulkCost(tw.type);
       put(all, 'textContent', n ? `같은 무기 ${n}대 모두 강화  (${bc})` : '같은 무기 모두 최대 강화');
       all.disabled = !n || g.money < bc;
-      put(this.panel.querySelector('.sell'), 'textContent', '판매 +' + Math.round(tw.invested * GF.SETTINGS.sellRefund));
+      put(this.panel.querySelector('.sell'), 'textContent', (tw.W.hero ? '영웅 귀환 +' : '판매 +') + Math.round(tw.invested * GF.SETTINGS.sellRefund));
     }
 
     // 커서 옆 안내 (자유 배치 가능 / 도로 배치 불가)
@@ -313,6 +327,7 @@ export class UI {
     const M = this.L.mobile, tap = M ? '터치' : '클릭', esc = M ? '버튼 다시 누르면 취소' : 'ESC 취소';
     if (g.mode === 'strat') hint = GF.STRATEGIC[g.stratSel].name + `: 떨어뜨릴 곳을 ${tap} · ${esc}`;
     else if (g.mode === 'card') hint = GF.CARDS[g.hand[g.cardSel]].name + `: 지도에서 위치 ${tap} · ${esc}`;
+    else if (g.mode === 'hero') hint = HEROES[g.heroSel].name + ` 배치: 회색 공간 아무 곳이나 ${tap} · ${M ? '영웅 버튼 다시 누르면 취소' : '오른쪽 클릭/ESC 취소'}`;
     else if (g.mode) hint = GF.wname(g.mode) + ` 설치: 회색 공간 아무 곳이나 ${tap} · ${M ? '카드 다시 누르면 취소' : '오른쪽 클릭/ESC 취소'}`;
     else if (g.state === 'ready') hint = this.L.mobile ? '무기 카드를 누르고 회색 공간을 터치해 배치 · 두 손가락 벌리기 확대·비틀기 회전 · 한 손가락 끌기로 이동' : '적이 오는 도심 거리·건물·랜드마크만 빼고 회색 공간 어디든 무기를 놓으세요. 거리 사이 회색 공간에 놓으면 위아래 거리를 동시에 공격합니다 · 휠: 확대 · 오른쪽 버튼 끌기: 시점 회전 · R: 기본 시점';
     put(this.eHint, 'textContent', hint);
@@ -337,42 +352,118 @@ export class UI {
     if (this.shopEl) this.shopEl.querySelector('.sh-cred').textContent = Profile.credits.toLocaleString('ko-KR');
   }
   toastAny(msg, color) { if (this.hud && this.eToast) this.toast(msg, color); else { const t = h('div', 'toast lobby', msg, this.root); t.style.opacity = 1; setTimeout(() => t.remove(), 1800); } }
-  openShop() {
-    if (this.shopEl) return;
-    const g = this.g, inBattle = g && (g.state === 'ready' || g.state === 'battle');
+  // 작전 본부 창: 영웅 모집 · 보급 뽑기 · 보급 충전(상점) 탭
+  openShop(tab = 'hero') {
+    if (this.shopEl) { this.shopTab(tab); return; }
+    const g = this.g, inBattle = !!(g && g.canGacha && g.canGacha());
     if (inBattle && !this.app.paused && g.state === 'battle') { this.app.togglePause(); this.shopPaused = true; }
     const el = this.shopEl = h('div', 'shop', '', this.root);
     el.innerHTML = `<div class="sh-box">
-      <div class="sh-head"><b>보급 상점</b><span>보급창 <b class="sh-cred"></b></span><button class="sh-x">✕</button></div>
-      <div class="sh-packs">${GF.SHOP.packs.map((p) => `<div class="pk" data-id="${p.id}">${p.tag ? `<em>${p.tag}</em>` : ''}<div class="pk-ico">📦</div><b>보급 ${p.amount.toLocaleString('ko-KR')}</b><small>${p.bonus ? '보너스 ' + p.bonus : '기본'}</small><button>${won(p.price)}</button></div>`).join('')}</div>
-      ${inBattle ? `<div class="sh-wd"><span>보급창 → 이번 전투 보급으로 꺼내기</span>${GF.SHOP.withdrawSteps.map((n) => `<button data-n="${n}">+${n.toLocaleString('ko-KR')}</button>`).join('')}</div>` : ''}
-      <div class="sh-note">${GF.SHOP.testMode ? '⚠ 테스트 모드: 실제 결제는 일어나지 않고 보급이 바로 지급됩니다. 출시 때 Google Play·Steam 결제로 연결합니다.' : '결제는 스토어 계정으로 진행됩니다.'}</div>
+      <div class="sh-head"><b>작전 본부</b>${inBattle ? '<span>전투 보급 <b class="sh-money"></b></span>' : ''}<span>보급창 <b class="sh-cred"></b></span><button class="sh-x">✕</button></div>
+      <div class="sh-tabs"><button data-t="hero">🎖 영웅 모집</button><button data-t="lucky">🎲 보급 뽑기</button><button data-t="charge">🛒 보급 충전</button></div>
+      <div class="sh-body"></div>
     </div>`;
     el.querySelector('.sh-x').onclick = () => this.closeShop();
     el.onclick = (e) => { if (e.target === el) this.closeShop(); };
-    el.querySelectorAll('.pk button').forEach((b) => {
-      b.onclick = () => {
-        const p = GF.SHOP.packs.find((x) => x.id === b.parentElement.dataset.id);
-        if (!GF.SHOP.testMode) return;   // 실제 결제 연결 자리
-        Profile.addCredits(p.amount, won(p.price) + ' 충전(테스트)');
-        this.refreshProfile();
-        if (this.app.sound) this.app.sound.play('coin');
-        b.textContent = '충전 완료 ✓'; setTimeout(() => { b.textContent = won(p.price); }, 900);
-      };
-    });
-    el.querySelectorAll('.sh-wd button').forEach((b) => {
-      b.onclick = () => {
-        const n = +b.dataset.n;
-        if (!Profile.spend(n)) { b.textContent = '보급창 부족'; setTimeout(() => { b.textContent = '+' + n.toLocaleString('ko-KR'); }, 900); return; }
-        g.money += n; this.refreshProfile();
-        if (this.app.sound) this.app.sound.play('coin');
-        this.toast(`보급창에서 보급 +${n} 투입`, '#F2C14E');
-      };
-    });
+    el.querySelectorAll('.sh-tabs button').forEach((b) => { b.onclick = () => this.shopTab(b.dataset.t); });
+    this.shopTab(tab);
     this.refreshProfile();
+    if (inBattle) el.querySelector('.sh-money').textContent = Math.floor(g.money).toLocaleString('ko-KR');
+  }
+  shopTab(t) {
+    const el = this.shopEl, g = this.g, inBattle = !!(g && g.canGacha && g.canGacha()), body = el.querySelector('.sh-body');
+    el.querySelectorAll('.sh-tabs button').forEach((b) => b.classList.toggle('on', b.dataset.t === t));
+    clearInterval(this.spinT);
+    const snd = (n) => { if (this.app.sound) this.app.sound.play(n); };
+    if (t === 'hero') {
+      const dps = (H) => Math.round(H.dmg * H.rate * (H.salvo || 1));
+      body.innerHTML = `<div class="hr-wrap">
+        <div class="hr-grid">${HERO_IDS.map((id) => { const H = HEROES[id]; return `<div class="hr" data-id="${id}"><img src="${this.icons['hero_' + id]}"><b>${H.name}</b><em>${H.title}</em><span>${H.role} · DPS ${dps(H)}</span><small>몸짓: ${H.gesture}</small></div>`; }).join('')}</div>
+        <div class="hr-side">
+          <div class="hr-stage"><div class="hr-q">?</div></div>
+          <div class="hr-res">6명 중 1명 무작위 (각 16.7%)</div>
+          <button class="hr-pull" ${inBattle ? '' : 'disabled'}>${inBattle ? `영웅 모집 <small>보급 ${GACHA.heroCost}</small>` : '전투 중에 모집할 수 있어요'}</button>
+          <button class="hr-place" style="display:none"></button>
+          <div class="hr-note">이미 있는 영웅이 또 나오면 그 영웅이 1단계 강화됩니다 (최대 Lv.4). 최대 강화 영웅이 나오면 보급 ${GACHA.heroMaxRefund} 환급. 일반 무기 최고 DPS는 약 80</div>
+        </div></div>`;
+      const pull = body.querySelector('.hr-pull'), stage = body.querySelector('.hr-stage'), res = body.querySelector('.hr-res'), place = body.querySelector('.hr-place');
+      pull.onclick = () => {
+        const r = g.pullHero();
+        if (!r) return;
+        if (r.fail) { res.innerHTML = `<span class="bad">${r.fail}</span>`; return; }
+        pull.disabled = true; place.style.display = 'none'; stage.classList.remove('got');
+        let i = 0;
+        this.spinT = setInterval(() => {
+          const id = HERO_IDS[i++ % HERO_IDS.length];
+          stage.innerHTML = `<img src="${this.icons['hero_' + id]}">`; snd('click');
+          if (i > 18) {
+            clearInterval(this.spinT);
+            const H = HEROES[r.id];
+            stage.innerHTML = `<img src="${this.icons['hero_' + r.id]}"><div class="hr-name">${H.name}</div>`; stage.classList.add('got');
+            res.innerHTML = r.dup === 'up' ? `<b>${H.short}</b> 중복! 배치된 영웅이 <b>Lv.${r.level}</b>로 강화` : r.dup === 'max' ? `<b>${H.short}</b> 이미 최대 강화 · 보급 <b>+${r.refund}</b> 환급` : r.dup === 'bench' ? `<b>${H.short}</b> 중복! 배치하면 <b>Lv.${r.level}</b>로 출전` : `전설의 영웅 <b>${H.name}</b> 획득!`;
+            snd('win');
+            pull.disabled = false;
+            if (g.heroBench.includes(r.id)) { place.style.display = 'block'; place.textContent = `${H.short} 지금 배치하기 ▶`; place.onclick = () => { this.closeShop(); g.pickHero(r.id); }; }
+            this.benchKey = null;
+          }
+        }, 70);
+      };
+    } else if (t === 'lucky') {
+      body.innerHTML = `<div class="lk-wrap">
+        <div class="lk-slot"><div class="lk-num">?</div><small>받는 보급</small></div>
+        <div class="lk-side">
+          <div class="lk-odds">${GACHA.lucky.map(([a, p]) => `<div><b>+${a}</b><span>${p}%</span></div>`).join('')}</div>
+          <button class="lk-pull" ${inBattle ? '' : 'disabled'}>${inBattle ? `보급 뽑기 <small>보급 ${GACHA.luckyCost}</small>` : '전투 중에 뽑을 수 있어요'}</button>
+          <div class="lk-left"></div>
+          <div class="hr-note">보급 ${GACHA.luckyCost}을 걸고 30~600을 받습니다. 평균은 조금 이득이지만 손해 볼 때도 있어요. 웨이브마다 ${GACHA.luckyPerWave}번까지.</div>
+        </div></div>`;
+      const pull = body.querySelector('.lk-pull'), num = body.querySelector('.lk-num'), left = body.querySelector('.lk-left'), slot = body.querySelector('.lk-slot');
+      const showLeft = () => { if (inBattle) left.textContent = `이번 웨이브 남은 횟수 ${g.luckyLeft} / ${GACHA.luckyPerWave}`; };
+      showLeft();
+      pull.onclick = () => {
+        const r = g.pullLucky();
+        if (!r) return;
+        if (r.fail) { left.innerHTML = `<span class="bad">${r.fail}</span>`; return; }
+        pull.disabled = true; slot.className = 'lk-slot';
+        let i = 0;
+        this.spinT = setInterval(() => {
+          num.textContent = '+' + GACHA.lucky[i++ % GACHA.lucky.length][0]; snd('click');
+          if (i > 14) {
+            clearInterval(this.spinT);
+            num.textContent = '+' + r.amount;
+            slot.className = 'lk-slot ' + (r.amount >= 300 ? 'jack' : r.amount > GACHA.luckyCost ? 'win' : 'lose');
+            snd(r.amount > GACHA.luckyCost ? 'coin' : 'deny');
+            pull.disabled = false; showLeft();
+            this.toast(`보급 뽑기 +${r.amount}${r.amount >= 300 ? ' 대박!' : ''}`, r.amount > GACHA.luckyCost ? '#F2C14E' : '#ffffff');
+          }
+        }, 60);
+      };
+    } else {
+      body.innerHTML = `<div class="sh-packs">${GF.SHOP.packs.map((p) => `<div class="pk" data-id="${p.id}">${p.tag ? `<em>${p.tag}</em>` : ''}<div class="pk-ico">📦</div><b>보급 ${p.amount.toLocaleString('ko-KR')}</b><small>${p.bonus ? '보너스 ' + p.bonus : '기본'}</small><button>${won(p.price)}</button></div>`).join('')}</div>
+      ${inBattle ? `<div class="sh-wd"><span>보급창 → 이번 전투 보급으로 꺼내기</span>${GF.SHOP.withdrawSteps.map((n) => `<button data-n="${n}">+${n.toLocaleString('ko-KR')}</button>`).join('')}</div>` : ''}
+      <div class="sh-note">${GF.SHOP.testMode ? '⚠ 테스트 모드: 실제 결제는 일어나지 않고 보급이 바로 지급됩니다. 출시 때 Google Play·Steam 결제로 연결합니다.' : '결제는 스토어 계정으로 진행됩니다.'}</div>`;
+      body.querySelectorAll('.pk button').forEach((b) => {
+        b.onclick = () => {
+          const p = GF.SHOP.packs.find((x) => x.id === b.parentElement.dataset.id);
+          if (!GF.SHOP.testMode) return;   // 실제 결제 연결 자리
+          Profile.addCredits(p.amount, won(p.price) + ' 충전(테스트)');
+          this.refreshProfile(); snd('coin');
+          b.textContent = '충전 완료 ✓'; setTimeout(() => { b.textContent = won(p.price); }, 900);
+        };
+      });
+      body.querySelectorAll('.sh-wd button').forEach((b) => {
+        b.onclick = () => {
+          const n = +b.dataset.n;
+          if (!Profile.spend(n)) { b.textContent = '보급창 부족'; setTimeout(() => { b.textContent = '+' + n.toLocaleString('ko-KR'); }, 900); return; }
+          g.money += n; this.refreshProfile(); snd('coin');
+          this.toast(`보급창에서 보급 +${n} 투입`, '#F2C14E');
+        };
+      });
+    }
   }
   closeShop() {
     if (!this.shopEl) return;
+    clearInterval(this.spinT);
     this.shopEl.remove(); this.shopEl = null;
     if (this.shopPaused) { this.shopPaused = false; if (this.app.paused) this.app.togglePause(); }
   }

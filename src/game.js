@@ -1,10 +1,11 @@
 // 전투 규칙 (v4 서울): 도로 밖 자유 배치 → 작전 개시 → 웨이브가 자동으로 이어짐 (다음 웨이브 ≫ 로 앞당기기)
 import * as THREE from 'three';
-import { getTower, getEnemy, getGhost, mat } from './models.js';
+import { getTower, getEnemy, getGhost, mat, ghostMat, ghostBad } from './models.js';
+import { makeHero, HEROES, HERO_IDS, GACHA } from './heroes.js';
 import { VFX } from './vfx.js';
 
 const V = (x = 0, y = 0, z = 0) => new THREE.Vector3(x, y, z);
-const TOWER_SCALE = 1.6, TOWER_GAP = 1.4;
+const TOWER_SCALE = 1.6, TOWER_GAP = 1.4, HERO_SCALE = 2.1;
 // 효과용 공용 모양 (매번 새로 만들지 않음)
 const G = {
   ball: new THREE.SphereGeometry(1, 10, 7),
@@ -45,6 +46,7 @@ export class Game {
   start() {
     const S = this.S, SET = GF.SETTINGS;
     for (const t of this.towers) this.unitGroup.remove(t.model.root);
+    if (this.city.labels.some((L) => L.kind === 'hero')) { this.city.labels = this.city.labels.filter((L) => L.kind !== 'hero'); this.ui().resetLabels(); }
     for (const e of this.enemies) this.removeEnemy(e);
     this.fxGroup.clear(); this.vfx.clear();
     this.city.resetRoutes(); this.city.resetTrees();
@@ -60,6 +62,7 @@ export class Game {
     this.hand = this.deck.splice(0, GF.HAND_SIZE);
     this.strat = {}; for (const [id, C] of Object.entries(GF.STRATEGIC)) this.strat[id] = { charges: this.stratOpen(id) ? C.start : 0 };
     this.stratSel = null;
+    this.heroBench = []; this.heroBonus = {}; this.heroSel = null; this.luckyLeft = GACHA.luckyPerWave;
     this.computeSynergy();
     this.updateRemain();
     this.state = 'ready';
@@ -134,6 +137,7 @@ export class Game {
         this.timers.push({ t: 1.2, fn: () => { this.ui().toast(`${C.name} 재보급 완료! (${C.key} 키)`, '#FF8A8E', 3000); this.snd('siren'); } });
       }
     }
+    this.luckyLeft = GACHA.luckyPerWave;   // 보급 뽑기 횟수는 웨이브마다 다시 참
     this.nextT = 0;
   }
 
@@ -166,7 +170,7 @@ export class Game {
     if (this.money < GF.WEAPONS[m].cost) { this.ui().toast('보급이 부족합니다'); return; }
     this.mode = m;
     const gh = this.ghosts[m] || (this.ghosts[m] = getGhost(m));
-    gh.root.scale.setScalar(TOWER_SCALE); gh.root.visible = false;
+    gh.root.scale.setScalar(HERO_SCALE); gh.root.visible = false;
     this.scene.add(gh.root);
     this.ghost = gh;
   }
@@ -272,7 +276,7 @@ export class Game {
     this.ghost.root.visible = true;
     this.ghost.root.position.set(p.x, 0, p.z);
     this.ghost.setOk(ok);
-    this.showRange(V(p.x, 0, p.z), GF.WEAPONS[this.mode].range, ok ? 0x7fe9ff : 0xff7a7a);
+    this.showRange(V(p.x, 0, p.z), GF.WEAPONS[this.mode === 'hero' ? 'hero_' + this.heroSel : this.mode].range, ok ? 0x7fe9ff : 0xff7a7a);
     this.tip = ok ? { ok: true, text: '자유 배치 가능' } : { ok: false, text: why };
   }
 
@@ -288,6 +292,7 @@ export class Game {
     if (this.mode === 'card') { this.useCard(this.cardSel, p); return; }
     if (this.mode === 'strat') { this.useStrat(this.stratSel, p); return; }
     if (this.mode === 'detour') { this.clickDetour(p); return; }
+    if (this.mode === 'hero') { this.clickHero(p); return; }
     if (this.mode) { this.clickPlace(p); return; }
     // 무기 선택
     let best = null, bd = 1.2;
@@ -328,20 +333,86 @@ export class Game {
 
   // ---------- 무기 ----------
   addTower(type, x, z) {
-    const m = getTower(type);
+    const m = GF.WEAPONS[type].hero ? makeHero(GF.WEAPONS[type].hero) : getTower(type);
     const pos = V(x, 0, z);
     m.root.position.copy(pos);
-    m.root.scale.setScalar(TOWER_SCALE);
+    m.root.scale.setScalar(m.hero ? HERO_SCALE : TOWER_SCALE);
     // 처음엔 가장 가까운 도로를 바라봄
     const ang = -Math.PI / 2;
     m.yaw.rotation.y = -ang;
     this.unitGroup.add(m.root);
-    const tw = { type, W: GF.WEAPONS[type], pos, model: m, level: 1, invested: GF.WEAPONS[type].cost, cd: 0.3, dmgTotal: 0, kills: 0, ang, pulse: 0, marks: [] };
+    const tw = { type, W: GF.WEAPONS[type], pos, model: m, level: 1, invested: GF.WEAPONS[type].hero ? Math.round(GACHA.heroCost * 0.4) : GF.WEAPONS[type].cost, cd: 0.3, dmgTotal: 0, kills: 0, ang, pulse: 0, marks: [] };
     this.towers.push(tw);
     this.city.clearTreesAt(x, z);
     this.spawnPuff(pos, 0xcdb68a, 6);
     this.snd('place');
     return tw;
+  }
+
+  // ---------- 영웅 모집 · 보급 뽑기 ----------
+  canGacha() { return this.state === 'ready' || this.state === 'battle'; }
+  heroOnField(id) { return this.towers.find((t) => t.W.hero === id); }
+  // 영웅 모집: 6명 중 1명 무작위. 이미 배치된 영웅이면 무료 강화, 대기 중이면 배치할 때 강화, 최대 강화면 보급 일부 환급
+  pullHero() {
+    if (!this.canGacha()) return null;
+    if (this.money < GACHA.heroCost) { this.snd('deny'); return { fail: '보급이 부족합니다 (영웅 모집 ' + GACHA.heroCost + ')' }; }
+    this.money -= GACHA.heroCost;
+    const id = HERO_IDS[Math.floor(Math.random() * HERO_IDS.length)];
+    const tw = this.heroOnField(id), max = GF.SETTINGS.maxTowerLevel;
+    let result;
+    if (tw && tw.level < max) {
+      tw.level++; tw.invested += 0;
+      tw.model.root.scale.setScalar(HERO_SCALE * (1 + 0.06 * (tw.level - 1)));
+      this.spawnRing(tw.pos, 1.2, 0xffd36a, 1); tw.model.fire();
+      result = { id, dup: 'up', level: tw.level };
+    } else if (tw || (this.heroBench.includes(id) && 1 + (this.heroBonus[id] || 0) >= max)) {
+      this.money += GACHA.heroMaxRefund;
+      result = { id, dup: 'max', refund: GACHA.heroMaxRefund };
+    } else if (this.heroBench.includes(id)) {
+      this.heroBonus[id] = (this.heroBonus[id] || 0) + 1;
+      result = { id, dup: 'bench', level: 1 + this.heroBonus[id] };
+    } else { this.heroBench.push(id); result = { id }; }
+    this.snd('upgrade');
+    return result;
+  }
+  pullLucky() {
+    if (!this.canGacha()) return null;
+    if (this.luckyLeft <= 0) { this.snd('deny'); return { fail: '이번 웨이브 보급 뽑기를 다 썼습니다 (다음 웨이브에 다시 ' + GACHA.luckyPerWave + '번)' }; }
+    if (this.money < GACHA.luckyCost) { this.snd('deny'); return { fail: '보급이 부족합니다 (보급 뽑기 ' + GACHA.luckyCost + ')' }; }
+    this.money -= GACHA.luckyCost; this.luckyLeft--;
+    let r = Math.random() * 100, amt = GACHA.lucky[0][0];
+    for (const [a, p] of GACHA.lucky) { if (r < p) { amt = a; break; } r -= p; }
+    this.money += amt;
+    this.snd('coin');
+    return { amount: amt };
+  }
+  // 대기 중인 영웅을 배치 모드로
+  pickHero(id) {
+    if (this.isOver() || !this.heroBench.includes(id)) return;
+    if (this.mode === 'hero' && this.heroSel === id) { this.cancelMode(); return; }
+    this.cancelMode();
+    this.mode = 'hero'; this.heroSel = id;
+    const gh = makeHero(id);
+    gh.root.traverse((o) => { if (o.isMesh) { o.material = ghostMat; o.castShadow = false; } });
+    gh.setOk = (ok) => gh.root.traverse((o) => { if (o.isMesh) o.material = ok ? ghostMat : ghostBad; });
+    gh.root.scale.setScalar(TOWER_SCALE); gh.root.visible = false;
+    this.scene.add(gh.root);
+    this.ghost = gh;
+  }
+  clickHero(p) {
+    const id = this.heroSel, why = this.placeReason(p.x, p.z);
+    if (why) { this.ui().toast(why); return; }
+    const tw = this.addTower('hero_' + id, p.x, p.z);
+    const bonus = this.heroBonus[id] || 0;
+    tw.level = Math.min(GF.SETTINGS.maxTowerLevel, 1 + bonus); delete this.heroBonus[id];
+    tw.model.root.scale.setScalar(HERO_SCALE * (1 + 0.06 * (tw.level - 1)));
+    this.heroBench.splice(this.heroBench.indexOf(id), 1);
+    this.spawnRing(tw.pos, 2.2, 0xffd36a, 1.2); this.spawnRing(tw.pos, 1.2, 0xffffff, 0.8);
+    tw.model.fire();
+    tw.label = { text: '★ ' + HEROES[id].short, pos: V(p.x, 2.5, p.z), kind: 'hero' };
+    this.city.labels.push(tw.label); this.ui().resetLabels();
+    this.ui().toast(`전설의 영웅 ${HEROES[id].name} 출전!`, '#FFD36A', 2600);
+    this.cancelMode();
   }
 
   stats(tw) {
@@ -380,6 +451,7 @@ export class Game {
     this.ui().toast(GF.wname(type) + ' ' + list.length + '대 강화 완료', '#F2C14E');
   }
   sellTower(tw) {
+    if (tw.label) { this.city.labels.splice(this.city.labels.indexOf(tw.label), 1); this.ui().resetLabels(); }
     this.money += Math.round(tw.invested * GF.SETTINGS.sellRefund);
     this.unitGroup.remove(tw.model.root);
     this.towers.splice(this.towers.indexOf(tw), 1);
@@ -515,6 +587,7 @@ export class Game {
   update(dt, time) {
     for (const e of this.enemies) for (const [o, ax, sp] of e.model.spin) o.rotation[ax] += sp * dt;
     for (const tw of this.towers) {
+      if (tw.model.animate) tw.model.animate(dt, time);
       for (const [o, ax, sp] of tw.model.spin) o.rotation[ax] += sp * dt;
       for (const g of tw.model.glow) g.material.emissiveIntensity = 1 + Math.sin(time * 3) * 0.5;
     }
@@ -552,6 +625,11 @@ export class Game {
         if (e.air && tw.W.airDps) this.hurt(e, tw.W.airDps * lvMul * dt, tw, { pierce: true });
       }
       if (tw.pulse <= 0 && any) { tw.pulse = 1.3; this.spawnRing(tw.pos, r, 0x6fd3ff, 0.9); }
+    }
+    for (const tw of this.towers) {   // 영웅 처칠: 사거리 안 적 감속
+      if (!tw.W.hero || !tw.W.slow) continue;
+      const r = this.stats(tw).range;
+      for (const e of this.enemies) if (!e.dead && e.pos.distanceToSquared(tw.pos) <= r * r) e.slowMul = Math.min(e.slowMul, 1 - tw.W.slow);
     }
     for (const z of this.zones) {
       z.t -= dt;
@@ -611,6 +689,7 @@ export class Game {
 
   fire(tw, e, st) {
     const W = tw.W;
+    if (W.hero) { this.fireHero(tw, e, st); return; }
     tw.model.root.updateMatrixWorld(true);
     const mz = tw.model.muzzle.getWorldPosition(V());
     const tp = this.targetPoint(e);
@@ -641,11 +720,77 @@ export class Game {
     }
   }
 
+  // 영웅 공격: 몸짓(act)을 먼저 시작하고 몸짓 절정에 맞춰 공격이 나감
+  fireHero(tw, e, st) {
+    const W = tw.W, m = tw.model;
+    m.fire();
+    m.root.updateMatrixWorld(true);
+    const mz = m.muzzle.getWorldPosition(V()), tp = this.targetPoint(e), g0 = tp.clone().setY(0);
+    const near = (n, air) => this.enemies.filter((x) => !x.dead && (air || !x.air) && W.hits.includes(x.air ? 'air' : 'ground') && x.pos.distanceToSquared(tw.pos) <= st.range * st.range).sort((a, b) => a.rem - b.rem).slice(0, n);
+    if (W.shot === 'bombrun') {
+      // 폭격기 편대가 목표 위를 지나가며 폭탄 5발을 적 진행 방향으로 줄지어
+      const dir = e.fly ? V(1, 0, 0) : (() => { const a = Math.random() * Math.PI; return V(Math.cos(a), 0, Math.sin(a)); })();
+      this.timers.push({ t: 0.35, fn: () => { this.flyJet(g0); this.snd('airstrike'); } });
+      for (let i = 0; i < W.salvo; i++) {
+        const p = g0.clone().addScaledVector(dir, (i - 2) * 1.1).add(V((Math.random() - 0.5) * 0.4, 0, (Math.random() - 0.5) * 0.4));
+        this.timers.push({ t: 1.0 + i * 0.09, fn: () => { this.explode(p, W.splash, st.dmg, tw); if (i === 2) this.app.shake(0.2); } });
+      }
+    } else if (W.shot === 'volley') {
+      // 칼을 내리치는 순간 불붙은 포탄 3발
+      this.timers.push({ t: 0.5, fn: () => {
+        this.snd('cannon');
+        for (let i = 0; i < W.salvo; i++) {
+          const to = g0.clone().add(V((Math.random() - 0.5) * 1.4, 0, (Math.random() - 0.5) * 1.4));
+          this.addShot('shell', mz, { to, speed: 10, arc: 1.2 + mz.distanceTo(to) * 0.14, dmg: st.dmg, splash: W.splash, tw });
+          this.vfx.muzzle(mz, to.clone().sub(mz).normalize(), true);
+        }
+        this.spawnPuff(mz, 0xd9d4c8, 4, 0.22);
+      } });
+    } else if (W.shot === 'musket') {
+      // 조총 일제 사격: 가장 앞선 적 5명 동시에
+      this.timers.push({ t: 0.15, fn: () => {
+        this.snd('bullet', 1);
+        for (const x of near(W.salvo, true)) {
+          const hit = this.targetPoint(x);
+          this.hurt(x, st.dmg, tw, { pierce: true });
+          this.tracer(mz, hit, 0xffd08a); this.vfx.impact(hit, x.air);
+        }
+        this.spawnPuff(mz, 0xe8e4da, 5, 0.2, 1.2);
+      } });
+    } else if (W.shot === 'broadside') {
+      for (let i = 0; i < W.salvo; i++) {
+        this.timers.push({ t: 0.45 + i * 0.08, fn: () => {
+          const to = g0.clone().add(V((Math.random() - 0.5) * 2.4, 0, (Math.random() - 0.5) * 2.4));
+          this.addShot('shell', mz, { to, speed: 11, arc: 2 + mz.distanceTo(to) * 0.12, dmg: st.dmg, splash: W.splash, tw });
+          this.vfx.muzzle(mz, V(0, 1, 0), true); if (i % 3 === 0) this.snd('shell', 0.7);
+        } });
+      }
+    } else if (W.shot === 'carrier') {
+      // 경례 뒤 손을 뻗는 순간 유도탄 4발이 서로 다른 적에게
+      this.timers.push({ t: 0.5, fn: () => {
+        const list = near(W.salvo, true); if (!list.length) return;
+        this.snd('missile');
+        for (let i = 0; i < W.salvo; i++) {
+          const x = list[i % list.length];
+          this.timers.push({ t: i * 0.1, fn: () => this.addShot('missile', mz, { target: x, speed: x.air ? 11 : 8, dmg: st.dmg, tw, pierce: true, splash: x.air ? 0 : W.splash }) });
+        }
+      } });
+    } else if (W.shot === 'finest') {
+      // V자 손짓 → 거대한 중포탄 한 발
+      this.timers.push({ t: 0.45, fn: () => {
+        this.snd('cruise');
+        this.addShot('shell', mz, { to: g0, speed: 8, arc: 3 + mz.distanceTo(g0) * 0.15, dmg: st.dmg, splash: W.splash, tw, big: true });
+        this.spawnRing(tw.pos, st.range, 0xffd36a, 1.0);
+      } });
+    }
+  }
+
   addShot(kind, from, o) {
     const s = Object.assign({ kind, done: false, t: 0, from: from.clone(), pos: from.clone() }, o);
     s.mesh = new THREE.Mesh(kind === 'shell' ? G.shell : G.rocket, kind === 'shell' ? (this.shellM || (this.shellM = mat(0xffe08a, { emissive: 0xff9a00 }))) : (this.rocketM || (this.rocketM = mat(0xdfe3e6))));
     if (o.small) s.mesh.scale.setScalar(0.7);
     if (o.heavy) s.mesh.scale.setScalar(2.2);
+    if (o.big) s.mesh.scale.setScalar(3);
     s.mesh.position.copy(from);
     this.fxGroup.add(s.mesh);
     if (s.to) s.dur = Math.max(0.25, from.distanceTo(s.to) / s.speed);
@@ -673,7 +818,7 @@ export class Game {
       const k = Math.min(1, s.t / s.dur);
       s.pos.copy(s.from).lerp(s.to, k);
       s.pos.y = s.from.y * (1 - k) + s.to.y * k + s.arc * 4 * k * (1 - k);
-      if (k >= 1) { s.done = true; this.fxGroup.remove(s.mesh); this.explode(s.to, s.splash, s.dmg, s.tw); return; }
+      if (k >= 1) { s.done = true; this.fxGroup.remove(s.mesh); this.explode(s.to, s.splash, s.dmg, s.tw); if (s.big) { this.snd('bigboom', 1); this.app.shake(0.3); this.explodeFx(s.to.clone().setY(0.3), 2); } return; }
     }
     s.mesh.position.copy(s.pos);
     if (s.kind !== 'shell') {

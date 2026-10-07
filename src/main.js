@@ -8,6 +8,7 @@ import { UI } from './ui.js';
 import { Sound } from './audio.js';
 import { layout, isTouch } from './layout.js';
 import { getTower } from './models.js';
+import { makeHero, HERO_IDS, registerHeroes } from './heroes.js';
 import { Look } from './look.js';
 import { Backdrop, exportGuide } from './backdrop.js';
 import { TitleScene } from './titlescene.js';
@@ -48,6 +49,7 @@ class App {
     this.scene.add(sun);
     this.look = new Look(r, this.scene, this.camera, sun);
 
+    registerHeroes();   // 영웅을 무기 목록(GF.WEAPONS)에 등록
     this.city = new City(this.scene, this.stage);
     this.sound = new Sound();
     this.ui = new UI(this);
@@ -85,6 +87,13 @@ class App {
       r.render(sc, cam);
       out[id] = r.domElement.toDataURL();
       sc.remove(m.root);
+    }
+    // 영웅 얼굴 그림 (몸 위쪽을 크게)
+    const hc = new THREE.OrthographicCamera(-0.42, 0.42, 0.42, -0.42, 0.1, 20);
+    hc.position.set(2.4, 1.6, 1.1); hc.lookAt(0, 0.62, 0);
+    for (const id of HERO_IDS) {
+      const m = makeHero(id); m.yaw.rotation.y = -0.45; m.fire(); m.animate(0.45, 0.5);
+      sc.add(m.root); r.render(sc, hc); out['hero_' + id] = r.domElement.toDataURL(); sc.remove(m.root);
     }
     r.dispose(); r.forceContextLoss();
     return out;
@@ -315,6 +324,7 @@ class App {
       if (e.code === 'KeyW') g.pickCard(1);
       if (e.code === 'KeyE') g.pickCard(2);
       if (e.code === 'Escape') g.cancelMode();
+      if (e.code === 'KeyH') this.ui.openShop('hero');
       if (e.code === 'Space') { e.preventDefault(); this.togglePause(); }
       if (e.code === 'KeyN' || e.code === 'Enter') g.callNext();
       if (e.code === 'Equal' || e.code === 'NumpadAdd') this.zoomAt(this.L.x + this.W / 2, this.L.y + this.H / 2, 1.25);
