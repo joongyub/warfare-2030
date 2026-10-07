@@ -2,7 +2,7 @@
 window.GF = window.GF || {};
 
 GF.SETTINGS = {
-  version: '0.17.0 (베타 · 대각선 시점·회전)',
+  version: '0.18.0 (베타 · 이펙트·건물 개편)',
   // true: 실제 무기 이름 (K9 썬더, 재블린 …) / false: 살짝 바꾼 이름 (K9-X 썬더, 재블런스 …)
   // 출시 직전 상표 검토 후 결정 (문서 10번 2장 참고)
   useRealWeaponNames: true,

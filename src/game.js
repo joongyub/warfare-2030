@@ -1,6 +1,7 @@
 // 전투 규칙 (v4 서울): 도로 밖 자유 배치 → 작전 개시 → 웨이브가 자동으로 이어짐 (다음 웨이브 ≫ 로 앞당기기)
 import * as THREE from 'three';
 import { getTower, getEnemy, getGhost, mat } from './models.js';
+import { VFX } from './vfx.js';
 
 const V = (x = 0, y = 0, z = 0) => new THREE.Vector3(x, y, z);
 const TOWER_SCALE = 1.6, TOWER_GAP = 1.4;
@@ -23,6 +24,7 @@ export class Game {
     this.fxGroup = new THREE.Group(); this.scene.add(this.fxGroup);
     this.unitGroup = new THREE.Group(); this.scene.add(this.unitGroup);
     this.flash = new THREE.PointLight(0xffa040, 0, 8, 1.6); this.scene.add(this.flash);
+    this.vfx = new VFX(this.scene);
     this.rangeDisc = new THREE.Group();
     const disc = new THREE.Mesh(new THREE.CircleGeometry(1, 64), new THREE.MeshBasicMaterial({ color: 0x7fe9ff, transparent: true, opacity: 0.13, depthWrite: false }));
     const ring = new THREE.Mesh(new THREE.RingGeometry(0.98, 1, 96), new THREE.MeshBasicMaterial({ color: 0xaaf4ff, transparent: true, opacity: 0.85, depthWrite: false }));
@@ -44,7 +46,7 @@ export class Game {
     const S = this.S, SET = GF.SETTINGS;
     for (const t of this.towers) this.unitGroup.remove(t.model.root);
     for (const e of this.enemies) this.removeEnemy(e);
-    this.fxGroup.clear();
+    this.fxGroup.clear(); this.vfx.clear();
     this.city.resetRoutes(); this.city.resetTrees();
     this.money = S.startMoney; this.lives = S.lives;
     this.cp = SET.cpStart; this.cpT = 0;
@@ -189,7 +191,7 @@ export class Game {
     war.scale.setScalar(nuke ? 1.6 : 1.1);
     const from = g.clone().add(V(-6, 40, -10)), fall = nuke ? 2.2 : 1.6;
     war.position.copy(from); war.lookAt(g); war.rotateX(Math.PI / 2);
-    this.pushFx(war, fall, (o, k) => { o.position.copy(from).lerp(g, k * k); if (Math.random() < 0.6 && this.fx.length < 450) this.spawnPuff(o.position.clone(), 0xeeeeee, 1, 0.3, 1.2); });
+    this.pushFx(war, fall, (o, k) => { o.position.copy(from).lerp(g, k * k); this.vfx.trail(o.position, o.userData.prev || o.position, true); (o.userData.prev ||= V()).copy(o.position); });
     this.timers.push({ t: fall, fn: () => this.detonate(g, C, nuke) });
   }
   detonate(g, C, nuke) {
@@ -574,16 +576,19 @@ export class Game {
     this.snd(W.heavy ? 'cruise' : W.pierce ? 'javelin' : W.shot);
     if (W.shot === 'bullet') {
       this.hurt(e, st.dmg, tw);
-      this.tracer(mz, tp.add(V((Math.random() - 0.5) * 0.2, 0, (Math.random() - 0.5) * 0.2)));
-      this.spawnSpark(mz, 0xffe08a, 0.1);
+      const hit = tp.add(V((Math.random() - 0.5) * 0.2, 0, (Math.random() - 0.5) * 0.2));
+      this.vfx.muzzle(mz, hit.clone().sub(mz).normalize(), false);
+      this.tracer(mz, hit);
+      this.vfx.impact(hit, e.air);
     } else if (W.shot === 'cannon') {
+      this.vfx.muzzle(mz, tp.clone().sub(mz).normalize(), true);
       this.tracer(mz, tp, 0xffc46a);
       this.explode(tp.clone().setY(0), W.splash, st.dmg, tw, true);
-      this.spawnSpark(mz, 0xffd27a, 0.3); this.spawnPuff(mz, 0x9a948a, 2, 0.15);
     } else if (W.shot === 'shell') {
       this.addShot('shell', mz, { to: tp.setY(0), speed: 9, arc: 1.5 + mz.distanceTo(tp) * 0.18, dmg: st.dmg, splash: W.splash, tw });
-      this.spawnSpark(mz, 0xffd27a, 0.3); this.spawnPuff(mz, 0x9a948a, 2, 0.15);
+      this.vfx.muzzle(mz, V(0, 1, 0), true);
     } else if (W.shot === 'missile') {
+      this.vfx.muzzle(mz, V(0, 1, 0), !!W.heavy);
       this.addShot('missile', mz, { target: e, speed: e.air ? 10 : 7, dmg: st.dmg, tw, pierce: !!W.pierce, splash: W.splash || 0, heavy: !!W.heavy });
     } else if (W.shot === 'intercept') {
       this.addShot('missile', mz, { target: e, speed: 12, dmg: st.dmg, tw, pierce: true, splash: 0, small: true });
@@ -633,8 +638,8 @@ export class Game {
     if (s.kind !== 'shell') {
       const d = s.pos.clone().sub(prev);
       if (d.lengthSq() > 0) s.mesh.quaternion.setFromUnitVectors(V(0, 1, 0), d.normalize());
-      if (Math.random() < 0.5 && this.fx.length < 400) this.spawnPuff(s.pos, 0xd8d8d8, 1, 0.08, 0.5);
-    }
+      this.vfx.trail(s.pos, prev, !!s.heavy, dt);
+    } else this.vfx.emit(this.vfx.glow, { x: s.pos.x, y: s.pos.y, z: s.pos.z, life: 0.08, s0: 0.12, c0: [2, 1.4, 0.6], tile: 2 });
   }
 
   // 범위 피해. air=true 면 공중 적만, 아니면 지상 적만
@@ -714,7 +719,7 @@ export class Game {
       this.timers.push({ t: 0.9, fn: () => { this.explode(g, c.radius, c.power, null); this.explodeFx(g.clone().add(V(1, 0, 0.5)), 1.4); this.explodeFx(g.clone().add(V(-0.9, 0, -0.6)), 1.4); this.app.shake(0.35); } });
     }
     if (id === 'emp') {
-      this.spawnRing(g, c.radius, 0x8fc3ff, 0.8); this.spawnSpark(g.clone().setY(0.5), 0xbfe3ff, c.radius * 0.6, 0.5);
+      this.spawnRing(g, c.radius, 0x8fc3ff, 0.8); this.vfx.pulse(g.clone().setY(0.5), c.radius, 0x8fc3ff);
       for (const e of this.enemies) if (e.pos.distanceTo(g) <= c.radius) e.stun = c.power;
     }
     if (id === 'barrage') {
@@ -742,50 +747,64 @@ export class Game {
       if (k >= 1) { this.fxGroup.remove(f.obj); if (f.obj.material && f.obj.material.dispose && !f.obj.material.shared) f.obj.material.dispose(); f.done = true; }
     }
     this.fx = this.fx.filter((f) => !f.done);
-    if (this.flash.intensity > 0) this.flash.intensity = Math.max(0, this.flash.intensity - dt * 60);
+    this.vfx.q = { ultra: 1, high: 1, medium: 0.7, low: 0.45 }[this.app.look && this.app.look.q] || 1;
+    this.vfx.update(dt);
+    if (this.flash.intensity > 0) this.flash.intensity = Math.max(0, this.flash.intensity - dt * 70);
   }
   explodeFx(p, r) {
-    const ball = new THREE.Mesh(G.ball, new THREE.MeshBasicMaterial({ color: 0xffb347, transparent: true }));
-    ball.position.copy(p).setY(Math.max(0.15, p.y));
-    this.pushFx(ball, 0.35, (o, k) => { o.scale.setScalar(0.1 + r * 0.9 * k); o.material.opacity = 1 - k; o.material.color.setHSL(0.09 - k * 0.07, 1, 0.6 - k * 0.3); });
-    if (this.fx.length < 450) for (let i = 0; i < Math.ceil(1 + r * 3); i++) this.spawnPuff(p.clone().add(V((Math.random() - 0.5) * r, 0.1, (Math.random() - 0.5) * r)), 0x4a4540, 1, 0.15 + r * 0.25, 1.3);
-    this.flash.position.copy(p).setY(1); this.flash.intensity = 8 + r * 10; this.flash.distance = 3 + r * 4;
+    this.vfx.explosion(p.clone().setY(Math.max(0.1, p.y)), r, { air: p.y > 0.8 });
+    this.flash.position.copy(p).setY(Math.max(1, p.y + 0.6)); this.flash.intensity = Math.max(this.flash.intensity, 10 + r * 14); this.flash.distance = 4 + r * 5;
   }
   spawnPuff(p, color, n = 1, size = 0.18, life = 0.9) {
-    for (let i = 0; i < n; i++) {
-      const m = new THREE.Mesh(G.puff, new THREE.MeshLambertMaterial({ color, transparent: true, opacity: 0.7, depthWrite: false }));
-      m.position.copy(p).add(V((Math.random() - 0.5) * 0.2, 0, (Math.random() - 0.5) * 0.2));
-      const vy = 0.3 + Math.random() * 0.4;
-      this.pushFx(m, life, (o, k, dt) => { o.scale.setScalar(size * (0.6 + k * 1.4)); o.position.y += vy * dt; o.material.opacity = 0.7 * (1 - k); });
-    }
+    const c = new THREE.Color(color);
+    for (let i = 0; i < n; i++) this.vfx.emit(this.vfx.smoke, { x: p.x + (Math.random() - 0.5) * 0.2, y: p.y, z: p.z + (Math.random() - 0.5) * 0.2, v: [0, 0.3 + Math.random() * 0.4, 0], life, s0: size * 1.2, s1: size * 4, c0: [c.r, c.g, c.b], a: 0.6, tile: 0, fin: 0.08 });
   }
   spawnSpark(p, color, size, life = 0.12) {
-    const m = new THREE.Mesh(G.puff, new THREE.MeshBasicMaterial({ color, transparent: true }));
-    m.position.copy(p);
-    this.pushFx(m, life, (o, k) => { o.scale.setScalar(size * (1 + k)); o.material.opacity = 1 - k; });
+    const c = new THREE.Color(color);
+    this.vfx.emit(this.vfx.glow, { x: p.x, y: p.y, z: p.z, life, s0: size * 2, s1: size * 4, c0: [c.r * 1.8, c.g * 1.8, c.b * 1.8], tile: 2 });
   }
   spawnRing(p, r, color, life = 0.6) {
     const m = new THREE.Mesh(G.ring, new THREE.MeshBasicMaterial({ color, transparent: true, depthWrite: false, side: THREE.DoubleSide }));
     m.rotation.x = -Math.PI / 2; m.position.set(p.x, 0.08, p.z);
     this.pushFx(m, life, (o, k) => { o.scale.setScalar(r * (0.3 + 0.7 * k)); o.material.opacity = 0.9 * (1 - k); });
   }
-  tracer(a, b, color = 0xffe08a) {
-    const g = new THREE.BufferGeometry().setFromPoints([a, b]);
-    const l = new THREE.Line(g, new THREE.LineBasicMaterial({ color, transparent: true }));
-    this.pushFx(l, 0.07, (o, k) => { o.material.opacity = 1 - k; if (k >= 1) o.geometry.dispose(); });
-  }
+  tracer(a, b, color = 0xffe08a) { this.vfx.tracer(a, b, color); }
+  // 부서진 차량: 검게 탄 차체가 한동안 불타며 연기를 뿜다가 가라앉음
   wreck(e) {
-    const m = new THREE.Mesh(G.wreck, this.wreckM || (this.wreckM = mat(0x1d1c1a)));
-    m.material.shared = true;
+    const m = e.model.root;
     const s = e.E.boss ? 1.8 : e.type === 'tank' ? 1.1 : 0.8;
-    m.scale.set(s, 1, s); m.position.copy(e.pos).setY(0.06); m.rotation.y = e.model.root.rotation.y;
-    this.pushFx(m, 5, (o, k) => { if (k > 0.8) o.position.y = 0.06 - (k - 0.8) * 0.6; if (Math.random() < 0.04 && this.fx.length < 400) this.spawnPuff(o.position.clone().setY(0.2), 0x2f2c29, 1, 0.14, 1.6); });
+    const w = new THREE.Group();
+    const hull = new THREE.Mesh(G.wreck, this.wreckM || (this.wreckM = mat(0x1d1c1a, { roughness: 1 })));
+    hull.scale.set(s, 1.4, s); hull.position.y = 0.08; w.add(hull);
+    const top = new THREE.Mesh(G.wreck, this.wreckM2 || (this.wreckM2 = mat(0x2b2620, { roughness: 1 })));
+    top.scale.set(s * 0.5, 1.2, s * 0.6); top.position.set(-0.05 * s, 0.22, 0); top.rotation.set(0.15, 0.4, -0.2); w.add(top);
+    const ember = new THREE.Mesh(G.wreck, this.emberM || (this.emberM = mat(0x1a0f08, { emissive: 0xff4a10, emissiveIntensity: 1.4 })));
+    ember.scale.set(s * 0.7, 0.3, s * 0.4); ember.position.y = 0.17; w.add(ember);
+    w.traverse((o) => { if (o.material) o.material.shared = true; });
+    w.position.copy(e.pos).setY(0); w.rotation.y = m.rotation.y + (Math.random() - 0.5) * 0.5;
+    const life = e.E.boss ? 9 : 6, fire = V();
+    this.pushFx(w, life, (o, k, dt) => {
+      ember.visible = k < 0.6;
+      if (k > 0.85) o.position.y = -(k - 0.85) * 2;
+      fire.copy(o.position).setY(0.25);
+      this.vfx.burn(fire, s, dt, k < 0.5 ? 1 : 1.6 * (1 - k));
+    });
   }
+  // 격추된 헬기·드론: 불붙어 연기를 끌며 떨어지고 땅에서 한 번 더 폭발
   fallDebris(e) {
-    const m = new THREE.Mesh(G.puff, new THREE.MeshBasicMaterial({ color: 0x3a3a3a, transparent: true }));
+    const m = new THREE.Mesh(G.wreck, this.wreckM || (this.wreckM = mat(0x1d1c1a, { roughness: 1 })));
+    m.material.shared = true;
+    const s = e.type === 'heli' ? 0.7 : 0.4;
+    m.scale.set(s, 2, s);
     m.position.copy(e.pos).setY(e.model.body.position.y * e.sc);
-    m.scale.setScalar(0.12);
-    this.pushFx(m, 0.6, (o, k, dt) => { o.position.y = Math.max(0, o.position.y - dt * 4); o.material.opacity = 1 - k; });
+    const vx = (Math.random() - 0.5) * 2, vz = (Math.random() - 0.5) * 2, h0 = m.position.y, T = Math.max(0.5, Math.sqrt(h0 / 4.5));
+    let landed = false;
+    this.pushFx(m, T, (o, k, dt) => {
+      o.position.x += vx * dt; o.position.z += vz * dt; o.position.y = Math.max(0.05, h0 * (1 - k * k));
+      o.rotation.x += dt * 6; o.rotation.z += dt * 4;
+      this.vfx.fallTrail(o.position, dt);
+      if (k >= 0.99 && !landed) { landed = true; this.vfx.explosion(o.position.clone().setY(0.15), e.type === 'heli' ? 0.9 : 0.5, {}); }
+    });
   }
   flyJet(target) {
     const jet = new THREE.Group();

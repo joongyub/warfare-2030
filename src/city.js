@@ -9,6 +9,7 @@ import {
 
 // 도시 테마 → 전투 구역 바닥 무늬
 import { DETAILED } from './landmarks.js';
+import { shopFacadeHD, aptFacadeHD, glassFacadeHD, roofHD } from './textures_bldg.js';
 import { realLawn, realRoad, realWalk, realConcrete, realBoulevard, realPlaza, zebraTex, shopFacade, officeFacade } from './textures_real.js';
 // 반복 횟수를 따로 주려고 복제 (그림은 공유)
 function rep(t, x, y) { const c = t.clone(); c.needsUpdate = true; c.repeat.set(x, y); return c; }
@@ -59,6 +60,20 @@ function boxWalls(B, x, y, z, w, h, d, ry, wallM, roofM, tu = 1, tv = 1, gableM)
     g.applyMatrix4(rot); g.applyMatrix4(pos);
     B.push(roofM, g);
   }
+}
+
+// 옥상 테두리(난간 턱) + 옥상 구조물. 로컬 좌표로 만들어 ry 회전 후 (x,z)로 옮김
+function roofKit(B, x, z, w, d, h, ry, rimM, o = {}) {
+  const M4 = new THREE.Matrix4().makeRotationY(ry).premultiply(new THREE.Matrix4().makeTranslation(x, 0, z));
+  const put = (g, m) => { g.applyMatrix4(M4); B.push(m, g); };
+  const t = o.t ?? 0.03, rh = o.rh ?? 0.06;
+  put(new THREE.BoxGeometry(w + t, rh, t).translate(0, h + rh / 2, d / 2), rimM);
+  put(new THREE.BoxGeometry(w + t, rh, t).translate(0, h + rh / 2, -d / 2), rimM);
+  put(new THREE.BoxGeometry(t, rh, d).translate(w / 2, h + rh / 2, 0), rimM);
+  put(new THREE.BoxGeometry(t, rh, d).translate(-w / 2, h + rh / 2, 0), rimM);
+  if (o.house) put(new THREE.BoxGeometry(o.house[0], o.house[1], o.house[2]).translate(o.hx || 0, h + o.house[1] / 2, o.hz || 0), o.houseM || rimM);
+  if (o.awning) put(new THREE.BoxGeometry(w * 0.9, 0.018, 0.13).rotateX(0.32).translate(0, o.awning[0], d / 2 + 0.06), o.awning[1]);
+  if (o.mech) for (const [mx, mz, mw, mh, md] of o.mech) put(new THREE.BoxGeometry(mw, mh, md).translate(mx, h + mh / 2, mz), o.mechM || rimM);
 }
 
 const repMat = (tex, o = {}) => { const t = tex.clone(); t.needsUpdate = true; t.wrapS = t.wrapT = THREE.RepeatWrapping; return new THREE.MeshStandardMaterial(Object.assign({ map: t, roughness: 0.85 }, o)); };
@@ -285,10 +300,11 @@ export class City {
 
   mats() {
     this.M = {
-      apt: [0, 1, 2].map((v) => repMat(aptFacadeTex(v), { roughness: 0.8, emissive: 0x262626 })),
-      glass: [0, 1, 2, 3].map((v) => repMat(glassTex(v), { roughness: 0.4, metalness: 0.05, color: 0xe8f0f8 })),
+      apt: [0, 1, 2].map((v) => { const T = aptFacadeHD(v); return new THREE.MeshStandardMaterial({ map: T.map, emissiveMap: T.emissiveMap, emissive: 0xffffff, emissiveIntensity: 0.35, roughness: 0.78 }); }),
+      glass: [0, 1, 2, 3].map((v) => { const T = glassFacadeHD(v); return new THREE.MeshStandardMaterial({ map: T.map, emissiveMap: T.emissiveMap, emissive: 0xffffff, emissiveIntensity: 0.4, roughness: 0.12, metalness: 0.55 }); }),
+      rim: mat(0xd6d4cf, { roughness: 0.9 }), rimDark: mat(0x6c7075, { roughness: 0.7, metalness: 0.3 }), mech: mat(0x9aa0a6, { roughness: 0.6, metalness: 0.4 }),
       gold: repMat(goldGlassTex(), { roughness: 0.35, metalness: 0.1 }),
-      roof: mat(0xb9bcc0), roof2: mat(0x8e9298), roofG: mat(0x7d9a6a),
+      roof: new THREE.MeshStandardMaterial({ map: roofHD(0), roughness: 0.95 }), roof2: new THREE.MeshStandardMaterial({ map: roofHD(2), roughness: 0.9 }), roofG: mat(0x7d9a6a),
       gable: [101, 102, 103, 104, 105, 106, 107, 108, 109, 110].map((n, i) => new THREE.MeshStandardMaterial({ map: aptGableTex(n, i % 3), roughness: 0.8 }))
     };
   }
@@ -557,13 +573,16 @@ export class City {
           const ox = rot ? (k ? 1.7 : -1.7) : 0, oz = rot ? 0 : (k ? 1.8 : -1.8);
           const near = dist < 60;
           boxWalls(B, cx + ox, 0, cz + oz, w, h, d, rot, M.apt[v], M.roof, 1.6, 1.12, near ? M.gable[gableI++ % M.gable.length] : null);
+          roofKit(B, cx + ox, cz + oz, w, d, h, rot, M.rim, { t: 0.06, rh: 0.12, house: [0.9, 0.42, d * 0.6], hx: w * 0.2, houseM: M.rim, mech: near ? [[-w * 0.25, 0, 0.5, 0.16, 0.4]] : null, mechM: M.mech });
         }
       } else if (r < 0.9) {
         // 오피스 빌딩 (유리)
         const n = rnd.int(1, 3);
         for (let k = 0; k < n; k++) {
           const w = rnd.range(2.2, 3.4), d = rnd.range(2.2, 3.4), h = rnd.range(5, dist < 50 ? 12 : 18) * hMax;
-          boxWalls(B, cx + rnd.range(-1.6, 1.6), 0, cz + rnd.range(-1.6, 1.6), w, h, d, 0, M.glass[rnd.int(0, 3)], M.roof2, 2, 2);
+          const ox = cx + rnd.range(-1.6, 1.6), oz = cz + rnd.range(-1.6, 1.6);
+          boxWalls(B, ox, 0, oz, w, h, d, 0, M.glass[rnd.int(0, 3)], M.roof2, 2, 2);
+          roofKit(B, ox, oz, w, d, h, 0, M.rimDark, { t: 0.08, rh: 0.2, house: [w * 0.5, 0.5, d * 0.45], houseM: M.mech, mech: [[w * 0.3, d * 0.3, 0.4, 0.25, 0.3]], mechM: M.mech });
         }
       } else {
         // 작은 공원
@@ -578,6 +597,7 @@ export class City {
       if (reserved.some(([rx, rz, rr]) => Math.hypot(x - rx, z - rz) < rr + 3)) continue;
       const v = rnd.int(0, 2), h = rnd.int(14, 28) * 0.28;
       boxWalls(B, x, 0, z, 6, h, 1.25, 0, M.apt[v], M.roof, 1.6, 1.12, Math.abs(x) < 50 ? M.gable[gableI++ % M.gable.length] : null);
+      roofKit(B, x, z, 6, 1.25, h, 0, M.rim, { t: 0.06, rh: 0.12, house: [0.9, 0.42, 0.75], hx: 1.2 });
     }
     B.build(this.group);
   }
@@ -739,9 +759,10 @@ export class City {
   buildStreetFront() {
     const F = this.S.streetFront; if (!F) return;
     const S = this.S, b = S.bounds, rnd = makeRng(S.seed + 'street'), B = new Buckets();
-    const shopM = [0, 1, 2, 3, 4, 5].map((v) => new THREE.MeshStandardMaterial({ map: shopFacade(v), roughness: 0.8 }));
-    const offM = [0, 1, 2].map((v) => new THREE.MeshStandardMaterial({ map: officeFacade(v), roughness: 0.25, metalness: 0.4 }));
-    const roofM = mat(0x8d8f91, { roughness: 0.95 }), tankM = mat(0x3f8fc9, { roughness: 0.6 }), acM = mat(0xc9cbcc);
+    const shopM = [0, 1, 2, 3, 4, 5].map((v) => { const T = shopFacadeHD(v); return new THREE.MeshStandardMaterial({ map: T.map, emissiveMap: T.emissiveMap, emissive: 0xffffff, emissiveIntensity: 0.45, roughness: 0.8 }); });
+    const offM = this.M.glass;
+    const roofM = new THREE.MeshStandardMaterial({ map: roofHD(0), roughness: 0.95 }), tankM = mat(0x3f8fc9, { roughness: 0.6 }), acM = mat(0xc9cbcc);
+    const rimM = mat(0xcfccc4, { roughness: 0.9 }), awnM = [0xc0392b, 0x2a6fb0, 0x2e8b57, 0xd98a1c, 0x5d6066].map((c) => mat(c, { roughness: 0.7 }));
     const off0 = (ROAD_W + 0.9) / 2 + 0.03, dep = F.depth;
     const free = (x, z, r) => {
       if (x - r < b.x0 + 0.05 || x + r > b.x1 - 0.05 || z - r < b.z0 + 0.05 || z + r > b.z1 - 0.05) return false;
@@ -765,10 +786,11 @@ export class City {
             if (free(mx, mz, Math.max(w, dep) / 2 * 0.7)) {
               // 카메라 쪽(남쪽) 줄은 낮게: 적이 건물에 가려지지 않도록. 먼 쪽 줄만 높은 빌딩
               const near = nz > 0.5, tall = !near && rnd() < 0.15;
-              const h = tall ? rnd.range(1.6, 2.4) : near ? rnd.range(0.3, 0.6) : rnd.range(0.5, 1.3);
+              const h = tall ? rnd.range(1.6, 2.4) : (near ? rnd.int(1, 2) : rnd.int(2, 4)) * 0.3;   // 상가는 층 높이(0.3)에 딱 맞춤
               const ry = Math.atan2(-dz, dx) + (side > 0 ? Math.PI : 0);   // 긴 면이 도로를 따라, 정면이 도로 쪽
               const m = tall ? offM[Math.floor(rnd() * 3)] : shopM[Math.floor(rnd() * 6)];
-              boxWalls(B, mx, 0, mz, w - 0.06, h, dep, ry, m, roofM, tall ? 0.8 : 1, tall ? 0.8 : 1.5);
+              boxWalls(B, mx, 0, mz, w - 0.06, h, dep, ry, m, roofM, tall ? 1.6 : 1, tall ? 1.6 : 1.5);
+              roofKit(B, mx, mz, w - 0.06, dep, h, ry, tall ? this.M.rimDark : rimM, { t: 0.035, rh: tall ? 0.1 : 0.06, awning: tall ? null : [0.26, awnM[Math.floor(rnd() * awnM.length)]], house: !tall && rnd() < 0.35 ? [0.22, 0.16, 0.2] : tall ? [0.5, 0.2, 0.4] : null, hx: -w * 0.2, houseM: rimM });
               this.streetBlocks.push({ x: mx, z: mz, hx: Math.abs(dx) * w / 2 + Math.abs(nx) * dep / 2, hz: Math.abs(dz) * w / 2 + Math.abs(nz) * dep / 2 });
               // 옥상: 물탱크·실외기
               if (rnd() < 0.5) { const g = new THREE.CylinderGeometry(0.09, 0.09, 0.14, 8); g.translate(mx + nx * 0.05, h + 0.07, mz + nz * 0.05); B.push(tankM, g); }
