@@ -269,7 +269,8 @@ export class City {
     this.labels = [];
     this.rnd = makeRng(stage.seed);
     // 적 침투로 양옆에 상가 건물이 늘어서면 그만큼 무기 배치 거리도 늘어남
-    this.roadClear = ROAD_CLEAR + (stage.streetFront ? stage.streetFront.depth : 0);
+    this.roadClear = ROAD_CLEAR;   // 길가 건물은 띄엄띄엄 → 건물 자리만 따로 막음 (streetBlocks)
+    this.streetBlocks = [];
     this.mats();
     this.buildRoute();
     this.buildGround();
@@ -406,6 +407,7 @@ export class City {
     const b = this.S.bounds;
     if (x < b.x0 + 0.5 || x > b.x1 - 0.5 || z < b.z0 + 0.5 || z > b.z1 - 0.5) return '작전 구역 밖';
     if (this.roadDist(x, z) < this.roadClear) return '적 침투로 배치 불가';
+    for (const q of this.streetBlocks) if (Math.abs(x - q.x) < q.hx + 0.45 && Math.abs(z - q.z) < q.hz + 0.45) return '건물 자리 배치 불가';
     for (const k of this.S.blockers) {
       if (k.kind === 'pond') { if (((x - k.x) / (k.rx + 0.4)) ** 2 + ((z - k.z) / (k.rz + 0.4)) ** 2 < 1) return '연못 배치 불가'; }
       else if (Math.abs(x - k.x) < k.w / 2 + 0.6 && Math.abs(z - k.z) < k.d / 2 + 0.6) return k.label + ' 자리 배치 불가';
@@ -754,23 +756,26 @@ export class City {
         const [ax, az] = P[i], [bx, bz] = P[i + 1], L = Math.hypot(bx - ax, bz - az), dx = (bx - ax) / L, dz = (bz - az) / L;
         for (const side of [-1, 1]) {
           const nx = -dz * side, nz = dx * side, cOff = off0 + dep / 2;
-          let t = i === 0 ? 0.3 : cOff + 0.3, run = 0;
+          let t = i === 0 ? 0.3 : cOff + 0.3 + rnd.range(0, 3), left = rnd.int(1, 3);
           const tEnd = L - (i === P.length - 2 ? 0.3 : cOff + 0.3);
+          // 띄엄띄엄: 건물 1~3채 묶음 → 넓은 빈자리(무기 놓을 곳) → 다시 묶음
           while (t < tEnd - 0.5) {
-            const w = Math.min(tEnd - t, rnd.range(0.9, 1.9));
+            const w = Math.min(tEnd - t, rnd.range(0.9, 1.7));
             const mx = ax + dx * (t + w / 2) + nx * cOff, mz = az + dz * (t + w / 2) + nz * cOff;
             if (free(mx, mz, Math.max(w, dep) / 2 * 0.7)) {
               // 카메라 쪽(남쪽) 줄은 낮게: 적이 건물에 가려지지 않도록. 먼 쪽 줄만 높은 빌딩
-              const near = nz > 0.5, tall = !near && rnd() < 0.1;
+              const near = nz > 0.5, tall = !near && rnd() < 0.15;
               const h = tall ? rnd.range(1.6, 2.4) : near ? rnd.range(0.3, 0.6) : rnd.range(0.5, 1.3);
               const ry = Math.atan2(-dz, dx) + (side > 0 ? Math.PI : 0);   // 긴 면이 도로를 따라, 정면이 도로 쪽
               const m = tall ? offM[Math.floor(rnd() * 3)] : shopM[Math.floor(rnd() * 6)];
               boxWalls(B, mx, 0, mz, w - 0.06, h, dep, ry, m, roofM, tall ? 0.8 : 1, tall ? 0.8 : 1.5);
+              this.streetBlocks.push({ x: mx, z: mz, hx: Math.abs(dx) * w / 2 + Math.abs(nx) * dep / 2, hz: Math.abs(dz) * w / 2 + Math.abs(nz) * dep / 2 });
               // 옥상: 물탱크·실외기
               if (rnd() < 0.5) { const g = new THREE.CylinderGeometry(0.09, 0.09, 0.14, 8); g.translate(mx + nx * 0.05, h + 0.07, mz + nz * 0.05); B.push(tankM, g); }
               if (rnd() < 0.6) { const g = new THREE.BoxGeometry(0.16, 0.1, 0.12); g.translate(mx - dx * w * 0.25, h + 0.05, mz - dz * w * 0.25); B.push(acM, g); }
             }
-            t += w + (++run % 5 === 0 ? 0.45 : 0.04);   // 다섯 채마다 골목
+            t += w + 0.04;
+            if (--left <= 0) { t += rnd.range(F.gap?.[0] ?? 4, F.gap?.[1] ?? 8); left = rnd.int(1, 3); }
           }
         }
       }

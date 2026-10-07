@@ -152,7 +152,6 @@ export class UI {
       <label><input type="checkbox" data-k="showLandmarkLabels" ${SET.showLandmarkLabels ? 'checked' : ''}> 랜드마크 이름표</label>
       <label><input type="checkbox" data-k="useRealWeaponNames" ${SET.useRealWeaponNames ? 'checked' : ''}> 무기 실제 이름 <small>(끄면 살짝 바꾼 이름)</small></label>
       <label><input type="checkbox" data-k="sound" ${SET.sound ? 'checked' : ''}> 효과음</label>
-      <label><input type="checkbox" data-k="music" ${SET.music ? 'checked' : ''}> 배경 음악</label>
       <label><input type="checkbox" data-k="shadows" ${SET.shadows ? 'checked' : ''}> 그림자 <small>(느리면 끄기)</small></label>
       <label>그래픽 <select class="gq">${[['auto', '자동 (추천)'], ['ultra', '최고 (고사양 PC)'], ['high', '높음'], ['medium', '보통'], ['low', '낮음 (느린 기기)']].map(([v, n]) => `<option value="${v}" ${(SET.graphics === 'auto' ? 'auto' : this.app.look.q) === v ? 'selected' : ''}>${n}</option>`).join('')}</select></label>
       <div class="row"><button class="home">처음 화면</button><button class="close">닫기</button></div>`;

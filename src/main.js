@@ -25,9 +25,9 @@ class App {
     document.getElementById('view').appendChild(r.domElement);
 
     this.scene = new THREE.Scene();
-    this.camera = new THREE.PerspectiveCamera(32, 16 / 9, 0.5, 900);
-    // EL: 내려다보는 각도(고정, 약 48도) / zoom: 1 = 전투 구역 전체가 화면에 꽉 참, 최대 3배
-    this.EL = 0.84;
+    this.camera = new THREE.PerspectiveCamera(34, 16 / 9, 0.5, 900);
+    // EL: 내려다보는 각도(고정) / zoom: 1 = 전투 구역 전체가 화면에 꽉 참, 최대 3배
+    this.EL = 0.6;   // 약 34도: 시안처럼 비스듬히 내려다보며 멀리 한강·스카이라인이 보이는 각도 (고정)
     this.cam = { target: new THREE.Vector3(0, 0, 0), zoom: 1, zoomGoal: 1, shake: 0, anchor: null };
 
     // 조명: 하늘빛 + 해 (그림자). 사방에서 오는 하늘 반사광은 look.js 환경광이 담당
@@ -142,7 +142,8 @@ class App {
   // 줌 1: 전투 구역 위·아래 끝이 전투 영역 위·아래에 딱 맞고, 가까운 쪽 가로가 화면을 넘지 않는 거리와 위치를 계산
   fitView() {
     if (!this.W) return;
-    const b = this.stage.bounds, f = this.fieldRect(), cx = (b.x0 + b.x1) / 2;
+    const b = this.stage.bounds, f0 = this.fieldRect(), cx = (b.x0 + b.x1) / 2;
+    const f = { top: f0.top + (f0.bottom - f0.top) * 0.1, bottom: f0.bottom };   // 위쪽 10%는 구역 너머 도시·한강이 보이게 비움
     const t = new THREE.Vector3(cx, 0, (b.z0 + b.z1) / 2);
     let d = 70;
     for (let i = 0; i < 80; i++) {
@@ -150,7 +151,7 @@ class App {
       const top = this.toPx(cx, 0, b.z0).y, bot = this.toPx(cx, 0, b.z1).y;
       const bw = this.toPx(b.x1, 0, b.z1).x - this.toPx(b.x0, 0, b.z1).x;
       const span = bot - top, want = f.bottom - f.top;
-      d *= Math.max(span / want, bw / (this.W * 0.995));
+      d *= Math.max(span / want, bw / (this.W * 1.08));   // 가까운 쪽 가장자리는 화면 밖으로 살짝 나가도 됨 (시안처럼 꽉 차게)
       t.z += ((top + bot) / 2 - (f.top + f.bottom) / 2) * (b.z1 - b.z0) / span;
     }
     this.fit = { d, t: t.clone() };
