@@ -153,7 +153,7 @@ export function makeTower(type) {
   return { root, yaw, pitch, muzzle, spin, glow };
 }
 
-// ---------- 적: 아케론 연방군 (짙은 회색 + 붉은 표식) ----------
+// ---------- 적: 부카니스탄군 (짙은 회색 + 붉은 표식) ----------
 const AG = 0x6b2226, AG2 = 0x2a2426, RED = 0xff3b30;
 export function makeEnemy(type) {
   const root = new THREE.Group();

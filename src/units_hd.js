@@ -550,7 +550,7 @@ const TOWERS = {
   }
 };
 
-// ================= 적 (아케론 연방군: 짙은 회색 + 붉은 식별 띠) =================
+// ================= 적 (부카니스탄군: 짙은 회색 + 붉은 식별 띠) =================
 export function makeEnemyHD(type) {
   const root = new THREE.Group();
   const body = new THREE.Group(); root.add(body);

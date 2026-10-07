@@ -38,7 +38,7 @@ export class UI {
     const S = this.app.stage, best = this.best();
     const t = this.title = h('div', 'title-screen', null, this.root);
     t.innerHTML = `
-      <div class="brand"><span>MODERN WAR TOWER DEFENSE</span><h1>2030 Warfare 1</h1><p>2030년, 아케론 연방이 세계 50개 도시를 침공했다. 연합 방위군 지휘관으로서 도시를 지켜라.</p></div>
+      <div class="brand"><span>MODERN WAR TOWER DEFENSE</span><h1>2030 Warfare 1</h1><p>부카니스탄이 세계 50개 도시를 침공했다. 연합군 지휘관으로서 도시를 지켜라.</p></div>
       <div class="profile-card">
         <div class="pc-title">지휘관 프로필</div>
         <div class="pc-row"><input class="pc-name" maxlength="12" placeholder="이름을 정하세요" value=""><button class="pc-save">저장</button></div>

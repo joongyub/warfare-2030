@@ -10,7 +10,7 @@ GF.STAGES = GF.STAGES || {};
   GF.STAGES.seoul = {
     id: 'seoul', no: 1,
     name: '서울', nameEn: 'SEOUL', alias: '한강시', title: '서울 방어전',
-    briefing: '아케론 기갑 사단이 서쪽 터널을 뚫고 강남으로 밀려온다. 한강 남쪽의 긴 지그재그 도로가 유일한 진격로다. 도로 밖 어디든 무기를 놓아 행렬을 통째로 섬멸하라.',
+    briefing: '부카니스탄 기갑 사단이 서쪽 터널을 뚫고 강남으로 밀려온다. 한강 남쪽의 긴 지그재그 도로가 유일한 진격로다. 도로 밖 어디든 무기를 놓아 행렬을 통째로 섬멸하라.',
     seed: 'seoul-2030',
     lives: 20, startMoney: 650, hpScale: 0.16, hpQuad: 0.006,
     // 전투 구역 = 화면 전체. 이 사각형이 화면을 꽉 채우도록 카메라가 맞춰짐
