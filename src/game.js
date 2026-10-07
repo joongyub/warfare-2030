@@ -13,7 +13,8 @@ const G = {
   ring: new THREE.RingGeometry(0.92, 1, 48),
   shell: new THREE.SphereGeometry(0.06, 6, 4),
   rocket: new THREE.ConeGeometry(0.045, 0.24, 6),
-  wreck: new THREE.BoxGeometry(1, 0.12, 0.6)
+  wreck: new THREE.BoxGeometry(1, 0.12, 0.6),
+  arrow: new THREE.CylinderGeometry(0.018, 0.018, 0.5, 4)
 };
 
 export class Game {
@@ -746,6 +747,13 @@ export class Game {
         }
         this.spawnPuff(mz, 0xd9d4c8, 4, 0.22);
       } });
+    } else if (W.shot === 'arrows') {
+      // 시위를 놓는 순간 불화살이 서로 다른 적에게 (최대 3명)
+      this.timers.push({ t: 0.5, fn: () => {
+        const list = near(W.salvo, true); if (!list.length) return;
+        this.snd('intercept', 0.6);
+        list.forEach((x, i) => this.timers.push({ t: i * 0.07, fn: () => this.addShot('arrow', mz, { target: x, speed: 13, dmg: st.dmg, tw, pierce: false, splash: x.air ? 0 : W.splash, arrow: true }) }));
+      } });
     } else if (W.shot === 'musket') {
       // 조총 일제 사격: 가장 앞선 적 5명 동시에
       this.timers.push({ t: 0.15, fn: () => {
@@ -787,7 +795,9 @@ export class Game {
 
   addShot(kind, from, o) {
     const s = Object.assign({ kind, done: false, t: 0, from: from.clone(), pos: from.clone() }, o);
-    s.mesh = new THREE.Mesh(kind === 'shell' ? G.shell : G.rocket, kind === 'shell' ? (this.shellM || (this.shellM = mat(0xffe08a, { emissive: 0xff9a00 }))) : (this.rocketM || (this.rocketM = mat(0xdfe3e6))));
+    s.mesh = kind === 'arrow' ? new THREE.Mesh(G.arrow, this.arrowM || (this.arrowM = mat(0x8a6a3a, { emissive: 0xff6a00, emissiveIntensity: 0.6 })))
+      : new THREE.Mesh(kind === 'shell' ? G.shell : G.rocket, kind === 'shell' ? (this.shellM || (this.shellM = mat(0xffe08a, { emissive: 0xff9a00 }))) : (this.rocketM || (this.rocketM = mat(0xdfe3e6))));
+    if (kind === 'arrow') s.kind = 'missile';
     if (o.small) s.mesh.scale.setScalar(0.7);
     if (o.heavy) s.mesh.scale.setScalar(2.2);
     if (o.big) s.mesh.scale.setScalar(3);
@@ -824,7 +834,8 @@ export class Game {
     if (s.kind !== 'shell') {
       const d = s.pos.clone().sub(prev);
       if (d.lengthSq() > 0) s.mesh.quaternion.setFromUnitVectors(V(0, 1, 0), d.normalize());
-      this.vfx.trail(s.pos, prev, !!s.heavy, dt);
+      if (s.arrow) this.vfx.emit(this.vfx.glow, { x: s.pos.x, y: s.pos.y, z: s.pos.z, life: 0.18, s0: 0.14, s1: 0.04, c0: [2, 0.9, 0.3], tile: 2 });
+      else this.vfx.trail(s.pos, prev, !!s.heavy, dt);
     } else this.vfx.emit(this.vfx.glow, { x: s.pos.x, y: s.pos.y, z: s.pos.z, life: 0.08, s0: 0.12, c0: [2, 1.4, 0.6], tile: 2 });
   }
 

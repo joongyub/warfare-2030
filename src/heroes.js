@@ -10,8 +10,8 @@ export const HEROES = {
     shot: 'bombrun', range: 10, dmg: 120, rate: 0.55, salvo: 5, splash: 1.9, hits: ['ground'],
     role: '폭격기 융단 폭격', desc: '선글라스와 옥수수 파이프. 손끝으로 가리킨 곳에 폭격기 편대가 폭탄 5발을 줄지어 떨어뜨림', gesture: '파이프를 물다가 손을 뻗어 목표를 가리킴' },
   yisunsin: { name: '이순신', short: '이순신', nation: '조선', title: '23전 23승 불패의 수군통제사', color: '#c0392b',
-    shot: 'volley', range: 9.5, dmg: 105, rate: 0.85, salvo: 3, splash: 1.5, hits: ['ground'],
-    role: '천자총통 일제 포격', desc: '투구와 갑옷, 환도. 칼을 높이 들었다 내리치면 불붙은 포탄 3발이 동시에 날아감', gesture: '환도를 머리 위로 치켜들었다가 앞으로 내리침' },
+    shot: 'arrows', range: 10, dmg: 100, rate: 0.9, salvo: 3, splash: 0.9, hits: ['ground', 'air'],
+    role: '각궁 불화살 연사', desc: '투구와 두정갑, 각궁과 화살통. 시위를 끝까지 당겼다 놓으면 불화살 3발이 서로 다른 적 3명에게 꽂혀 불붙음(공중 포함)', gesture: '각궁을 앞으로 뻗고 시위를 뺨까지 당겼다가 놓음' },
   hideyoshi: { name: '도요토미 히데요시', short: '히데요시', nation: '일본', title: '전국시대를 통일한 천하인', color: '#d4a017',
     shot: 'musket', range: 7.8, dmg: 38, rate: 2.2, salvo: 5, hits: ['ground', 'air'],
     role: '조총 부대 일제 사격', desc: '금빛 햇살 투구와 군배 부채. 부채를 휘두를 때마다 조총 일제 사격으로 적 5명을 동시에 맞힘(공중 포함)', gesture: '군배 부채를 머리 위로 들어 좌우로 휘두름' },
@@ -157,22 +157,46 @@ export function makeHero(id) {
     mesh(h.head, new THREE.ConeGeometry(0.03, 0.06, 8), M(0xc0261e, { roughness: 0.9 }), 0, 0.15, 0).rotation.x = Math.PI;
     for (const s of [-1, 1]) mesh(h.head, new THREE.BoxGeometry(0.02, 0.07, 0.04), M(0x2b2b2e, { metalness: 0.5 }), -0.01, -0.04, s * 0.07);
     mesh(h.head, new THREE.ConeGeometry(0.022, 0.06, 6), M(0x1a1714), 0.06, -0.07, 0).rotation.z = Math.PI;
-    // 환도 (칼집에서 뽑아 손에 듦)
-    const sword = new THREE.Group(); h.R.hand.add(sword);
-    mesh(sword, new THREE.CylinderGeometry(0.009, 0.009, 0.06, 6), M(0x2a1a10), 0, -0.01, 0);
-    mesh(sword, new THREE.BoxGeometry(0.04, 0.008, 0.04), gold, 0, -0.04, 0);
-    mesh(sword, new THREE.BoxGeometry(0.018, 0.34, 0.006), M(0xdfe6ec, { metalness: 0.95, roughness: 0.15 }), 0.004, -0.21, 0).rotation.z = 0.04;
-    mesh(h.fig, new THREE.CylinderGeometry(0.012, 0.012, 0.3, 6), M(0x1a1410), -0.02, 0.28, -0.14).rotation.z = 0.9;   // 빈 칼집
+    // 각궁 (왼손): 손 기준 -y 가 앞. 활몸은 앞으로 휜 호, 시위는 두 끝에서 당김점(nock)까지 두 줄
+    const bow = new THREE.Group(); h.L.hand.add(bow);
+    const BR = 0.22, BA = 2.3;
+    const limb = mesh(bow, new THREE.TorusGeometry(BR, 0.009, 5, 20, BA), M(0x5a2e16, { roughness: 0.5 }), 0, BR, 0);
+    limb.rotation.z = -Math.PI / 2 - BA / 2;
+    mesh(bow, new THREE.CylinderGeometry(0.014, 0.014, 0.05, 6), M(0xc9a96a), 0.0, 0, 0).rotation.z = Math.PI / 2;   // 줌통
+    const tipY = BR - Math.cos(BA / 2) * BR, tipX = Math.sin(BA / 2) * BR;
+    const strM = M(0xf0ead8, { roughness: 0.9 }), strG = new THREE.CylinderGeometry(0.003, 0.003, 1, 4);
+    const str = [mesh(bow, strG, strM), mesh(bow, strG, strM)];
+    const arrow = new THREE.Group(); bow.add(arrow);
+    mesh(arrow, new THREE.CylinderGeometry(0.004, 0.004, 0.36, 4), M(0xb08a52), 0, 0, 0);
+    mesh(arrow, new THREE.ConeGeometry(0.012, 0.035, 5), M(0x2a2a2a, { metalness: 0.6 }), 0, -0.19, 0).rotation.z = Math.PI;
+    const flame = mesh(arrow, new THREE.SphereGeometry(0.02, 6, 4), new THREE.MeshBasicMaterial({ color: 0xffa030 }), 0, -0.16, 0);
+    const up = new THREE.Vector3(0, 1, 0), d3 = new THREE.Vector3();
+    const setString = (draw) => {   // draw 0~1: 당긴 정도
+      const ny = tipY + draw * 0.2;
+      [[tipX, tipY], [-tipX, tipY]].forEach(([x, y], i) => {
+        d3.set(-x, ny - y, 0); const L = d3.length();
+        str[i].position.set(x / 2, (y + ny) / 2, 0); str[i].scale.set(1, L, 1); str[i].quaternion.setFromUnitVectors(up, d3.normalize());
+      });
+      arrow.position.set(0, ny - 0.18, 0);
+    };
+    // 화살통 (등)
+    const quiver = mesh(h.torso, new THREE.CylinderGeometry(0.03, 0.025, 0.24, 8), M(0x3a2414), -0.1, 0.02, 0.05); quiver.rotation.x = 0.4;
+    for (let i = 0; i < 4; i++) mesh(quiver, new THREE.BoxGeometry(0.004, 0.05, 0.02), M(0xeeeeee), (i - 1.5) * 0.012, 0.14, 0);
+    mesh(h.fig, new THREE.CylinderGeometry(0.012, 0.012, 0.3, 6), M(0x1a1410), -0.02, 0.28, -0.14).rotation.z = 0.9;   // 환도 칼집
     pose = (t, a) => {
-      // a: 1 → 0. 1~0.6 칼을 머리 위로 / 0.6~0.45 앞으로 내리침 / 0.45~0 천천히 제자리
-      const idle = 0.35 + Math.sin(t * 1.3) * 0.04;
-      let z = idle, e = 0.5, lean = 0;
-      if (a > 0.6) { const u = ease((1 - a) / 0.4); z = lerp(idle, 3.0, u); e = lerp(0.5, 0.15, u); lean = 0.06 * u; }
-      else if (a > 0.45) { const d = ease((0.6 - a) / 0.15); z = lerp(3.0, 1.35, d); e = 0.15; lean = lerp(0.06, -0.12, d); }
-      else if (a > 0) { const r = a / 0.45; z = lerp(idle, 1.35, r); e = lerp(0.5, 0.15, r); lean = -0.12 * r; }
-      set(h.R, z, 0.05, e);
-      set(h.L, 0.25, -0.1, 0.6);
-      body.rotation.z = lean;
+      // a: 1 → 0. 1~0.7 활을 들고 시위를 당김 / 0.7~0.56 겨눔 / 0.56 놓음(시위가 튕기고 오른손이 뒤로) / 이후 활을 내림
+      let draw = 0, raise = 0, rel = 0;
+      if (a > 0.7) { raise = ease((1 - a) / 0.3); draw = raise; }
+      else if (a > 0.56) { raise = 1; draw = 1; }
+      else if (a > 0.3) { raise = 1; rel = ease((0.56 - a) / 0.1 > 1 ? 1 : (0.56 - a) / 0.1); }
+      else if (a > 0) { raise = a / 0.3; rel = 1; }
+      const idle = Math.sin(t * 1.2) * 0.04;
+      set(h.L, lerp(0.35 + idle, 1.55, raise), lerp(0, -0.12, raise), lerp(0.35, 0.0, raise));
+      set(h.R, lerp(0.25, lerp(1.45, 1.35, rel), raise), lerp(0.05, lerp(0.38, 0.05, rel), raise), lerp(0.4, lerp(2.95, 2.4, rel), raise));
+      setString(draw * (1 - rel));
+      arrow.visible = raise > 0.4 && rel < 0.05; flame.material.color.setHSL(0.08, 1, 0.5 + Math.sin(t * 20) * 0.1);
+      body.rotation.y = lerp(0, -0.25, raise);   // 활 쏘는 자세: 몸을 옆으로
+      h.head.rotation.y = lerp(0, 0.25, raise);
     };
   } else if (id === 'hideyoshi') {
     const h = humanoid({ coat: 0xb8401f, pants: 0x3b2a1e, belt: 0x1d1d1d, skirt: 0.18, skirtColor: 0x3a2516, cuff: 0x1d1d1d, wide: 0.27 });
