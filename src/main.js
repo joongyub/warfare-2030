@@ -28,7 +28,9 @@ class App {
     this.camera = new THREE.PerspectiveCamera(34, 16 / 9, 0.5, 900);
     // EL: 내려다보는 각도(고정) / zoom: 1 = 전투 구역 전체가 화면에 꽉 참, 최대 3배
     this.EL = 0.6;   // 약 34도: 시안처럼 비스듬히 내려다보며 멀리 한강·스카이라인이 보이는 각도 (고정)
-    this.cam = { target: new THREE.Vector3(0, 0, 0), zoom: 1, zoomGoal: 1, shake: 0, anchor: null };
+    // AZ: 옆으로 돌린 각도(기본 살짝 대각선). 사용자가 오른쪽 드래그·두 손가락 비틀기·회전 버튼으로 바꿀 수 있음
+    this.AZ = GF.SETTINGS.camAzimuth ?? -0.32;
+    this.cam = { target: new THREE.Vector3(0, 0, 0), zoom: 1, zoomGoal: 1, shake: 0, anchor: null, az: this.AZ, el: this.EL, spin: 0 };
 
     // 조명: 하늘빛 + 해 (그림자). 사방에서 오는 하늘 반사광은 look.js 환경광이 담당
     this.scene.add(new THREE.HemisphereLight(0xd6ebff, 0x6b6450, 0.4));
@@ -128,9 +130,9 @@ class App {
     const L = this.L;
     return { top: L.base.top * L.k, bottom: L.base.bottom * L.k };
   }
-  pose(t = this.cam.target, d = this.cam.dist) {
-    const c = this.camera;
-    c.position.set(t.x, t.y + Math.sin(this.EL) * d, t.z + Math.cos(this.EL) * d);
+  pose(t = this.cam.target, d = this.cam.dist, az = this.cam.az, el = this.cam.el) {
+    const c = this.camera, h = Math.cos(el) * d;
+    c.position.set(t.x + Math.sin(az) * h, t.y + Math.sin(el) * d, t.z + Math.cos(az) * h);
     c.lookAt(t); c.updateMatrixWorld(true);
   }
   toPx(x, y, z) { const v = new THREE.Vector3(x, y, z).project(this.camera); return { x: (v.x + 1) / 2 * this.W, y: (1 - v.y) / 2 * this.H }; }
@@ -142,25 +144,40 @@ class App {
   // 줌 1: 전투 구역 위·아래 끝이 전투 영역 위·아래에 딱 맞고, 가까운 쪽 가로가 화면을 넘지 않는 거리와 위치를 계산
   fitView() {
     if (!this.W) return;
-    const b = this.stage.bounds, f0 = this.fieldRect(), cx = (b.x0 + b.x1) / 2;
+    const b = this.stage.bounds, f0 = this.fieldRect(), cx = (b.x0 + b.x1) / 2, cz = (b.z0 + b.z1) / 2;
     const f = { top: f0.top + (f0.bottom - f0.top) * 0.1, bottom: f0.bottom };   // 위쪽 10%는 구역 너머 도시·한강이 보이게 비움
-    const t = new THREE.Vector3(cx, 0, (b.z0 + b.z1) / 2);
+    const az = this.AZ, el = this.EL;
+    const fwd = new THREE.Vector3(-Math.sin(az), 0, -Math.cos(az));            // 화면 위쪽 = 땅 위 앞 방향
+    const right = new THREE.Vector3(Math.cos(az), 0, -Math.sin(az));
+    const t = new THREE.Vector3(cx, 0, cz);
+    const corners = [[b.x0, b.z0], [b.x1, b.z0], [b.x0, b.z1], [b.x1, b.z1]];
     let d = 70;
     for (let i = 0; i < 80; i++) {
-      this.pose(t, d);
-      const top = this.toPx(cx, 0, b.z0).y, bot = this.toPx(cx, 0, b.z1).y;
-      const bw = this.toPx(b.x1, 0, b.z1).x - this.toPx(b.x0, 0, b.z1).x;
+      this.pose(t, d, az, el);
+      const ps = corners.map(([x, z]) => this.toPx(x, 0, z));
+      const top = Math.min(...ps.map((p) => p.y)), bot = Math.max(...ps.map((p) => p.y));
+      const xl = Math.min(...ps.map((p) => p.x)), xr = Math.max(...ps.map((p) => p.x)), bw = xr - xl;
       const span = bot - top, want = f.bottom - f.top;
-      d *= Math.max(span / want, bw / (this.W * 1.08));   // 가까운 쪽 가장자리는 화면 밖으로 살짝 나가도 됨 (시안처럼 꽉 차게)
-      t.z += ((top + bot) / 2 - (f.top + f.bottom) / 2) * (b.z1 - b.z0) / span;
+      d *= Math.max(span / want, bw / (this.W * 1.12));   // 가까운 쪽 모서리는 화면 밖으로 살짝 나가도 됨 (시안처럼 꽉 차게)
+      const k = ((top + bot) / 2 - (f.top + f.bottom) / 2) * (b.z1 - b.z0) / span;
+      t.addScaledVector(fwd, -k);
+      t.addScaledVector(right, ((xl + xr) / 2 - this.W / 2) * (b.x1 - b.x0) / bw * 0.5);   // 좌우 가운데 맞춤
     }
     this.fit = { d, t: t.clone() };
     this.cam.target.copy(t);
     this.cam.dist = this.cam.distGoal = d / this.cam.zoom;
     this.pose();
   }
+  // 시점 돌리기 (az: 옆으로, el: 위아래 기울기). resetView = 기본 대각선 시점
+  rotateView(daz, del = 0) {
+    const c = this.cam;
+    c.az += daz;
+    c.el = Math.max(0.42, Math.min(1.35, c.el + del));
+    c.anchor = null;
+  }
+  resetView() { this.cam.az = this.AZ; this.cam.el = this.EL; this.cam.zoomGoal = 1; this.cam.anchor = null; }
   zoomAt(px, py, factor) {
-    const c = this.cam, nz = Math.min(3, Math.max(1, c.zoomGoal * factor));
+    const c = this.cam, nz = Math.min(3, Math.max(0.7, c.zoomGoal * factor));
     if (nz === c.zoomGoal) return;
     c.zoomGoal = nz;
     c.anchor = { px, py, g: this.groundAt(px, py) };
@@ -202,9 +219,9 @@ class App {
     const pts = new Map();
     el.addEventListener('pointerdown', (e) => {
       this.sound.unlock();
-      if (e.button === 2) { this.game.cancelMode(); return; }
+      if (e.button === 2) { drag = { rot: true, x: e.clientX, y: e.clientY, moved: false }; el.setPointerCapture(e.pointerId); return; }   // 오른쪽 드래그 = 시점 회전, 그냥 클릭 = 취소
       pts.set(e.pointerId, { x: e.clientX, y: e.clientY });
-      if (pts.size === 2) { const [a, b] = [...pts.values()]; drag = { pinch: Math.hypot(a.x - b.x, a.y - b.y), z0: this.cam.zoomGoal, moved: true }; return; }
+      if (pts.size === 2) { const [a, b] = [...pts.values()]; drag = { pinch: Math.hypot(a.x - b.x, a.y - b.y), z0: this.cam.zoomGoal, ang: Math.atan2(b.y - a.y, b.x - a.x), my: (a.y + b.y) / 2, moved: true }; return; }
       drag = { x: e.clientX, y: e.clientY, moved: false, touch: e.pointerType === 'touch' };
       if (e.pointerType === 'touch') this.mouse = { x: e.clientX, y: e.clientY };
       el.setPointerCapture(e.pointerId);
@@ -215,7 +232,25 @@ class App {
       const p = this.pick(e.clientX, e.clientY);
       if (p && this.game.state !== 'title') this.game.hoverAt(p);
       if (!drag) return;
-      if (drag.pinch) { const [a, b] = [...pts.values()]; if (a && b) { const want = drag.z0 * Math.hypot(a.x - b.x, a.y - b.y) / Math.max(20, drag.pinch); this.zoomAt((a.x + b.x) / 2, (a.y + b.y) / 2, want / this.cam.zoomGoal); } return; }
+      if (drag.rot) {
+        const dx = e.clientX - drag.x, dy = e.clientY - drag.y;
+        if (!drag.moved && Math.abs(dx) + Math.abs(dy) > 5) drag.moved = true;
+        if (drag.moved) { this.rotateView(-(e.clientX - (drag.lx ?? drag.x)) * 0.006, (e.clientY - (drag.ly ?? drag.y)) * 0.004); drag.lx = e.clientX; drag.ly = e.clientY; }
+        return;
+      }
+      if (drag.pinch) {
+        const [a, b] = [...pts.values()];
+        if (a && b) {
+          const want = drag.z0 * Math.hypot(a.x - b.x, a.y - b.y) / Math.max(20, drag.pinch);
+          this.zoomAt((a.x + b.x) / 2, (a.y + b.y) / 2, want / this.cam.zoomGoal);
+          // 두 손가락 비틀기 = 옆으로 회전, 두 손가락 함께 위아래 = 기울기
+          let da = Math.atan2(b.y - a.y, b.x - a.x) - drag.ang; da = Math.atan2(Math.sin(da), Math.cos(da));
+          const my = (a.y + b.y) / 2;
+          this.rotateView(-da, (my - drag.my) * 0.004);
+          drag.ang += da; drag.my = my;
+        }
+        return;
+      }
       const dx = e.clientX - drag.x, dy = e.clientY - drag.y;
       if (!drag.moved && Math.abs(dx) + Math.abs(dy) > (drag.touch ? 14 : 7)) drag.moved = true;
       if (drag.moved) {
@@ -229,6 +264,7 @@ class App {
     const up = (e) => {
       pts.delete(e.pointerId);
       const d = drag; if (!pts.size) drag = null;
+      if (d && d.rot) { if (!d.moved) this.game.cancelMode(); return; }
       if (!d || d.moved || e.button !== 0) return;
       const p = this.pick(e.clientX, e.clientY);
       if (p && this.game.state !== 'title') {
@@ -263,7 +299,7 @@ class App {
       if (e.code === 'KeyN' || e.code === 'Enter') g.callNext();
       if (e.code === 'Equal' || e.code === 'NumpadAdd') this.zoomAt(this.L.x + this.W / 2, this.L.y + this.H / 2, 1.25);
       if (e.code === 'Minus' || e.code === 'NumpadSubtract') this.zoomAt(this.L.x + this.W / 2, this.L.y + this.H / 2, 0.8);
-      if (e.code === 'Digit0' || e.code === 'Home') { this.cam.zoomGoal = 1; this.cam.anchor = null; }
+      if (e.code === 'Digit0' || e.code === 'Home' || e.code === 'KeyR') this.resetView();
     });
     window.addEventListener('keyup', (e) => { this.keys[e.code] = false; });
   }
@@ -295,11 +331,12 @@ class App {
   frame() {
     const now = performance.now(); const real = Math.min((now - this.last) / 1000, 0.1); this.last = now;
     this.time += real;
-    const k = this.keys || {}, sp = 30 * real / this.cam.zoom;   // 방향키 이동
-    if (k.ArrowLeft) this.cam.target.x -= sp;
-    if (k.ArrowRight) this.cam.target.x += sp;
-    if (k.ArrowUp) this.cam.target.z -= sp;
-    if (k.ArrowDown) this.cam.target.z += sp;
+    const k = this.keys || {}, sp = 30 * real / this.cam.zoom, az = this.cam.az;   // 방향키 이동 (보는 방향 기준)
+    const mx = (k.ArrowRight ? 1 : 0) - (k.ArrowLeft ? 1 : 0), mz = (k.ArrowDown ? 1 : 0) - (k.ArrowUp ? 1 : 0);
+    this.cam.target.x += (mx * Math.cos(az) + mz * Math.sin(az)) * sp;
+    this.cam.target.z += (-mx * Math.sin(az) + mz * Math.cos(az)) * sp;
+    const spinK = (k.BracketRight || k.Period ? 1 : 0) - (k.BracketLeft || k.Comma ? 1 : 0) + this.cam.spin;   // [ ] 또는 , . 키, 화면 회전 버튼
+    if (spinK) this.rotateView(spinK * 1.4 * real);
     this.clampTarget();
 
     const dt = this.paused ? 0 : real * this.game.speed;

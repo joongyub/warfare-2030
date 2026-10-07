@@ -34,7 +34,8 @@ export function exportGuide(app, w = 3840, h = 2160) {
   const r = app.renderer, cam = app.camera.clone();
   cam.aspect = 16 / 9; cam.updateProjectionMatrix();
   const f = app.fit;
-  cam.position.set(f.t.x, f.t.y + Math.sin(app.EL) * f.d, f.t.z + Math.cos(app.EL) * f.d); cam.lookAt(f.t); cam.updateMatrixWorld(true);
+  const hz = Math.cos(app.EL) * f.d;
+  cam.position.set(f.t.x + Math.sin(app.AZ) * hz, f.t.y + Math.sin(app.EL) * f.d, f.t.z + Math.cos(app.AZ) * hz); cam.lookAt(f.t); cam.updateMatrixWorld(true);
   const hidden = [];
   for (const o of [app.game.unitGroup, app.game.fxGroup, app.game.rangeDisc, app.city.chev].filter(Boolean)) { if (o.visible) { o.visible = false; hidden.push(o); } }
   const rt = new THREE.WebGLRenderTarget(w, h, { samples: 4 });

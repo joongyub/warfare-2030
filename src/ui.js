@@ -56,7 +56,7 @@ export class UI {
         <div class="label">장착 무기 ${GF.LOADOUT.length} <small>도로·랜드마크만 빼고 어디든 배치</small> · 전략 무기 <small>ICBM · 전략핵미사일 (웨이브마다 재보급)</small></div>
         <div class="loadout">${GF.LOADOUT.map((id) => `<div class="lo"><img src="${icons[id]}"><b>${GF.wname(id)}</b><span>${GF.WEAPONS[id].role}</span></div>`).join('')}</div>
         <button class="go">출격</button>
-        <div class="help">조작: 마우스 끌기·방향키 지도 이동 · 휠 확대·축소(커서 쪽으로, 같은 각도) · 0 전체 보기 · 1~9 무기 · Q W E 작전 카드 · Z ICBM · X 전략핵 · 스페이스 일시정지 · N 다음 웨이브</div>
+        <div class="help">조작: 마우스 끌기·방향키 지도 이동 · 휠 확대·축소 · 오른쪽 버튼 끌기 또는 [ ] 키 시점 회전 · R 기본 시점 · 1~9 무기 · Q W E 작전 카드 · Z ICBM · X 전략핵 · 스페이스 일시정지 · N 다음 웨이브</div>
         <div class="disc">이 게임은 가상의 이야기입니다. 실제 국가·단체·사건과 관계없습니다. · v${GF.SETTINGS.version}</div>
       </div>`;
     t.querySelector('.go').onclick = () => this.app.startGame();
@@ -70,7 +70,7 @@ export class UI {
       const ip = window.__installPrompt; if (!ip) return;
       ip.prompt(); ip.userChoice.then(() => { window.__installPrompt = null; document.body.classList.remove('can-install'); });
     };
-    if (this.L.mobile) t.querySelector('.help').textContent = '조작: 무기 카드 터치 → 회색 공간 터치로 배치 · 한 손가락 끌기 이동 · 두 손가락 확대 · 무기 터치로 강화 · 같은 카드 다시 터치하면 취소';
+    if (this.L.mobile) t.querySelector('.help').textContent = '조작: 무기 카드 터치 → 회색 공간 터치로 배치 · 한 손가락 끌기 이동 · 두 손가락 벌리기 확대 · 두 손가락 비틀기 회전 · 무기 터치로 강화 · 같은 카드 다시 터치하면 취소';
     this.refreshProfile();
   }
   hideTitle() { if (this.title) { this.title.remove(); this.title = null; } }
@@ -94,6 +94,17 @@ export class UI {
     this.bPause = h('button', 'sq', '', tr); this.bPause.onclick = () => this.app.togglePause();
     h('button', 'sq fs-btn', '⛶', tr).onclick = () => this.fullscreen();
     h('button', 'sq gear', '⚙', tr).onclick = () => this.toggleSettings();
+    // 시점 회전 버튼 (누르고 있으면 계속 돌아감) · 가운데는 기본 시점
+    const rv = h('div', 'rotv', null, hud);
+    const spinBtn = (txt, dir, tip) => {
+      const b = h('button', 'sq', txt, rv); b.title = tip;
+      const stop = () => { this.app.cam.spin = 0; };
+      b.onpointerdown = (e) => { e.preventDefault(); this.app.cam.spin = dir; };
+      b.onpointerup = stop; b.onpointerleave = stop; b.onpointercancel = stop;
+    };
+    spinBtn('⟲', -1, '왼쪽으로 돌리기 ([ 키)');
+    const rb = h('button', 'sq home-v', '⌂', rv); rb.title = '기본 시점 (R 키)'; rb.onclick = () => this.app.resetView();
+    spinBtn('⟳', 1, '오른쪽으로 돌리기 (] 키)');
 
     // 아래 카드 줄: 무기 8
     const bar = h('div', 'bar', null, hud);
@@ -299,7 +310,7 @@ export class UI {
     if (g.mode === 'strat') hint = GF.STRATEGIC[g.stratSel].name + `: 떨어뜨릴 곳을 ${tap} · ${esc}`;
     else if (g.mode === 'card') hint = GF.CARDS[g.hand[g.cardSel]].name + `: 지도에서 위치 ${tap} · ${esc}`;
     else if (g.mode) hint = GF.wname(g.mode) + ` 설치: 회색 공간 아무 곳이나 ${tap} · ${M ? '카드 다시 누르면 취소' : '오른쪽 클릭/ESC 취소'}`;
-    else if (g.state === 'ready') hint = this.L.mobile ? '무기 카드를 누르고 회색 공간을 터치해 배치 · 두 손가락으로 확대 · 한 손가락 끌기로 이동' : '적이 오는 도심 거리·건물·랜드마크만 빼고 회색 공간 어디든 무기를 놓으세요. 거리 사이 회색 공간에 놓으면 위아래 거리를 동시에 공격합니다 · 휠: 커서 쪽 확대 · 0: 전체 보기';
+    else if (g.state === 'ready') hint = this.L.mobile ? '무기 카드를 누르고 회색 공간을 터치해 배치 · 두 손가락 벌리기 확대·비틀기 회전 · 한 손가락 끌기로 이동' : '적이 오는 도심 거리·건물·랜드마크만 빼고 회색 공간 어디든 무기를 놓으세요. 거리 사이 회색 공간에 놓으면 위아래 거리를 동시에 공격합니다 · 휠: 확대 · 오른쪽 버튼 끌기: 시점 회전 · R: 기본 시점';
     put(this.eHint, 'textContent', hint);
   }
 
