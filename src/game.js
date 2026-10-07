@@ -81,7 +81,16 @@ export class Game {
   updateRemain() {
     const opts = this.city.activeOpts();
     this.remainAfter = opts.map((_, i) => opts.slice(i + 1).reduce((s, o) => s + o.len, 0));
+    // 갈래 길: 합류점 뒤로 남은 길이
+    const after = (br) => {
+      const r = br.joinRef;
+      if (r.branch) return r.branch.len - br.joinCum + after(r.branch);
+      return opts[r.step].len - br.joinCum + this.remainAfter[r.step];
+    };
+    for (const br of this.city.branches) br.after = after(br);
   }
+  // 이번 웨이브에 열린 진입로: null = 본 도로, 나머지 = 갈래 길
+  openLanes(wave) { return [null].concat(this.city.branches.filter((b) => b.fromWave <= wave)); }
 
   // ---------- 웨이브 ----------
   // 첫 웨이브 시작 또는 다음 웨이브 앞당기기
@@ -98,10 +107,15 @@ export class Game {
     this.waveNo++;
     const tok = this.S.waves[this.waveNo - 1].trim().split(/\s+/);
     let t = this.clock + 0.2;
+    // 진입로가 여러 개면 적을 번갈아 나눠 보냄 (무리마다 시작 입구를 바꿔서)
+    const lanes = this.openLanes(this.waveNo);
     for (let i = 0; i < tok.length; i += 2) {
       const type = tok[i], cnt = parseInt(tok[i + 1], 10);
-      for (let k = 0; k < cnt; k++) { this.queue.push({ t, type, wave: this.waveNo }); t += GF.ENEMIES[type].gap; }
+      for (let k = 0; k < cnt; k++) { this.queue.push({ t, type, wave: this.waveNo, lane: GF.ENEMIES[type].boss ? null : lanes[(k + i / 2) % lanes.length] }); t += GF.ENEMIES[type].gap; }   // 보스는 늘 본 도로(가장 긴 길)
       t += 1.2;
+    }
+    for (const br of this.city.branches) if (br.fromWave === this.waveNo && br.fromWave > 1) {
+      this.timers.push({ t: 1.6, fn: () => { this.ui().toast(`새 진입로 개방! ${br.name} 방면에서도 적이 옵니다`, '#FF8A8E', 3600); this.snd('siren'); } });
     }
     this.queue.sort((a, b) => a.t - b.t);
     const bonus = this.waveNo > 1 ? 40 + this.waveNo * 8 : 0;
@@ -374,17 +388,19 @@ export class Game {
   }
 
   // ---------- 적 ----------
-  spawnEnemy(type, wave) {
+  spawnEnemy(type, wave, lane = null) {
     const E = GF.ENEMIES[type];
-    const hp = E.hp * (1 + this.S.hpScale * (wave - 1) + (this.S.hpQuad || 0) * (wave - 1) ** 2);
+    const hp = E.hp * (1 + this.S.hpScale * (wave - 1) + (this.S.hpQuad || 0) * (wave - 1) ** 2) * (E.boss ? this.S.bossHp ?? 1 : 1);   // bossHp: 길이 짧은 스테이지는 보스 체력을 줄임
     const model = getEnemy(type);
     const sc = E.boss ? 2.4 : type === "inf" ? 1.6 : 1.85;
     model.root.scale.setScalar(sc);
     const e = { type, E, hp, maxHp: hp, d: 0, air: !!E.air, off: E.boss ? 0 : (Math.random() - 0.5) * 0.9, wob: Math.random() * 10, stun: 0, slowMul: 1, dead: false, model, pos: V(), sc, si: 0, k: 0, rem: 1e9 };
     if (e.air) {
-      const pts = this.airPath();
+      const pts = this.airPath(lane);
       e.fly = { pts, segs: [] }; e.len = 0;
       for (let i = 0; i < pts.length - 1; i++) { const l = pts[i].distanceTo(pts[i + 1]); e.fly.segs.push({ a: pts[i], b: pts[i + 1], l, c: e.len }); e.len += l; }
+    } else if (lane) {
+      e.br = lane; e.opt = lane;
     } else {
       e.opt = this.city.steps[0].opts[this.city.steps[0].open];
     }
@@ -402,7 +418,7 @@ export class Game {
   // 공중 적 진입로. stage.airEntry:
   //   'withGround' (초반 스테이지): 지상군과 같은 입구에서 들어와 도로를 따라 날아옴
   //   'allSides'   (후반 스테이지): 동·서·남·북 아무 가장자리에서 나타나 지휘부로 곧장 날아옴
-  airPath() {
+  airPath(lane) {
     const S = this.S, b = S.bounds, base = this.city.base.clone().add(V(-1.5, 0, 0)), j = () => (Math.random() - 0.5) * 1.6;
     if ((S.airEntry || 'withGround') === 'allSides') {
       const side = Math.floor(Math.random() * 4), m = 3;
@@ -410,6 +426,23 @@ export class Game {
       const start = [V(rx, 0, b.z0 - m), V(b.x1 + m, 0, rz), V(rx, 0, b.z1 + m), V(b.x0 - m, 0, rz)][side];
       const mid = start.clone().lerp(base, 0.5).add(V(j() * 4, 0, j() * 4));
       return [start, mid, base];
+    }
+    // 갈래 길 입구: 그 길을 따라 합류점까지, 이후 본 도로를 따라 (5마다 한 점)
+    if (lane) {
+      const pts = [], walk = (o, from) => { for (let d = from; d < o.len; d += 5) { const s = o.samples.find((q) => q.cum >= d) || o.samples[o.samples.length - 1]; pts.push(V(s.p.x + j(), 0, s.p.z + j())); } };
+      let o = lane, from = 0;
+      for (;;) {
+        walk(o, from);
+        const r = o.joinRef; if (!r) break;
+        from = o.joinCum;
+        if (r.branch) { o = r.branch; continue; }
+        for (let si = r.step; si < this.city.steps.length; si++) { const st = this.city.steps[si]; walk(st.opts[st.open], si === r.step ? from : 0); }
+        break;
+      }
+      const [x0, z0] = lane.pts[0], [x1, z1] = lane.pts[1], l = Math.hypot(x1 - x0, z1 - z0);
+      pts[0].x -= (x1 - x0) / l * 2; pts[0].z -= (z1 - z0) / l * 2;
+      pts.push(base);
+      return pts;
     }
     // 지상군과 같은 입구: 도로 꺾임점을 따라 (조금씩 흩어져서)
     const pts = [];
@@ -427,6 +460,14 @@ export class Game {
   // 지상 적: 구간 끝에 닿으면 다음 구간으로 (그때 열려 있는 길을 고름)
   advanceGround(e) {
     while (e.d >= e.opt.len) {
+      if (e.br) {   // 갈래 길 끝 → 합류한 길의 그 지점부터 이어서
+        const br = e.br, r = br.joinRef;
+        e.d = e.d - br.len + br.joinCum; e.k = 0;
+        if (r.branch) { e.br = e.opt = r.branch; continue; }
+        e.br = null; e.si = r.step;
+        const st = this.city.steps[e.si]; e.opt = st.opts[st.open];
+        continue;
+      }
       e.d -= e.opt.len;
       e.si++; e.k = 0;
       const st = this.city.steps[e.si];
@@ -453,7 +494,7 @@ export class Game {
       ang = Math.atan2(b.p.z - a.p.z, b.p.x - a.p.x);
       x = a.p.x + (b.p.x - a.p.x) * f - Math.sin(ang) * e.off;
       z = a.p.z + (b.p.z - a.p.z) * f + Math.cos(ang) * e.off;
-      e.rem = e.opt.len - e.d + this.remainAfter[e.si];
+      e.rem = e.opt.len - e.d + (e.br ? e.br.after : this.remainAfter[e.si]);
     }
     e.pos.set(x, 0, z);
     const r = e.model.root;
@@ -483,7 +524,7 @@ export class Game {
 
     if (this.state === 'battle') {
       this.clock += dt;
-      while (this.queue.length && this.queue[0].t <= this.clock) { const q = this.queue.shift(); this.spawnEnemy(q.type, q.wave); }
+      while (this.queue.length && this.queue[0].t <= this.clock) { const q = this.queue.shift(); this.spawnEnemy(q.type, q.wave, q.lane); }
       this.cpT += dt;
       while (this.cpT >= GF.SETTINGS.cpEverySec) { this.cpT -= GF.SETTINGS.cpEverySec; this.cp = Math.min(GF.SETTINGS.cpMax, this.cp + 1); }
       if (this.cp >= GF.SETTINGS.cpMax) this.cpT = 0;

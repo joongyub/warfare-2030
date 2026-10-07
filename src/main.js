@@ -14,7 +14,10 @@ import { TitleScene } from './titlescene.js';
 
 class App {
   constructor() {
-    this.stage = GF.STAGES.seoul;
+    // 스테이지: 주소의 ?stage=newyork 또는 마지막으로 고른 스테이지, 없으면 서울
+    let want = new URLSearchParams(location.search).get('stage');
+    if (!want) try { want = localStorage.getItem('gf_stage'); } catch (e) { /* 저장 불가 환경 */ }
+    this.stage = GF.STAGES[want] || GF.STAGES.seoul;
     const r = this.renderer = new THREE.WebGLRenderer({ antialias: false, powerPreference: 'high-performance' });   // 계단 현상은 후처리(MSAA·FXAA)가 처리
     r.setPixelRatio(Math.min(window.devicePixelRatio, 2));
     r.setSize(window.innerWidth, window.innerHeight);
@@ -93,6 +96,21 @@ class App {
     this.cam.zoom = this.cam.zoomGoal = 1; this.fitView();
     this.game.start();
     this.ui.buildHud();
+  }
+  // 처음 화면에서 스테이지 바꾸기: 도시를 새로 지음
+  selectStage(id) {
+    const S = GF.STAGES[id];
+    if (!S || S === this.stage || this.game.state !== 'title') return;
+    this.stage = S;
+    try { localStorage.setItem('gf_stage', id); } catch (e) { /* 저장 불가 환경 */ }
+    this.scene.remove(this.city.group);
+    this.city.group.traverse((o) => { if (o.geometry) o.geometry.dispose(); });
+    this.city = new City(this.scene, S);
+    this.game.city = this.city; this.game.S = S;
+    this.ui.resetLabels();
+    this.city.shadowDirty = true;
+    this.fitView();
+    this.ui.hideTitle(); this.ui.showTitle(this.icons);
   }
   toTitle() {
     this.game.state = 'title';

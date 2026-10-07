@@ -15,6 +15,9 @@ import { realLawn, realRoad, realWalk, realConcrete, realBoulevard, realPlaza, z
 function rep(t, x, y) { const c = t.clone(); c.needsUpdate = true; c.repeat.set(x, y); return c; }
 const GROUNDS = { hangangPark: lawnStripeTex, grass: grassTex, dirt: dirtTex, snow: snowTex };
 import { makeBase, mat, compactNode } from './models.js';
+import { buildNYCity, buildParisCity } from './world_city.js';
+import { EDGE, FIELD } from './landmarks_world.js';
+import { nyShopHD, haussmannHD } from './textures_world.js';
 
 const V = (x = 0, y = 0, z = 0) => new THREE.Vector3(x, y, z);
 const ROAD_W = 1.9;          // 도로 폭
@@ -106,7 +109,8 @@ function miniLandmark(k) {
   };
   // 바닥 광장 (점유 표시)
   const pl = new THREE.Mesh(new THREE.BoxGeometry(k.w, 0.06, k.d), M.plaza); pl.position.y = 0.03; pl.receiveShadow = true; G.add(pl);
-  if (DETAILED[k.id]) { DETAILED[k.id](G, k); return G; }   // 실제 모양으로 다시 만든 랜드마크
+  if (DETAILED[k.id]) { DETAILED[k.id](G, k); return G; }
+  if (FIELD[k.id]) { FIELD[k.id](G, k); return G; }   // 실제 모양으로 다시 만든 랜드마크
   switch (k.id) {
     case 'namdaemun': { // 숭례문: 돌 축대 + 무지개 문 + 2층 누각
       box(3.8, 1.0, 2.0, M.stone);
@@ -189,7 +193,14 @@ function ribbon(samples, width, y, texLen) {
 }
 
 // 도로 양옆 보도 띠 (중심선에서 a~b 떨어진 두 줄)
-function walkStrips(samples, a, b, y, texLen) {
+// skip(x, z): 그 자리가 다른 도로 위면 true → 그 칸은 안 만듦 (교차로·합류점에서 보도가 차도를 덮지 않게)
+const offPt = (samples, i, off) => {
+  const n = samples.length, p = samples[i].p, q = samples[Math.min(n - 1, i + 1)].p, o = samples[Math.max(0, i - 1)].p;
+  const dx = q.x - o.x, dz = q.z - o.z, l = Math.hypot(dx, dz) || 1;
+  return [p.x - dz / l * off, p.z + dx / l * off];
+};
+const cut = (skip, samples, i, off) => skip && (skip(...offPt(samples, i, off)) || skip(...offPt(samples, i + 1, off)));
+function walkStrips(samples, a, b, y, texLen, skip) {
   const geos = [];
   for (const sd of [1, -1]) {
     const n = samples.length, pos = new Float32Array(n * 6), uv = new Float32Array(n * 4), idx = [];
@@ -198,7 +209,7 @@ function walkStrips(samples, a, b, y, texLen) {
       const dx = q.x - o.x, dz = q.z - o.z, l = Math.hypot(dx, dz) || 1, nx = -dz / l * sd, nz = dx / l * sd;
       pos.set([p.x + nx * b, y, p.z + nz * b, p.x + nx * a, y, p.z + nz * a], i * 6);
       const v = samples[i].cum / texLen; uv.set([0, v, 1, v], i * 4);
-      if (i < n - 1) { const k = i * 2; idx.push(...(sd > 0 ? [k, k + 2, k + 1, k + 1, k + 2, k + 3] : [k, k + 1, k + 2, k + 1, k + 3, k + 2])); }
+      if (i < n - 1 && !cut(skip, samples, i, sd * (a + b) / 2)) { const k = i * 2; idx.push(...(sd > 0 ? [k, k + 2, k + 1, k + 1, k + 2, k + 3] : [k, k + 1, k + 2, k + 1, k + 3, k + 2])); }
     }
     const g = new THREE.BufferGeometry();
     g.setAttribute('position', new THREE.BufferAttribute(pos, 3)); g.setAttribute('uv', new THREE.BufferAttribute(uv, 2));
@@ -208,14 +219,14 @@ function walkStrips(samples, a, b, y, texLen) {
 }
 
 // 도로 옆 세로 벽(연석 옆면): 중심선에서 off 만큼 떨어진 곳에 y0~y1 높이
-function sideWall(samples, off, y0, y1) {
+function sideWall(samples, off, y0, y1, skip) {
   const n = samples.length, pos = new Float32Array(n * 6), idx = [];
   for (let i = 0; i < n; i++) {
     const p = samples[i].p, q = samples[Math.min(n - 1, i + 1)].p, o = samples[Math.max(0, i - 1)].p;
     const dx = q.x - o.x, dz = q.z - o.z, l = Math.hypot(dx, dz) || 1;
     const x = p.x - dz / l * off, z = p.z + dx / l * off;
     pos.set([x, y1, z, x, y0, z], i * 6);
-    if (i < n - 1) { const a = i * 2; idx.push(a, a + 2, a + 1, a + 1, a + 2, a + 3); }
+    if (i < n - 1 && !cut(skip, samples, i, off)) { const a = i * 2; idx.push(a, a + 2, a + 1, a + 1, a + 2, a + 3); }
   }
   const g = new THREE.BufferGeometry();
   g.setAttribute('position', new THREE.BufferAttribute(pos, 3));
@@ -224,7 +235,7 @@ function sideWall(samples, off, y0, y1) {
 }
 
 // 가로등 한 줄 (도로 옆 배치 금지 구역 안쪽에만 세움 → 무기 자리를 막지 않음)
-function lampRow(samples, len, off) {
+function lampRow(samples, len, off, skip) {
   const geos = [], step = 6.5;
   for (let d = 3, k = 0; d < len - 2; d += step, k++) {
     const i = samples.findIndex((s) => s.cum >= d); if (i < 1) continue;
@@ -232,6 +243,7 @@ function lampRow(samples, len, off) {
     const dx = q.x - o.x, dz = q.z - o.z, l = Math.hypot(dx, dz) || 1, sd = k % 2 ? 1 : -1;
     const nx = -dz / l * sd, nz = dx / l * sd;
     const x = p.x + nx * off, z = p.z + nz * off;
+    if (skip && skip(x, z, 0.5)) continue;
     const pole = new THREE.CylinderGeometry(0.035, 0.05, 1.5, 6); pole.translate(x, 0.75 + 0.1, z);
     const arm = new THREE.BoxGeometry(0.05, 0.05, 0.42); arm.rotateY(Math.atan2(-nx, -nz)); arm.translate(x - nx * 0.2, 1.58, z - nz * 0.2);
     const head = new THREE.BoxGeometry(0.2, 0.07, 0.12); head.rotateY(Math.atan2(-nx, -nz)); head.translate(x - nx * 0.4, 1.55, z - nz * 0.4);
@@ -310,12 +322,27 @@ export class City {
   }
 
   // ---------- 도로 ----------
+  // 본 도로(route: 구간 steps, 우회로 선택 가능) + 갈래 길(branches: 다른 입구에서 나와 본 도로나 다른 갈래 길에 합류)
   buildRoute() {
     const S = this.S;
+    const sampled = (o) => (o.sharp ? samplePoly(o.pts) : sampleCurve(o.pts));
     this.steps = S.route.map((st) => {
-      const opts = (st.choice || [st]).map((o) => Object.assign({ id: o.id, pts: o.pts }, o.sharp ? samplePoly(o.pts) : sampleCurve(o.pts)));
+      const opts = (st.choice || [st]).map((o) => Object.assign({ id: o.id, pts: o.pts }, sampled(o)));
       return { opts, choice: !!st.choice, open: 0 };
     });
+    this.branches = (S.branches || []).map((b) => Object.assign({ id: b.id, name: b.name || b.id, pts: b.pts, sharp: !!b.sharp, fromWave: b.fromWave || 1, gate: b.gate || b.pts[0], join: b.join }, sampled(b)));
+    // 합류점: 갈래 길 끝에서 가장 가까운 본 도로(또는 join 으로 지정한 갈래 길) 위 지점
+    for (const br of this.branches) {
+      const end = br.samples[br.samples.length - 1].p;
+      let best = null;
+      const look = (opt, ref) => { for (const s of opt.samples) { const d = s.p.distanceTo(end); if (!best || d < best.d) best = { d, cum: s.cum, ref }; } };
+      const tgt = br.join && this.branches.find((x) => x.id === br.join && x !== br);
+      if (tgt) look(tgt, { branch: tgt });
+      else this.steps.forEach((st, si) => look(st.opts[0], { step: si }));
+      br.joinCum = best.cum; br.joinRef = best.ref;
+    }
+    // 입구 위치·방향 (도시 건물이 터널 자리를 비우도록)
+    this.gateDirs = [this.steps[0].opts[0].pts, ...this.branches.map((b) => b.pts)].map(([[x, z], [x2, z2]]) => { const l = Math.hypot(x2 - x, z2 - z); return [x, z, (x2 - x) / l, (z2 - z) / l]; });
     const RR = realRoad(), RW = realWalk();
     const roadM = new THREE.MeshStandardMaterial({ map: RR.map, bumpMap: RR.bump, bumpScale: 1.2, roughness: 0.88, polygonOffset: true, polygonOffsetFactor: -2, polygonOffsetUnits: -2 });
     const walkM = new THREE.MeshStandardMaterial({ map: RW.map, bumpMap: RW.bump, bumpScale: 1.5, roughness: 0.92, side: THREE.DoubleSide, polygonOffset: true, polygonOffsetFactor: -1, polygonOffsetUnits: -1 });
@@ -324,18 +351,37 @@ export class City {
     const lampM = mat(0x40454c);
     this.ghostM = ghostM; this.roadM = roadM; this.walkM = walkM;
     this.roadGroup = new THREE.Group(); this.group.add(this.roadGroup);
-    for (const st of this.steps) st.opts.forEach((o, i) => {
-      o.road = new THREE.Mesh(ribbon(o.samples, ROAD_W, 0.03 + i * 0.004, 3.2), roadM);
+    // 모든 도로 (교차·합류 판정용). 갈래 길 끝(본 도로 안쪽 부분)은 빼고 셈 → 맞은편 보도는 끊기지 않음
+    const all = [];
+    for (const st of this.steps) for (const o of st.opts) all.push({ o, pts: o.samples.filter((_, i) => i % 2 === 0).map((s) => s.p) });
+    for (const br of this.branches) { const e = br.samples[br.samples.length - 1].p; all.push({ o: br, pts: br.samples.filter((s, i) => i % 2 === 0 && s.p.distanceTo(e) > ROAD_W / 2 + 0.05).map((s) => s.p) }); }
+    const skipFor = (o) => {
+      const others = all.filter((a) => a.o !== o);
+      if (!others.length) return null;
+      return (x, z, extra = 0) => {
+        const r2 = (ROAD_W / 2 + 0.42 + extra) ** 2;
+        for (const a of others) for (const p of a.pts) if ((p.x - x) ** 2 + (p.z - z) ** 2 < r2) return true;
+        return false;
+      };
+    };
+    const make = (o, i, y) => {
+      const skip = skipFor(o);
+      o.road = new THREE.Mesh(ribbon(o.samples, ROAD_W, y, 3.2), roadM);
       // 보도는 도로보다 한 단 높게(연석) → 입체감
-      o.walk = new THREE.Mesh(walkStrips(o.samples, ROAD_W / 2, (ROAD_W + 0.9) / 2, 0.13, 2.4), walkM);
+      o.walk = new THREE.Mesh(walkStrips(o.samples, ROAD_W / 2, (ROAD_W + 0.9) / 2, 0.13, 2.4, skip), walkM);
       o.road.receiveShadow = o.walk.receiveShadow = true;
-      for (const off of [ROAD_W / 2, -ROAD_W / 2]) o.walk.add(new THREE.Mesh(sideWall(o.samples, off, 0.02, 0.13), curbM));
-      for (const off of [(ROAD_W + 0.9) / 2, -(ROAD_W + 0.9) / 2]) { const w = new THREE.Mesh(sideWall(o.samples, off, 0, 0.13), curbM); w.castShadow = true; o.walk.add(w); }
-      const lamps = lampRow(o.samples, o.len, ROAD_W / 2 + 0.28);
+      for (const off of [ROAD_W / 2, -ROAD_W / 2]) o.walk.add(new THREE.Mesh(sideWall(o.samples, off, 0.02, 0.13, skip), curbM));
+      for (const off of [(ROAD_W + 0.9) / 2, -(ROAD_W + 0.9) / 2]) { const w = new THREE.Mesh(sideWall(o.samples, off, 0, 0.13, skip), curbM); w.castShadow = true; o.walk.add(w); }
+      const lamps = lampRow(o.samples, o.len, ROAD_W / 2 + 0.28, skip);
       if (lamps) { const lm = new THREE.Mesh(lamps, lampM); lm.castShadow = true; o.walk.add(lm); }
+      this.roadGroup.add(o.road, o.walk);
+    };
+    for (const st of this.steps) st.opts.forEach((o, i) => {
+      make(o, i, 0.03 + i * 0.004);
       o.ghost = new THREE.Mesh(ribbon(o.samples, ROAD_W, 0.05, 1.6), ghostM);
-      this.roadGroup.add(o.road, o.walk, o.ghost);
+      this.roadGroup.add(o.ghost);
     });
+    this.branches.forEach((br, i) => make(br, i, 0.034 + i * 0.003));
     // 빨간 진행 화살표 (활성 경로를 따라 흐름)
     const sh = new THREE.Shape();
     sh.moveTo(-0.32, 0.36); sh.lineTo(0.18, 0); sh.lineTo(-0.32, -0.36); sh.lineTo(-0.1, -0.36); sh.lineTo(0.4, 0); sh.lineTo(-0.1, 0.36); sh.closePath();
@@ -349,6 +395,7 @@ export class City {
     this.refreshRoads();
   }
 
+  allRoads() { const r = []; for (const st of this.steps) r.push(...st.opts); return r.concat(this.branches || []); }
   // 현재 열린 길 목록
   activeOpts() { return this.steps.map((st) => st.opts[st.open]); }
   routeLength() { return this.activeOpts().reduce((s, o) => s + o.len, 0); }
@@ -384,6 +431,15 @@ export class City {
       }
       carry = (carry - o.len) % 2.2; if (carry < 0) carry += 2.2;
     }
+    for (const br of this.branches || []) {
+      const s = br.samples, end = s[s.length - 1].p;
+      for (let d = 0.6; d < br.len; d += 2.2) {
+        let k = 0; while (k < s.length - 2 && s[k + 1].cum < d) k++;
+        const a = s[k], b = s[k + 1], f = (d - a.cum) / Math.max(1e-6, b.cum - a.cum), x = a.p.x + (b.p.x - a.p.x) * f, z = a.p.z + (b.p.z - a.p.z) * f;
+        if (Math.hypot(x - end.x, z - end.z) < ROAD_W * 0.7) break;   // 본 도로 위에는 안 그림
+        this.chevPts.push({ x, z, ang: Math.atan2(b.p.z - a.p.z, b.p.x - a.p.x) });
+      }
+    }
     const m = new THREE.Matrix4(), q = new THREE.Quaternion(), one = V(1, 1, 1);
     this.chev.count = Math.min(600, this.chevPts.length);
     for (let i = 0; i < this.chev.count; i++) {
@@ -411,7 +467,7 @@ export class City {
   // 도로(우회로 예정지 포함) 중심선까지 최소 거리
   roadDist(x, z) {
     let best = 1e9;
-    for (const st of this.steps) for (const o of st.opts) {
+    for (const o of this.allRoads()) {
       const s = o.samples;
       for (let i = 0; i < s.length; i += 2) { const d = (s[i].p.x - x) ** 2 + (s[i].p.z - z) ** 2; if (d < best) best = d; }
     }
@@ -445,7 +501,7 @@ export class City {
     if (th.ground === 'plaza') {
       // 무기 배치 공간 = 밝은 회색 한 가지 톤 (적 침투로 아스팔트와 확실히 구분)
       const PZ = realPlaza();
-      parkM = new THREE.MeshStandardMaterial({ map: rep(PZ.map, W / 6, H / 6), bumpMap: rep(PZ.bump, W / 6, H / 6), bumpScale: 0.6, roughness: 0.9 });
+      parkM = new THREE.MeshStandardMaterial({ map: rep(PZ.map, W / 6, H / 6), bumpMap: rep(PZ.bump, W / 6, H / 6), bumpScale: 0.6, roughness: 0.9, color: th.groundTint ?? 0xffffff });
     } else if (th.ground === 'boulevard') {
       // 무기 배치 공간 = 넓은 대로. 줄(도로 줄 사이) 가운데가 중앙선이 되도록 UV를 직접 맞춤
       const BV = realBoulevard(), U = 8.5, ph = th.laneCenter ?? 4.25;
@@ -479,31 +535,64 @@ export class City {
     const R = this.S.river; if (!R) return;
     const z0 = R.z - R.w / 2, z1 = R.z + R.w / 2;
     const wt = waterTex().clone(); wt.needsUpdate = true; wt.wrapS = wt.wrapT = THREE.RepeatWrapping; wt.repeat.set(60, 2);
-    const water = new THREE.Mesh(new THREE.PlaneGeometry(520, R.w), new THREE.MeshStandardMaterial({ map: wt, color: 0x9ed0f0, roughness: 0.25, metalness: 0.2 }));
+    const water = new THREE.Mesh(new THREE.PlaneGeometry(520, R.w), new THREE.MeshStandardMaterial({ map: wt, color: { paris: 0x9cc4b4, newyork: 0x86aec8 }[R.kind] || 0x9ed0f0, roughness: 0.25, metalness: 0.2 }));
     water.rotation.x = -Math.PI / 2; water.position.set(0, 0.003, R.z); water.receiveShadow = true;
     this.group.add(water);
     this.anim.push((dt) => { wt.offset.x += dt * 0.01; wt.offset.y += dt * 0.004; });
-    // 둔치(한강공원) + 경사 제방
-    const gt = grassTex().clone(); gt.needsUpdate = true; gt.wrapS = gt.wrapT = THREE.RepeatWrapping; gt.repeat.set(80, 1);
-    const gm = new THREE.MeshStandardMaterial({ map: gt, roughness: 1 });
-    for (const [zc, w] of [[z0 - 1.0, 2.2], [z1 + 1.0, 2.2]]) {
-      const p = new THREE.Mesh(new THREE.PlaneGeometry(520, w), gm); p.rotation.x = -Math.PI / 2; p.position.set(0, 0.004, zc); p.receiveShadow = true; this.group.add(p);
+    const kind = R.kind || 'seoul';
+    if (kind === 'seoul') {
+      // 둔치(한강공원) + 경사 제방
+      const gt = grassTex().clone(); gt.needsUpdate = true; gt.wrapS = gt.wrapT = THREE.RepeatWrapping; gt.repeat.set(80, 1);
+      const gm = new THREE.MeshStandardMaterial({ map: gt, roughness: 1 });
+      for (const [zc, w] of [[z0 - 1.0, 2.2], [z1 + 1.0, 2.2]]) {
+        const p = new THREE.Mesh(new THREE.PlaneGeometry(520, w), gm); p.rotation.x = -Math.PI / 2; p.position.set(0, 0.004, zc); p.receiveShadow = true; this.group.add(p);
+      }
+      const bank = mat(0xa9a69c);
+      for (const zc of [z0, z1]) { const m = new THREE.Mesh(new THREE.PlaneGeometry(520, 0.35), bank); m.rotation.x = -Math.PI / 2; m.position.set(0, 0.006, zc); this.group.add(m); }
+      // 자전거 길
+      const path = new THREE.Mesh(new THREE.PlaneGeometry(520, 0.35), mat(0xb5715a)); path.rotation.x = -Math.PI / 2; path.position.set(0, 0.008, z0 - 0.9); this.group.add(path);
+    } else {
+      // 돌·콘크리트 강둑 벽 (파리 센강 둑길 / 뉴욕 부두) + 강변 산책로
+      const wallM = mat(kind === 'paris' ? 0xd6c9a8 : 0x8f9295, { roughness: 0.95 }), walkM2 = mat(kind === 'paris' ? 0xcbbd98 : 0x77797c);
+      for (const [zc, s] of [[z0, -1], [z1, 1]]) {
+        const w = new THREE.Mesh(new THREE.BoxGeometry(520, 0.9, 0.3), wallM); w.position.set(0, -0.15, zc); this.group.add(w);
+        const q = new THREE.Mesh(new THREE.PlaneGeometry(520, 2.2), walkM2); q.rotation.x = -Math.PI / 2; q.position.set(0, 0.004, zc + s * 1.1); q.receiveShadow = true; this.group.add(q);
+        if (kind === 'paris') for (let x = -120; x < 120; x += 3) (this.cityTrees = this.cityTrees || []).push([x, zc + s * 1.6, 0.8]);
+      }
     }
-    const bank = mat(0xa9a69c);
-    for (const zc of [z0, z1]) { const m = new THREE.Mesh(new THREE.PlaneGeometry(520, 0.35), bank); m.rotation.x = -Math.PI / 2; m.position.set(0, 0.006, zc); this.group.add(m); }
-    // 자전거 길
-    const path = new THREE.Mesh(new THREE.PlaneGeometry(520, 0.35), mat(0xb5715a)); path.rotation.x = -Math.PI / 2; path.position.set(0, 0.008, z0 - 0.9); this.group.add(path);
     // 다리 3개 (각각 모양이 다름)
     const B = new Buckets();
     const deckM = mat(0x8c8f93), pierM = mat(0xb4b2aa), redM = mat(0xc8463a), blueM = mat(0x3a6fb5), railM = mat(0xe8e8e8);
-    const bridges = [[-22, 'arch', blueM], [4, 'plain', null], [30, 'truss', redM]];
-    for (const [bx, kind, accent] of bridges) {
+    const bridges = { seoul: [[-22, 'arch', blueM], [4, 'plain', null], [30, 'truss', redM]], newyork: [[-18, 'suspension', mat(0xb59a78)], [18, 'truss', blueM], [52, 'plain', null]], paris: [[-14, 'stone', mat(0xd9cba8)], [10, 'stone', mat(0xd9cba8)], [34, 'stone', mat(0xd9cba8)]] }[kind];
+    for (const [bx, bk, accent] of bridges) {
+      const kind = bk;
       const len = R.w + 2.8, zc = R.z;
       const d = new THREE.BoxGeometry(2.6, 0.3, len); d.translate(bx, 0.35, zc); B.push(deckM, d);
       const rd = new THREE.PlaneGeometry(2.2, len); rd.rotateX(-Math.PI / 2); rd.translate(bx, 0.505, zc); B.push(mat(0x55585d), rd);
       for (const s of [-1, 1]) { const r = new THREE.BoxGeometry(0.08, 0.16, len); r.translate(bx + s * 1.25, 0.58, zc); B.push(railM, r); }
-      for (let z = z0 + 0.5; z <= z1 - 0.5; z += 1.75) { const p = new THREE.BoxGeometry(1.6, 0.9, 0.5); p.translate(bx, -0.15, z); B.push(pierM, p); }
-      if (kind === 'arch') {
+      for (let z = z0 + 0.5; z <= z1 - 0.5; z += 1.75) { const p = new THREE.BoxGeometry(1.6, 0.9, 0.5); p.translate(bx, -0.15, z); B.push(kind === 'stone' ? accent : pierM, p); }
+      if (kind === 'suspension') {
+        // 브루클린 다리: 고딕 아치 석탑 2개 + 늘어진 주 케이블 + 수직 줄
+        for (const tz of [zc - R.w / 2 + 0.6, zc + R.w / 2 - 0.6]) {
+          for (const s of [-1, 1]) { const t = new THREE.BoxGeometry(0.5, 4.4, 0.8); t.translate(bx + s * 0.95, 2.4, tz); B.push(accent, t); }
+          const top = new THREE.BoxGeometry(2.4, 0.7, 0.8); top.translate(bx, 4.25, tz); B.push(accent, top);
+        }
+        const cableM = mat(0x3b3e42);
+        for (const s of [-1, 1]) for (let i = 0; i < 20; i++) {
+          const t0 = i / 20, t1 = (i + 1) / 20, zA = zc - len / 2 + t0 * len, zB = zc - len / 2 + t1 * len;
+          const yA = 0.6 + 4.0 * (2 * t0 - 1) ** 2, yB = 0.6 + 4.0 * (2 * t1 - 1) ** 2;
+          const p0 = V(bx + s * 1.15, yA, zA), p1 = V(bx + s * 1.15, yB, zB);
+          const g = new THREE.BoxGeometry(0.05, 0.05, p0.distanceTo(p1) + 0.02); g.lookAt(p1.clone().sub(p0)); g.translate((p0.x + p1.x) / 2, (p0.y + p1.y) / 2, (p0.z + p1.z) / 2); B.push(cableM, g);
+          if (i % 2) { const h = yA - 0.5; const c = new THREE.BoxGeometry(0.02, h, 0.02); c.translate(bx + s * 1.15, 0.5 + h / 2, zA); B.push(cableM, c); }
+        }
+      } else if (kind === 'stone') {
+        // 파리 돌다리: 아치 3개 + 둥근 교각
+        for (let i = 0; i < 3; i++) {
+          const zc2 = z0 + (i + 0.5) * R.w / 3, t = new THREE.TorusGeometry(R.w / 6 - 0.15, 0.22, 6, 16, Math.PI);
+          t.rotateY(Math.PI / 2); t.scale(1, 0.8, 1); for (const s of [-1, 1]) { const tt = t.clone(); tt.translate(bx + s * 1.2, 0.05, zc2); B.push(accent, tt); }
+        }
+        for (const s of [-1, 1]) { const par = new THREE.BoxGeometry(0.16, 0.3, len); par.translate(bx + s * 1.25, 0.65, zc); B.push(accent, par); }
+      } else if (kind === 'arch') {
         for (const s of [-1, 1]) for (let i = 0; i < 16; i++) {
           const a0 = i / 16 * Math.PI, a1 = (i + 1) / 16 * Math.PI;
           const p0 = V(bx + s * 1.25, 0.5 + Math.sin(a0) * 2.6, zc - Math.cos(a0) * (R.w / 2)), p1 = V(bx + s * 1.25, 0.5 + Math.sin(a1) * 2.6, zc - Math.cos(a1) * (R.w / 2));
@@ -542,14 +631,20 @@ export class City {
       if (L.id === 'lotte') reserved.push([L.x, L.z, 7]);
       if (L.id === 'b63') reserved.push([L.x, L.z - 3, 7]);
     }
-    const gate = S.gate, base = S.base;
-    reserved.push([gate[0] - 2, gate[1], 4.5]);
+    for (const L of S.landmarks) if (EDGE[L.id]) reserved.push([L.x, L.z, EDGE[L.id].r]);
+    for (const [gx, gz, dx, dz] of this.gateDirs || [[S.gate[0], S.gate[1], 1, 0]]) reserved.push([gx - dx * 2, gz - dz * 2, 4.5]);
     const free = (x, z, r) => {
       if (x > b.x0 - 3.5 && x < b.x1 + 3.8 && z > b.z0 - 3.4 && z < b.z1 + 3.4) return false;   // 공원 + 둘레 큰길
       if (R && z > R.z - R.w / 2 - 2.5 - r && z < R.z + R.w / 2 + 2.5 + r) return false;          // 강·둔치
       for (const [rx, rz, rr] of reserved) if (Math.hypot(x - rx, z - rz) < rr + r) return false;
       return true;
     };
+    const theme = (S.theme || {}).city;
+    if (theme === 'newyork' || theme === 'paris') {
+      (theme === 'newyork' ? buildNYCity : buildParisCity)(this, { free, B, rnd, boxWalls, roofKit, mat });
+      B.build(this.group);
+      return;
+    }
     const plotM = mat(0xc9c6bd);
     let gableI = 0;
     // 블록 격자
@@ -606,6 +701,10 @@ export class City {
   buildLandmarks() {
     const S = this.S, B = new Buckets();
     for (const L of S.landmarks) {
+      if (EDGE[L.id]) {
+        const G = EDGE[L.id].build(L, this); G.position.set(L.x, 0, L.z); this.group.add(G);
+        G.traverse((o) => { if (o.isMesh) { o.castShadow = true; o.receiveShadow = true; } });
+      }
       if (L.id === 'namsan') {
         // 남산: 숲이 덮인 둥근 산
         const g = new THREE.SphereGeometry(1, 28, 14, 0, Math.PI * 2, 0, Math.PI / 2);
@@ -714,18 +813,27 @@ export class City {
   // ---------- 적 진입 터널, 연합 지휘부 ----------
   buildGateBase() {
     const S = this.S;
-    const [gx, gz] = S.gate;
-    this.gate = V(gx, 0, gz);
-    const T = new THREE.Group(); T.position.set(gx, 0, gz);
-    const conc = mat(0x8d8a83), dark = new THREE.MeshBasicMaterial({ color: 0x0b0b0c });
-    const hill = new THREE.Mesh(new THREE.SphereGeometry(1, 20, 10, 0, Math.PI * 2, 0, Math.PI / 2), mat(0x557a3c, { roughness: 1 }));
-    hill.scale.set(3, 2.6, 3.4); hill.position.set(-2.4, 0, 0); hill.castShadow = true; T.add(hill);
-    const portal = new THREE.Mesh(new THREE.BoxGeometry(1.2, 2.4, 4.2), conc); portal.position.set(0.2, 1.2, 0); portal.castShadow = true; T.add(portal);
-    const hole = new THREE.Mesh(new THREE.PlaneGeometry(2.4, 1.7), dark); hole.rotation.y = Math.PI / 2; hole.position.set(0.81, 0.85, 0); T.add(hole);
-    const neon = new THREE.Mesh(new THREE.BoxGeometry(0.08, 0.12, 2.8), new THREE.MeshBasicMaterial({ color: 0xff3030 })); neon.position.set(0.84, 1.85, 0); T.add(neon);
-    this.anim.push((dt, t) => { neon.material.color.setHSL(0, 1, 0.45 + Math.sin(t * 4) * 0.12); });
-    this.group.add(T);
-    this.labels.push({ text: '적 진입', pos: V(gx + 0.5, 3.2, gz), kind: 'enemy' });
+    this.gate = V(S.gate[0], 0, S.gate[1]);
+    // 적 진입 터널: 본 도로 입구 + 갈래 길 입구마다. 터널 입이 도로 진행 방향을 봄
+    const gates = [{ pts: this.steps[0].opts[0].pts, label: '적 진입' }].concat(this.branches.map((b) => ({ pts: b.pts, label: '적 진입 · ' + b.name, br: b })));
+    const conc = mat(0x8d8a83), dark = new THREE.MeshBasicMaterial({ color: 0x0b0b0c }), hillM = mat(0x557a3c, { roughness: 1 });
+    const neonM = new THREE.MeshBasicMaterial({ color: 0xff3030 });
+    this.anim.push((dt, t) => { neonM.color.setHSL(0, 1, 0.45 + Math.sin(t * 4) * 0.12); });
+    for (const G of gates) {
+      const [gx, gz] = G.pts[0], [nx, nz] = G.pts[1], dir = Math.atan2(nz - gz, nx - gx);
+      const T = new THREE.Group(); T.position.set(gx, 0, gz); T.rotation.y = -dir;
+      const hill = new THREE.Mesh(new THREE.SphereGeometry(1, 20, 10, 0, Math.PI * 2, 0, Math.PI / 2), hillM);
+      hill.scale.set(3, 2.6, 3.4); hill.position.set(-2.4, 0, 0); hill.castShadow = true; T.add(hill);
+      const portal = new THREE.Mesh(new THREE.BoxGeometry(1.2, 2.4, 4.2), conc); portal.position.set(0.2, 1.2, 0); portal.castShadow = true; T.add(portal);
+      const hole = new THREE.Mesh(new THREE.PlaneGeometry(2.4, 1.7), dark); hole.rotation.y = Math.PI / 2; hole.position.set(0.81, 0.85, 0); T.add(hole);
+      const neon = new THREE.Mesh(new THREE.BoxGeometry(0.08, 0.12, 2.8), neonM); neon.position.set(0.84, 1.85, 0); T.add(neon);
+      // 카메라 쪽(남쪽) 가장자리 터널은 낮게: 전투 구역을 가리지 않도록
+      if (Math.sin(dir) < -0.7) T.scale.set(1, 0.55, 1);
+      this.group.add(T);
+      const L = { text: G.label, pos: V(gx + Math.cos(dir) * 0.5, 3.2, gz + Math.sin(dir) * 0.5), kind: 'enemy' };
+      if (G.br) G.br.label = L;
+      this.labels.push(L);
+    }
 
     const [bx, bz] = S.base;
     this.base = V(bx, 0, bz);
@@ -758,9 +866,12 @@ export class City {
   // ---------- 적 침투로 = 도심 거리: 보도 바깥으로 상가 건물이 줄지어 섬 ----------
   buildStreetFront() {
     const F = this.S.streetFront; if (!F) return;
+    const city = (this.S.theme || {}).city;
+    if (city === 'newyork') { this.shopFacade = nyShopHD; this.shopVariants = [0, 1, 2, 3, 4, 5]; }
+    if (city === 'paris') { this.shopFacade = (v) => haussmannHD(v, true); this.shopVariants = [0, 1, 2, 3, 5, 7]; this.shopTV = 1.8; }
     const S = this.S, b = S.bounds, rnd = makeRng(S.seed + 'street'), B = new Buckets();
-    const shopM = [0, 1, 2, 3, 4, 5].map((v) => { const T = shopFacadeHD(v); return new THREE.MeshStandardMaterial({ map: T.map, emissiveMap: T.emissiveMap, emissive: 0xffffff, emissiveIntensity: 0.45, roughness: 0.8 }); });
-    const offM = this.M.glass;
+    const shopM = (this.shopVariants || [0, 1, 2, 3, 4, 5]).map((v) => { const T = (this.shopFacade || shopFacadeHD)(v); return new THREE.MeshStandardMaterial({ map: T.map, emissiveMap: T.emissiveMap, emissive: 0xffffff, emissiveIntensity: 0.45, roughness: 0.8 }); });
+    const offM = city === 'paris' ? shopM : this.M.glass;   // 파리는 높은 건물도 오스만 석조
     const roofM = new THREE.MeshStandardMaterial({ map: roofHD(0), roughness: 0.95 }), tankM = mat(0x3f8fc9, { roughness: 0.6 }), acM = mat(0xc9cbcc);
     const rimM = mat(0xcfccc4, { roughness: 0.9 }), awnM = [0xc0392b, 0x2a6fb0, 0x2e8b57, 0xd98a1c, 0x5d6066].map((c) => mat(c, { roughness: 0.7 }));
     const off0 = (ROAD_W + 0.9) / 2 + 0.03, dep = F.depth;
@@ -768,10 +879,39 @@ export class City {
       if (x - r < b.x0 + 0.05 || x + r > b.x1 - 0.05 || z - r < b.z0 + 0.05 || z + r > b.z1 - 0.05) return false;
       if (S.blockers.some((k) => Math.abs(x - k.x) < k.w / 2 + r + 0.2 && Math.abs(z - k.z) < k.d / 2 + r + 0.2)) return false;
       if (this.base && Math.hypot(x - this.base.x, z - this.base.z) < 2.6) return false;
-      if (S.gate && Math.hypot(x - S.gate[0], z - S.gate[1]) < 2.4) return false;
+      if (this.gateDirs.some(([gx, gz]) => Math.hypot(x - gx, z - gz) < 2.4)) return false;
       return this.roadDist(x, z) > off0 + dep * 0.3;
     };
-    for (const st of S.route) {
+    // 건물 하나 (도로 방향 dx,dz / 바깥쪽 nx,nz / 가운데 mx,mz / 길이 w)
+    const shop = (mx, mz, dx, dz, nx, nz, w, side) => {
+      // 카메라 쪽(남쪽) 줄은 낮게: 적이 건물에 가려지지 않도록. 먼 쪽 줄만 높은 빌딩
+      const near = nz > 0.5, tall = !near && rnd() < 0.15;
+      const h = tall ? rnd.range(1.6, 2.4) : (near ? rnd.int(1, 2) : rnd.int(2, 4)) * 0.3;   // 상가는 층 높이(0.3)에 딱 맞춤
+      const ry = Math.atan2(-dz, dx) + (side > 0 ? Math.PI : 0);   // 긴 면이 도로를 따라, 정면이 도로 쪽
+      const m = tall ? offM[Math.floor(rnd() * 3)] : shopM[Math.floor(rnd() * shopM.length)];
+      boxWalls(B, mx, 0, mz, w - 0.06, h, dep, ry, m, roofM, tall ? 1.6 : 1, tall ? 1.6 : this.shopTV || 1.5);
+      roofKit(B, mx, mz, w - 0.06, dep, h, ry, tall ? this.M.rimDark : rimM, { t: 0.035, rh: tall ? 0.1 : 0.06, awning: tall ? null : [0.26, awnM[Math.floor(rnd() * awnM.length)]], house: !tall && rnd() < 0.35 ? [0.22, 0.16, 0.2] : tall ? [0.5, 0.2, 0.4] : null, hx: -w * 0.2, houseM: rimM });
+      this.streetBlocks.push({ x: mx, z: mz, hx: Math.abs(dx) * w / 2 + Math.abs(nx) * dep / 2, hz: Math.abs(dz) * w / 2 + Math.abs(nz) * dep / 2 });
+      if (rnd() < 0.5) { const g = new THREE.CylinderGeometry(0.09, 0.09, 0.14, 8); g.translate(mx + nx * 0.05, h + 0.07, mz + nz * 0.05); B.push(tankM, g); }
+      if (rnd() < 0.6) { const g = new THREE.BoxGeometry(0.16, 0.1, 0.12); g.translate(mx - dx * w * 0.25, h + 0.05, mz - dz * w * 0.25); B.push(acM, g); }
+    };
+    // 굽은 길: 중심선 샘플을 따라 걸으며 바깥쪽에 건물
+    for (const o of this.allRoads().filter((o) => !S.route.concat(S.branches || []).find((r) => r.pts === o.pts)?.sharp)) {
+      const sm = o.samples, cOff = off0 + dep / 2;
+      for (const side of [-1, 1]) {
+        let t = 0.6, left = rnd.int(1, 3);
+        while (t < o.len - 0.6) {
+          const w = rnd.range(0.9, 1.5);
+          let k = 0; while (k < sm.length - 2 && sm[k + 1].cum < t + w / 2) k++;
+          const a = sm[k].p, b2 = sm[k + 1].p, L = Math.hypot(b2.x - a.x, b2.z - a.z) || 1, dx = (b2.x - a.x) / L, dz = (b2.z - a.z) / L;
+          const nx = -dz * side, nz = dx * side, mx = a.x + nx * cOff, mz = a.z + nz * cOff;
+          if (free(mx, mz, Math.max(w, dep) / 2 * 0.7)) shop(mx, mz, dx, dz, nx, nz, w, side);
+          t += w + 0.08;
+          if (--left <= 0) { t += rnd.range(F.gap?.[0] ?? 4, F.gap?.[1] ?? 8); left = rnd.int(1, 3); }
+        }
+      }
+    }
+    for (const st of S.route.concat(S.branches || []).filter((r) => r.sharp)) {
       const P = st.pts;
       for (let i = 0; i < P.length - 1; i++) {
         const [ax, az] = P[i], [bx, bz] = P[i + 1], L = Math.hypot(bx - ax, bz - az), dx = (bx - ax) / L, dz = (bz - az) / L;
@@ -783,19 +923,7 @@ export class City {
           while (t < tEnd - 0.5) {
             const w = Math.min(tEnd - t, rnd.range(0.9, 1.7));
             const mx = ax + dx * (t + w / 2) + nx * cOff, mz = az + dz * (t + w / 2) + nz * cOff;
-            if (free(mx, mz, Math.max(w, dep) / 2 * 0.7)) {
-              // 카메라 쪽(남쪽) 줄은 낮게: 적이 건물에 가려지지 않도록. 먼 쪽 줄만 높은 빌딩
-              const near = nz > 0.5, tall = !near && rnd() < 0.15;
-              const h = tall ? rnd.range(1.6, 2.4) : (near ? rnd.int(1, 2) : rnd.int(2, 4)) * 0.3;   // 상가는 층 높이(0.3)에 딱 맞춤
-              const ry = Math.atan2(-dz, dx) + (side > 0 ? Math.PI : 0);   // 긴 면이 도로를 따라, 정면이 도로 쪽
-              const m = tall ? offM[Math.floor(rnd() * 3)] : shopM[Math.floor(rnd() * 6)];
-              boxWalls(B, mx, 0, mz, w - 0.06, h, dep, ry, m, roofM, tall ? 1.6 : 1, tall ? 1.6 : 1.5);
-              roofKit(B, mx, mz, w - 0.06, dep, h, ry, tall ? this.M.rimDark : rimM, { t: 0.035, rh: tall ? 0.1 : 0.06, awning: tall ? null : [0.26, awnM[Math.floor(rnd() * awnM.length)]], house: !tall && rnd() < 0.35 ? [0.22, 0.16, 0.2] : tall ? [0.5, 0.2, 0.4] : null, hx: -w * 0.2, houseM: rimM });
-              this.streetBlocks.push({ x: mx, z: mz, hx: Math.abs(dx) * w / 2 + Math.abs(nx) * dep / 2, hz: Math.abs(dz) * w / 2 + Math.abs(nz) * dep / 2 });
-              // 옥상: 물탱크·실외기
-              if (rnd() < 0.5) { const g = new THREE.CylinderGeometry(0.09, 0.09, 0.14, 8); g.translate(mx + nx * 0.05, h + 0.07, mz + nz * 0.05); B.push(tankM, g); }
-              if (rnd() < 0.6) { const g = new THREE.BoxGeometry(0.16, 0.1, 0.12); g.translate(mx - dx * w * 0.25, h + 0.05, mz - dz * w * 0.25); B.push(acM, g); }
-            }
+            if (free(mx, mz, Math.max(w, dep) / 2 * 0.7)) shop(mx, mz, dx, dz, nx, nz, w, side);
             t += w + 0.04;
             if (--left <= 0) { t += rnd.range(F.gap?.[0] ?? 4, F.gap?.[1] ?? 8); left = rnd.int(1, 3); }
           }

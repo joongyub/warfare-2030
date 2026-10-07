@@ -43,16 +43,17 @@ export class UI {
         <div class="pc-title">지휘관 프로필</div>
         <div class="pc-row"><input class="pc-name" maxlength="12" placeholder="이름을 정하세요" value=""><button class="pc-save">저장</button></div>
         <div class="pc-stat"><span>보급창</span><b class="pc-cred"></b></div>
-        <div class="pc-stat"><span>서울 최고 기록</span><b>${'★'.repeat(best)}${'☆'.repeat(3 - best)}</b></div>
+        <div class="pc-stat"><span>${S.name} 최고 기록</span><b>${'★'.repeat(best)}${'☆'.repeat(3 - best)}</b></div>
         <button class="pc-shop">🛒 상점 · 보급 충전</button>
         <button class="pc-fs">⛶ 전체 화면으로 하기</button>
         <button class="pc-install">📲 앱으로 설치하기</button>
       </div>
       <div class="brief">
+        <div class="stages">${this.stageList().map((X) => `<button class="st${X === S ? ' on' : ''}" data-id="${X.id}"><small>STAGE ${X.no}</small>${X.name}<i>${'★'.repeat(this.best(X.id))}${'☆'.repeat(3 - this.best(X.id))}</i></button>`).join('')}</div>
         <div class="stage-no">STAGE ${S.no} · 2030 연합방위전선</div>
         <div class="city">${this.cityName()}${GF.SETTINGS.useCityAlias ? '' : `<small>${S.nameEn}</small>`}<em>${S.title}</em></div>
         <p>${S.briefing}</p>
-        <div class="meta">웨이브 ${S.waves.length} · 기지 체력 ${S.lives} · 최고 기록 <b>${'★'.repeat(best)}${'☆'.repeat(3 - best)}</b></div>
+        <div class="meta">웨이브 ${S.waves.length} · 기지 체력 ${S.lives} · 적 진입로 ${1 + (S.branches || []).length}곳 · 최고 기록 <b>${'★'.repeat(best)}${'☆'.repeat(3 - best)}</b></div>
         <div class="label">장착 무기 ${GF.LOADOUT.length} <small>도로·랜드마크만 빼고 어디든 배치</small> · 전략 무기 <small>ICBM · 전략핵미사일 (웨이브마다 재보급)</small></div>
         <div class="loadout">${GF.LOADOUT.map((id) => `<div class="lo"><img src="${icons[id]}"><b>${GF.wname(id)}</b><span>${GF.WEAPONS[id].role}</span></div>`).join('')}</div>
         <button class="go">출격</button>
@@ -60,6 +61,7 @@ export class UI {
         <div class="disc">이 게임은 가상의 이야기입니다. 실제 국가·단체·사건과 관계없습니다. · v${GF.SETTINGS.version}</div>
       </div>`;
     t.querySelector('.go').onclick = () => this.app.startGame();
+    t.querySelectorAll('.stages .st').forEach((b) => { b.onclick = () => this.app.selectStage(b.dataset.id); });
     const inp = t.querySelector('.pc-name'); inp.value = Profile.data.name || '';
     const saveName = () => { Profile.setName(inp.value); this.toastAny('지휘관 이름 저장: ' + Profile.name); };
     t.querySelector('.pc-save').onclick = saveName;
@@ -74,7 +76,9 @@ export class UI {
     this.refreshProfile();
   }
   hideTitle() { if (this.title) { this.title.remove(); this.title = null; } }
-  best() { try { return JSON.parse(localStorage.getItem('gf_progress') || '{}')[this.app.stage.id] || 0; } catch (e) { return 0; } }
+  best(id = this.app.stage.id) { try { return JSON.parse(localStorage.getItem('gf_progress') || '{}')[id] || 0; } catch (e) { return 0; } }
+  stageList() { return Object.values(GF.STAGES).sort((a, b) => a.no - b.no); }
+  resetLabels() { for (const { e } of this.labelEls) e.remove(); this.labelEls = []; }
 
   // ---------- 전투 화면 ----------
   buildHud() {
