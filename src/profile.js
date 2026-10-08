@@ -13,4 +13,4 @@ export const Profile = {
   addCredits(n, memo) { this.data.credits = this.credits + n; if (memo) this.data.purchases.push({ t: Date.now(), memo, n }); this.save(); },
   spend(n) { if (this.credits < n) return false; this.data.credits -= n; this.save(); return true; }
 };
-GF.Profile = Profile;
+GF.Profile = Profile.load();   // 시작할 때 저장된 이름·보급창을 읽어 옴

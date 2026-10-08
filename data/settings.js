@@ -2,7 +2,7 @@
 window.GF = window.GF || {};
 
 GF.SETTINGS = {
-  version: '0.27.1 (베타 · 10개 도시)',
+  version: '0.28.0 (베타 · 10개 도시)',
   // true: 실제 무기 이름 (K9 썬더, 재블린 …) / false: 살짝 바꾼 이름 (K9-X 썬더, 재블런스 …)
   // 출시 직전 상표 검토 후 결정 (문서 10번 2장 참고)
   useRealWeaponNames: true,
@@ -27,7 +27,9 @@ GF.SETTINGS = {
   shadows: true,            // 그림자 (느린 컴퓨터는 false)
   graphics: 'auto',         // 그래픽 품질: 'auto'(PC 높음·휴대폰 보통) / 'high' / 'medium' / 'low'(느린 기기)
   comboWindow: 2.5,         // 이 시간(초) 안에 연속으로 처치하면 연쇄 격파 보너스
-  homeBg: 'img/home_bg.jpg', // 홈 화면 배경 그림 (지우면 3D 전장이 보임)
+  homeBg: 'img/home_bg.jpg',
+  // 전투 시작 자막 (3초). {name} 지휘관 이름, {city} 도시 이름, {ga} 받침에 맞춰 이/가
+  introLine: '{name}님! {city}{ga} 빨갱이새끼들한테 다 넘어갈지경입니다. 방어해주세요!', // 홈 화면 배경 그림 (지우면 3D 전장이 보임)
   // 구글 로그인 저장 (Firebase 웹 앱 설정). null 이면 이 기기에만 저장
   // 안내서: tower-defense/06_구글로그인_저장_설정가이드.md
   firebase: {

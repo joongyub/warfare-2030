@@ -167,6 +167,59 @@
   .savebox .save, .settings .save { background: #2c7a5a; } .savebox .savex, .settings .savex { background: #3f6fb0; }
   .help { margin-top: 16px; font-size: 16px; color: #9fb2c0; }
   .disc { margin-top: 6px; font-size: 14px; color: #6f8494; }
+  .brief.home { top: 690px; width: 1000px; }
+  .home-cta { color: var(--gold); font-weight: 700; font-size: 22px; letter-spacing: 3px; }
+  .brief.home .go { width: 560px; }
+
+  /* 전투지역 화면 */
+  .zone-screen { position: absolute; inset: 0; background: radial-gradient(ellipse at 70% 30%, rgba(40,70,90,.5), rgba(6,10,16,.96) 70%), #070b12; }
+  .zone-screen.has-bg { background: linear-gradient(rgba(6,10,16,.86), rgba(6,10,16,.93)), var(--home-bg) center / cover no-repeat, #070b12; }
+  .zn-head { position: absolute; left: 60px; top: 40px; display: flex; align-items: center; gap: 22px; }
+  .zn-head b { display: block; font-size: 54px; font-weight: 800; letter-spacing: -1px; }
+  .zn-head span { font-size: 20px; color: #9fb2c0; }
+  .zn-back { height: 56px; padding: 0 22px; border-radius: 14px; border: 1px solid rgba(255,255,255,.25); background: rgba(255,255,255,.08); color: #fff; font-size: 22px; font-weight: 800; cursor: pointer; }
+  .zn-grid { position: absolute; left: 60px; top: 180px; width: 1200px; display: grid; grid-template-columns: repeat(5, 228px); gap: 14px; }
+  .zn-card { padding: 0 0 10px; border-radius: 16px; border: 2px solid rgba(255,255,255,.14); background: rgba(14,24,34,.88); color: #d4e0e8; text-align: left; cursor: pointer; overflow: hidden; }
+  .zn-card canvas { display: block; width: 228px; height: 176px; background: #142028; }
+  .zn-card.on { border-color: var(--gold); box-shadow: 0 0 22px rgba(242,193,78,.35); background: rgba(48,40,18,.9); }
+  .zn-card:hover { filter: brightness(1.12); }
+  .zn-n { display: flex; align-items: center; gap: 8px; padding: 10px 12px 4px; }
+  .zn-n small { min-width: 24px; height: 24px; line-height: 24px; text-align: center; border-radius: 6px; background: rgba(255,255,255,.1); color: #8fb1c2; font-size: 13px; font-weight: 700; }
+  .zn-n b { font-size: 24px; color: #fff; flex: 1; white-space: nowrap; } .zn-n i { font-style: normal; color: var(--gold); font-size: 15px; letter-spacing: 1px; }
+  .zn-st { padding: 0 12px; } .zn-st span { display: block; font-size: 14px; font-weight: 700; margin-bottom: 5px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+  .zn-st.run span { color: #ffd36a; } .zn-st.win span { color: #7ff0a0; } .zn-st.new span { color: #ff8a8e; }
+  .zn-bar { height: 6px; border-radius: 3px; background: rgba(255,255,255,.12); overflow: hidden; } .zn-bar i { display: block; height: 100%; background: linear-gradient(90deg, #f2c14e, #ffdf8a); }
+  .zn-st.win .zn-bar i { background: linear-gradient(90deg, #36c27a, #7ff0a0); }
+  .zn-side { box-sizing: border-box; position: absolute; right: 50px; top: 40px; width: 590px; padding: 20px 24px 24px; border-radius: 20px; background: rgba(12,22,32,.9); border: 1px solid rgba(143,243,255,.25); }
+  .zn-big { display: block; width: 512px; height: 290px; border-radius: 12px; background: #142028; }
+  .zn-no { margin-top: 14px; color: var(--gold); font-weight: 700; font-size: 18px; letter-spacing: 3px; }
+  .zn-city { font-size: 54px; font-weight: 800; } .zn-city em { font-style: normal; font-size: 24px; color: var(--gold); margin-left: 14px; }
+  .zn-side p { font-size: 18px; line-height: 1.55; color: #d4e0e8; margin: 6px 0 10px; }
+  .zn-meta { font-size: 17px; color: #c9d6de; } .zn-meta b { color: var(--gold); letter-spacing: 2px; }
+  .zn-legend { margin-top: 10px; font-size: 14px; color: #9fb2c0; display: flex; align-items: center; gap: 6px; flex-wrap: wrap; }
+  .zn-legend span { display: inline-block; width: 18px; height: 6px; border-radius: 3px; margin-left: 8px; } .zn-legend span:first-child { margin-left: 0; }
+  .lg-r { background: #e8dcc0; } .lg-b { background: #f2a33a; } .zn-legend .lg-g { width: 10px; height: 10px; border-radius: 50%; background: #ff4d4d; } .zn-legend .lg-h { width: 10px; height: 10px; border-radius: 2px; background: #3aa0ff; }
+  .zn-go { display: flex; gap: 12px; margin-top: 18px; }
+  .zn-go button { flex: 1; height: 84px; border: 0; border-radius: 16px; font-size: 34px; font-weight: 800; cursor: pointer; }
+  .zn-start { color: #062a2e; background: linear-gradient(#6af0ea, #2cb9bd); box-shadow: 0 0 0 4px rgba(120,250,245,.35), 0 10px 30px rgba(0,0,0,.35); }
+  .zn-cont { display: flex; flex-direction: column; align-items: center; justify-content: center; color: #3a2600; background: linear-gradient(#ffd96a, #f2a33a); font-size: 28px !important; }
+  .zn-cont small { font-size: 15px; opacity: .8; } .zn-go .zn-cont + .zn-start { font-size: 26px; }
+
+  /* 출격 자막 (3초) */
+  .intro { position: absolute; inset: 0; z-index: 50; pointer-events: auto; background: linear-gradient(transparent 55%, rgba(0,0,0,.75)); animation: in-bg 3s forwards; }
+  @keyframes in-bg { 0% { background-color: rgba(0,0,0,.65); } 25% { background-color: rgba(0,0,0,0); } 100% { background-color: rgba(0,0,0,0); } }
+  .intro.out { opacity: 0; transition: opacity .35s; }
+  .intro.wait, .intro.wait .in-chars, .intro.wait .in-box { animation-play-state: paused; }
+  .in-chars { position: absolute; left: 40px; bottom: 0; width: 520px; height: 440px; transform-origin: 0 100%;
+    background-size: 1402px 789px; background-position: -470px -34px; background-repeat: no-repeat;
+    -webkit-mask-image: linear-gradient(90deg, transparent, #000 10%, #000 88%, transparent), linear-gradient(transparent, #000 8%);
+    mask-image: linear-gradient(90deg, transparent, #000 10%, #000 88%, transparent); animation: in-ch 3s cubic-bezier(.2,.8,.2,1) forwards; }
+  @keyframes in-ch { 0% { transform: translate(560px, -260px) scale(2.1); } 28% { transform: translate(0, 0) scale(1); } 100% { transform: translate(0, 0) scale(1); } }
+  .in-box { position: absolute; left: 540px; right: 60px; bottom: 60px; padding: 22px 30px; border-radius: 18px; background: rgba(10,16,24,.88); border: 2px solid rgba(242,193,78,.7); box-shadow: 0 10px 30px rgba(0,0,0,.5);
+    opacity: 0; animation: in-box 3s forwards; }
+  @keyframes in-box { 0%, 18% { opacity: 0; transform: translateY(30px); } 28%, 100% { opacity: 1; transform: none; } }
+  .in-box small { color: #ff6b6b; font-weight: 800; letter-spacing: 3px; font-size: 18px; }
+  .in-box p { margin: 6px 0 0; font-size: 36px; font-weight: 800; line-height: 1.4; color: #fff; min-height: 100px; }
 
   /* 전투 화면 */
   .hud-layer { position: absolute; inset: 0; }
@@ -317,6 +370,18 @@
   .mobile .pc-saves { margin-top: 10px; padding-top: 8px; } .mobile .sv { padding: 5px 0; gap: 6px; } .mobile .sv-i b { font-size: 16px; } .mobile .sv-i span { font-size: 12px; } .mobile .sv-i small { font-size: 11px; }
   .mobile .sv-load { height: 38px; font-size: 14px; padding: 0 10px; } .mobile .sv-del { height: 38px; min-width: 38px; font-size: 13px; } .mobile .sv-none { font-size: 12px; }
   .mobile .savebox .sv-now { font-size: 15px; } .mobile .help { font-size: 12px; } .mobile .disc { font-size: 11px; }
+  .mobile .brief.home { top: 430px; } .mobile .home-cta { font-size: 14px; } .mobile .brief.home .go { width: 380px; }
+  .mobile .zn-head { left: 30px; top: 18px; gap: 14px; } .mobile .zn-head b { font-size: 34px; } .mobile .zn-head span { font-size: 13px; } .mobile .zn-back { height: 40px; font-size: 16px; padding: 0 14px; }
+  .mobile .zn-grid { left: 30px; top: 98px; width: 830px; grid-template-columns: repeat(5, 158px); gap: 9px; }
+  .mobile .zn-card { border-radius: 12px; padding-bottom: 7px; } .mobile .zn-card canvas { width: 158px; height: 118px; }
+  .mobile .zn-n { padding: 6px 8px 2px; gap: 5px; } .mobile .zn-n small { min-width: 18px; height: 18px; line-height: 18px; font-size: 10px; } .mobile .zn-n b { font-size: 17px; } .mobile .zn-n i { font-size: 10px; }
+  .mobile .zn-st { padding: 0 8px; } .mobile .zn-st span { font-size: 10px; margin-bottom: 3px; }
+  .mobile .zn-side { right: 20px; top: 18px; width: 384px; padding: 12px 14px 14px; border-radius: 14px; } .mobile .zn-big { width: 342px; height: 180px; }
+  .mobile .zn-no { margin-top: 6px; font-size: 12px; } .mobile .zn-city { font-size: 32px; } .mobile .zn-city em { font-size: 16px; }
+  .mobile .zn-side p { font-size: 12px; margin: 3px 0 5px; } .mobile .zn-meta { font-size: 12px; } .mobile .zn-legend { font-size: 11px; margin-top: 5px; }
+  .mobile .zn-go { margin-top: 10px; gap: 8px; } .mobile .zn-go button { height: 58px; font-size: 24px; border-radius: 12px; } .mobile .zn-cont { font-size: 19px !important; } .mobile .zn-cont small { font-size: 11px; } .mobile .zn-go .zn-cont + .zn-start { font-size: 18px; }
+  .mobile .in-chars { left: 20px; width: 340px; height: 290px; background-size: 917px 516px; background-position: -307px -22px; }
+  .mobile .in-box { left: 350px; right: 30px; bottom: 30px; padding: 14px 18px; } .mobile .in-box small { font-size: 12px; } .mobile .in-box p { font-size: 22px; min-height: 62px; }
   /* 상점 */
   .mobile .sh-box { width: 1200px; padding: 16px 20px; } .mobile .sh-head { margin-bottom: 12px; } .mobile .sh-head > b { font-size: 28px; }
   .mobile .pk { padding: 16px 8px 12px; } .mobile .pk-ico { font-size: 40px; } .mobile .pk b { font-size: 22px; } .mobile .pk button { height: 56px; font-size: 22px; }
