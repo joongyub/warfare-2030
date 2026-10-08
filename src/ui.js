@@ -304,10 +304,11 @@ export class UI {
     });
 
     // 대기 중인 영웅 (눌러서 배치)
-    const bk = g.heroBench.map((id) => id + (g.heroBonus[id] || 0) + (g.mode === 'hero' && g.heroSel === id ? '*' : '')).join(',');
+    const bk = g.heroBench.map((id) => id + (g.heroBonus[id] || 0) + (g.mode === 'hero' && g.heroSel === id ? '*' : '')).join(','), cnt = {};
+    g.heroBench.forEach((id) => { cnt[id] = (cnt[id] || 0) + 1; });
     if (this.benchKey !== bk) {
       this.benchKey = bk;
-      this.bench.innerHTML = g.heroBench.length ? '<div class="hb-t">배치 대기 영웅</div>' + g.heroBench.map((id) => `<button class="hb${HEROES[id].legend ? ' lg' : ''}${g.mode === 'hero' && g.heroSel === id ? ' sel' : ''}" data-id="${id}"><img src="${this.icons['hero_' + id]}"><b>${HEROES[id].short}</b><small>Lv.${1 + (g.heroBonus[id] || 0)} · 눌러 배치</small></button>`).join('') : '';
+      this.bench.innerHTML = g.heroBench.length ? '<div class="hb-t">배치 대기 영웅</div>' + Object.keys(cnt).map((id) => `<button class="hb${HEROES[id].legend ? ' lg' : ''}${g.mode === 'hero' && g.heroSel === id ? ' sel' : ''}" data-id="${id}"><img src="${this.icons['hero_' + id]}"><b>${HEROES[id].short}${cnt[id] > 1 ? ' ×' + cnt[id] : ''}</b><small>Lv.${1 + (g.heroBonus[id] || 0)} · 눌러 배치</small></button>`).join('') : '';
       this.bench.querySelectorAll('.hb').forEach((b) => { b.onclick = () => g.pickHero(b.dataset.id); });
     }
     if (this.shopEl) { const m = this.shopEl.querySelector('.sh-money'); if (m) put(m, 'textContent', Math.floor(g.money).toLocaleString('ko-KR')); }
@@ -345,13 +346,13 @@ export class UI {
     const tw = g.selected;
     put(this.panel.style, 'display', tw ? 'block' : 'none');
     if (tw) {
-      const st = g.stats(tw), max = tw.level >= GF.SETTINGS.maxTowerLevel;
+      const st = g.stats(tw), top = g.maxLevel(tw), max = tw.level >= top;
       const sp = this.project(tw.pos.clone().setY(0.6)) || { x: 900, y: 500 };
       put(this.panel.style, 'left', Math.max(20, Math.min(this.BW - 420, sp.x + 60)) + 'px'); put(this.panel.style, 'top', Math.max(this.L.mobile ? 60 : 110, Math.min(this.BH - (this.L.mobile ? 400 : 520), sp.y - 160)) + 'px');
       put(this.panel.querySelector('.pt'), 'textContent', GF.wname(tw.type) + '  Lv.' + tw.level);
       put(this.panel.querySelector('.pi'), 'innerHTML', `${tw.W.hero ? '<span style="color:' + (tw.W.legend ? '#fff4c8' : '#ffd36a') + '">' + (tw.W.legend ? '★★ 레전더리 영웅 · ' : '★ 전설의 영웅 · ') + tw.W.title + '</span><br>' : ''}${tw.W.nation} · ${tw.W.role}<br>${this.upLine(g, tw, st, max)}누적 피해 <b>${fmt(tw.dmgTotal)}</b> · 격파 <b>${tw.kills}</b><br><small>${tw.W.desc}</small>`);
       const up = this.panel.querySelector('.up'), all = this.panel.querySelector('.all');
-      put(up, 'textContent', max ? '최대 강화 (Lv.4)' : `강화 Lv.${tw.level + 1}/4  (${g.upgradeCost(tw)})`);
+      put(up, 'textContent', max ? `최대 강화 (Lv.${top})` : `강화 Lv.${tw.level + 1}/${top}  (${g.upgradeCost(tw)})`);
       up.disabled = max || g.money < g.upgradeCost(tw);
       const n = g.bulkList(tw.type).length, bc = g.bulkCost(tw.type);
       put(all, 'textContent', n ? `같은 무기 ${n}대 모두 강화  (${bc})` : '같은 무기 모두 최대 강화');
@@ -390,8 +391,9 @@ export class UI {
   // 무기 창: 강화 단계(1~4) + 현재 → 다음 단계 DPS·사거리
   upLine(g, tw, st, max) {
     const dps = (x) => Math.round(tw.W.shot === 'aura' ? (tw.W.airDps || 0) * x.mul : x.dps);
-    const pips = [1, 2, 3, 4].map((i) => `<span style="display:inline-block;width:18px;height:7px;margin-right:3px;border-radius:2px;background:${i <= tw.level ? '#f2c14e' : 'rgba(255,255,255,.18)'}"></span>`).join('');
-    let line = `강화 ${pips} Lv.${tw.level}/4<br>DPS <b>${dps(st)}</b> · 사거리 <b>${st.range.toFixed(1)}</b>`;
+    const top = g.maxLevel(tw), pw = top > 4 ? 8 : 18;
+    const pips = Array.from({ length: top }, (_, k) => `<span style="display:inline-block;width:${pw}px;height:7px;margin-right:${top > 4 ? 2 : 3}px;border-radius:2px;background:${k < tw.level ? '#f2c14e' : 'rgba(255,255,255,.18)'}"></span>`).join('');
+    let line = `강화 ${pips} Lv.${tw.level}/${top}<br>DPS <b>${dps(st)}</b> · 사거리 <b>${st.range.toFixed(1)}</b>`;
     if (!max) { const nx = g.statsAt(tw, tw.level + 1); line += ` <span style="color:#7ff0a0">→ DPS ${dps(nx)} · 사거리 ${nx.range.toFixed(1)}</span>`; }
     return line + '<br>';
   }
@@ -438,7 +440,7 @@ export class UI {
           <div class="hr-res">${HERO_IDS.length}명 중 1명 무작위 (각 ${(100 / HERO_IDS.length).toFixed(1)}%)</div>
           <button class="hr-pull" ${inBattle ? '' : 'disabled'}>${inBattle ? `영웅 모집 <small>보급 ${GACHA.heroCost}</small>` : '전투 중에 모집할 수 있어요'}</button>
           <button class="hr-place" style="display:none"></button>
-          <div class="hr-note">이미 있는 영웅이 또 나오면 그 영웅이 1단계 강화됩니다 (최대 Lv.4). 최대 강화 영웅이 나오면 보급 ${GACHA.heroMaxRefund} 환급. 일반 무기 최고 DPS는 약 80</div>
+          <div class="hr-note">뽑을 때마다 영웅이 한 명씩 늘어납니다 (같은 영웅도 여러 명 배치 가능). 배치한 영웅은 보급으로 Lv.10까지 강화. 일반 무기 최고 DPS는 약 80</div>
         </div></div>`;
       const pull = body.querySelector('.hr-pull'), stage = body.querySelector('.hr-stage'), res = body.querySelector('.hr-res'), place = body.querySelector('.hr-place');
       pull.onclick = () => {
@@ -454,7 +456,7 @@ export class UI {
             clearInterval(this.spinT);
             const H = HEROES[r.id];
             stage.innerHTML = `<img src="${this.icons['hero_' + r.id]}"><div class="hr-name">${H.name}</div>`; stage.classList.add('got'); stage.classList.toggle('lg', !!H.legend);
-            res.innerHTML = r.dup === 'up' ? `<b>${H.short}</b> 중복! 배치된 영웅이 <b>Lv.${r.level}</b>로 강화` : r.dup === 'max' ? `<b>${H.short}</b> 이미 최대 강화 · 보급 <b>+${r.refund}</b> 환급` : r.dup === 'bench' ? `<b>${H.short}</b> 중복! 배치하면 <b>Lv.${r.level}</b>로 출전` : `전설의 영웅 <b>${H.name}</b> 획득!`;
+            res.innerHTML = r.count > 1 ? `<b>${H.short}</b> 한 명 더! (${r.count}번째) 배치하면 함께 싸웁니다` : `전설의 영웅 <b>${H.name}</b> 획득!`;
             snd('win');
             pull.disabled = false;
             if (g.heroBench.includes(r.id)) { place.style.display = 'block'; place.textContent = `${H.short} 지금 배치하기 ▶`; place.onclick = () => { this.closeShop(); g.pickHero(r.id); }; }
