@@ -2,7 +2,7 @@
 window.GF = window.GF || {};
 
 GF.SETTINGS = {
-  version: '0.27.0 (베타 · 10개 도시)',
+  version: '0.27.1 (베타 · 10개 도시)',
   // true: 실제 무기 이름 (K9 썬더, 재블린 …) / false: 살짝 바꾼 이름 (K9-X 썬더, 재블런스 …)
   // 출시 직전 상표 검토 후 결정 (문서 10번 2장 참고)
   useRealWeaponNames: true,
@@ -30,5 +30,12 @@ GF.SETTINGS = {
   homeBg: 'img/home_bg.jpg', // 홈 화면 배경 그림 (지우면 3D 전장이 보임)
   // 구글 로그인 저장 (Firebase 웹 앱 설정). null 이면 이 기기에만 저장
   // 안내서: tower-defense/06_구글로그인_저장_설정가이드.md
-  firebase: null
+  firebase: {
+    apiKey: 'AIzaSyDjZ1cJFXwQHd14G1a8Fhxfe-1KiFwrN2U',
+    authDomain: 'warfare-2030.firebaseapp.com',
+    projectId: 'warfare-2030',
+    storageBucket: 'warfare-2030.firebasestorage.app',
+    messagingSenderId: '257635768085',
+    appId: '1:257635768085:web:f33d48119ebc338947bb1c'
+  }
 };
