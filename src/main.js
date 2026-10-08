@@ -110,6 +110,7 @@ class App {
     this.cam.zoom = this.cam.zoomGoal = 1; this.fitView();
     this.game.start();
     this.ui.buildHud();
+    this.ui.playIntro();
   }
   // 저장한 게임 이어하기 (처음 화면에서)
   loadGame(id) {
@@ -336,7 +337,7 @@ class App {
       if (this.ui.shopEl && e.code === 'Escape') { this.ui.closeShop(); return; }
       this.keys[e.code] = true;
       const g = this.game;
-      if (g.state === 'title') { if (e.code === 'Enter') this.startGame(); return; }
+      if (g.state === 'title') { if (e.code === 'Enter') { if (this.ui.zone) this.ui.zoneStart(false); else this.ui.openZone(); } if (e.code === 'Escape') this.ui.closeZone(); return; }
       const n = parseInt(e.key, 10);
       if (n >= 1 && n <= GF.LOADOUT.length) g.setMode(GF.LOADOUT[n - 1]);
       if (e.code === 'KeyZ') g.pickStrat('icbm');

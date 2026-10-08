@@ -56,21 +56,14 @@ export class UI {
         <button class="pc-install">📲 앱으로 설치하기</button>
         <div class="pc-saves"></div>
       </div>
-      <div class="brief">
-        <div class="stages">${this.stageList().map((X) => `<button class="st${X === S ? ' on' : ''}" data-id="${X.id}"><small>${X.no}</small><span>${X.name}</span><i>${'★'.repeat(this.best(X.id))}${'☆'.repeat(3 - this.best(X.id))}</i></button>`).join('')}</div>
-        <div class="stage-no">STAGE ${S.no} · 2030 연합방위전선</div>
-        <div class="city">${this.cityName()}${GF.SETTINGS.useCityAlias ? '' : `<small>${S.nameEn}</small>`}<em>${S.title}</em></div>
-        <p>${S.briefing}</p>
-        <div class="meta">웨이브 ${S.waves.length} · 기지 체력 ${S.lives} · 적 진입로 ${1 + (S.branches || []).length}곳 · 최고 기록 <b>${'★'.repeat(best)}${'☆'.repeat(3 - best)}</b></div>
-        <div class="label">장착 무기 ${GF.LOADOUT.length} <small>도로·랜드마크만 빼고 어디든 배치</small> · 전략 무기 <small>ICBM · 전략핵미사일 (웨이브마다 재보급)</small></div>
-        <div class="loadout">${GF.LOADOUT.map((id) => `<div class="lo"><img src="${icons[id]}"><b>${GF.wname(id)}</b><span>${GF.WEAPONS[id].role}</span></div>`).join('')}</div>
-        <div class="go-row"><button class="go">출격</button></div>
+      <div class="brief home">
+        <div class="home-cta">2030 연합방위전선 · 도시 ${this.stageList().length}곳 · 별 ${this.stageList().reduce((n, X) => n + this.best(X.id), 0)}/${this.stageList().length * 3}</div>
+        <div class="go-row"><button class="go">⚔ 전투지역</button></div>
         <div class="help">조작: 마우스 끌기·방향키 지도 이동 · 휠 확대·축소 · 오른쪽 버튼 끌기 또는 [ ] 키 시점 회전 · R 기본 시점 · 1~9 무기 · Q W E 작전 카드 · Z ICBM · X 전략핵 · 스페이스 일시정지 · N 다음 웨이브</div>
         <div class="disc">이 게임은 가상의 이야기입니다. 실제 국가·단체·사건과 관계없습니다. · v${GF.SETTINGS.version}</div>
       </div>`;
-    t.querySelector('.go').onclick = () => this.app.startGame();
+    t.querySelector('.go').onclick = () => this.openZone();
     this.renderSaves();
-    t.querySelectorAll('.stages .st').forEach((b) => { b.onclick = () => this.app.selectStage(b.dataset.id); });
     const inp = t.querySelector('.pc-name'); inp.value = Profile.data.name || '';
     const saveName = () => { Profile.setName(inp.value); this.toastAny('지휘관 이름 저장: ' + Profile.name); };
     t.querySelector('.pc-save').onclick = saveName;
@@ -105,7 +98,7 @@ export class UI {
   // 처음 화면: 저장된 게임 목록 + 이어하기 버튼
   renderSaves() {
     const t = this.title; if (!t) return;
-    const S = this.app.stage, all = Saves.all();
+    const all = Saves.all();
     const list = this.stageList().filter((X) => all[X.id]);
     const box = t.querySelector('.pc-saves');
     box.innerHTML = `<div class="pc-title sv-t">💾 저장된 게임</div>` + (list.length ? list.map((X) => {
@@ -121,13 +114,116 @@ export class UI {
         Saves.remove(id); this.renderSaves(); this.toastAny('저장된 게임을 지웠어요');
       };
     });
-    // 지금 고른 스테이지에 저장이 있으면 출격 옆에 이어하기
-    const row = t.querySelector('.go-row'), d = all[S.id];
-    row.querySelector('.cont')?.remove();
-    t.querySelector('.go').textContent = d ? '새로 출격' : '출격';
-    if (d) { const c = h('button', 'go cont', `▶ 이어하기<small>웨이브 ${d.wave + 1}부터</small>`, row); c.onclick = () => this.app.loadGame(S.id); }
   }
-  hideTitle() { if (this.title) { this.title.remove(); this.title = null; } }
+  hideTitle() { this.closeZone(); if (this.title) { this.title.remove(); this.title = null; } }
+
+  // ---------- 전투지역: 도시별 진행 상황 + 맵 모양 썸네일 → 전투시작 ----------
+  openZone() {
+    if (this.zone || !this.title) return;
+    this.title.style.display = 'none';
+    const z = this.zone = h('div', 'zone-screen' + (GF.SETTINGS.homeBg ? ' has-bg' : ''), null, this.root);
+    if (GF.SETTINGS.homeBg) z.style.setProperty('--home-bg', `url("${GF.SETTINGS.homeBg}")`);
+    const all = Saves.all(), list = this.stageList();
+    z.innerHTML = `<div class="zn-head"><button class="zn-back">← 홈</button><div><b>전투지역</b><span>지킬 도시를 고르고 전투시작을 누르세요</span></div></div>
+      <div class="zn-grid">${list.map((X) => `<button class="zn-card" data-id="${X.id}"><canvas width="228" height="176"></canvas><div class="zn-n"><small>${X.no}</small><b>${GF.SETTINGS.useCityAlias ? X.alias : X.name}</b><i>${this.stars(this.best(X.id))}</i></div>${this.zoneStatus(X, all[X.id])}</button>`).join('')}</div>
+      <div class="zn-side"></div>`;
+    z.querySelectorAll('.zn-card').forEach((b) => {
+      this.drawMap(b.querySelector('canvas'), GF.STAGES[b.dataset.id]);
+      b.onclick = () => this.zonePick(b.dataset.id);
+    });
+    z.querySelector('.zn-back').onclick = () => this.closeZone();
+    this.zonePick(this.app.stage.id);
+  }
+  closeZone() { if (!this.zone) return; this.zone.remove(); this.zone = null; if (this.title) this.title.style.display = ''; }
+  stars(n) { return '★'.repeat(n) + '☆'.repeat(3 - n); }
+  // 도시 카드 아래 진행 상황: 저장된 전투 / 방어 성공(별) / 미출격
+  zoneStatus(X, d) {
+    const best = this.best(X.id);
+    if (d) { const p = Math.round(100 * d.wave / X.waves.length); return `<div class="zn-st run"><span>교전 중 · 웨이브 ${d.wave + 1}/${X.waves.length}</span><div class="zn-bar"><i style="width:${p}%"></i></div></div>`; }
+    if (best) return `<div class="zn-st win"><span>방어 성공 · 최고 ${this.stars(best)}</span><div class="zn-bar"><i style="width:100%"></i></div></div>`;
+    return `<div class="zn-st new"><span>미출격 · 적 점령 위기</span><div class="zn-bar"><i style="width:0"></i></div></div>`;
+  }
+  zonePick(id) {
+    const z = this.zone; if (!z) return;
+    const X = GF.STAGES[id], d = Saves.get(id);
+    this.zoneSel = id;
+    z.querySelectorAll('.zn-card').forEach((b) => b.classList.toggle('on', b.dataset.id === id));
+    const side = z.querySelector('.zn-side');
+    side.innerHTML = `<canvas class="zn-big" width="600" height="340"></canvas>
+      <div class="zn-no">STAGE ${X.no} · ${X.nameEn}</div>
+      <div class="zn-city">${GF.SETTINGS.useCityAlias ? X.alias : X.name}<em>${X.title}</em></div>
+      <p>${X.briefing}</p>
+      <div class="zn-meta">웨이브 ${X.waves.length} · 기지 체력 ${X.lives} · 적 진입로 ${1 + (X.branches || []).length}곳 · 최고 기록 <b>${this.stars(this.best(id))}</b></div>
+      <div class="zn-legend"><span class="lg-r"></span>본 도로 <span class="lg-b"></span>갈래 길 <span class="lg-g"></span>적 입구 <span class="lg-h"></span>연합 지휘부</div>
+      <div class="zn-go">${d ? `<button class="zn-cont">▶ 이어하기<small>웨이브 ${d.wave + 1}부터</small></button>` : ''}<button class="zn-start">${d ? '새로 전투시작' : '⚔ 전투시작'}</button></div>`;
+    this.drawMap(side.querySelector('.zn-big'), X);
+    side.querySelector('.zn-start').onclick = () => this.zoneStart(false);
+    const c = side.querySelector('.zn-cont'); if (c) c.onclick = () => this.zoneStart(true);
+  }
+  zoneStart(cont) {
+    const id = this.zoneSel || this.app.stage.id;
+    if (cont && Saves.get(id)) { this.app.loadGame(id); return; }
+    this.app.selectStage(id);
+    this.app.startGame();
+  }
+  // 맵 모양 썸네일: 도로(본 도로·갈래 길), 랜드마크, 강, 적 입구, 지휘부를 위에서 본 그림으로
+  drawMap(cv, S) {
+    const c = cv.getContext('2d'), W = cv.width, H = cv.height, B = S.bounds;
+    const k = Math.min((W - 16) / (B.x1 - B.x0), (H - 16) / (B.z1 - B.z0));
+    const ox = (W - (B.x1 - B.x0) * k) / 2, oz = (H - (B.z1 - B.z0) * k) / 2;
+    const X = (x) => ox + (x - B.x0) * k, Z = (z) => oz + (z - B.z0) * k;
+    c.clearRect(0, 0, W, H);
+    c.save();
+    const round = S.id === 'paris';
+    c.beginPath();
+    if (round) c.arc(X(0), Z(0), (B.x1 - B.x0) / 2 * k, 0, Math.PI * 2); else c.rect(X(B.x0), Z(B.z0), (B.x1 - B.x0) * k, (B.z1 - B.z0) * k);
+    c.fillStyle = '#2b3a33'; c.fill(); c.clip();
+    // 바둑판 블록 느낌
+    c.strokeStyle = 'rgba(255,255,255,.05)'; c.lineWidth = 1;
+    for (let x = Math.ceil(B.x0 / 4) * 4; x < B.x1; x += 4) { c.beginPath(); c.moveTo(X(x), Z(B.z0)); c.lineTo(X(x), Z(B.z1)); c.stroke(); }
+    for (let z = Math.ceil(B.z0 / 4) * 4; z < B.z1; z += 4) { c.beginPath(); c.moveTo(X(B.x0), Z(z)); c.lineTo(X(B.x1), Z(z)); c.stroke(); }
+    if (S.river && S.river.z != null) { c.fillStyle = '#2f6f9a'; c.fillRect(X(B.x0), Z(S.river.z - S.river.w / 2), (B.x1 - B.x0) * k, S.river.w * k); }
+    for (const b of S.blockers || []) { c.fillStyle = b.kind === 'landmark' ? '#8c7a5a' : '#556'; c.fillRect(X(b.x - b.w / 2), Z(b.z - b.d / 2), b.w * k, b.d * k); }
+    const line = (pts, col, w) => {
+      if (!pts || pts.length < 2) return;
+      c.beginPath(); c.moveTo(X(pts[0][0]), Z(pts[0][1])); for (const [x, z] of pts.slice(1)) c.lineTo(X(x), Z(z));
+      c.strokeStyle = col; c.lineWidth = Math.max(2.5, 2.2 * k); c.lineJoin = 'round'; c.lineCap = 'round'; c.stroke();
+    };
+    for (const br of S.branches || []) line(br.pts, '#f2a33a', 0);
+    for (const seg of S.route || []) { if (seg.choice) seg.choice.forEach((ch) => line(ch.pts, '#e8dcc0', 0)); else line(seg.pts, '#e8dcc0', 0); }
+    const dot = (p, col, r) => { if (!p) return; c.beginPath(); c.arc(X(p[0]), Z(p[1]), r, 0, Math.PI * 2); c.fillStyle = col; c.fill(); c.lineWidth = 2; c.strokeStyle = '#fff'; c.stroke(); };
+    dot(S.gate, '#ff4d4d', Math.max(4, 1.6 * k));
+    for (const br of S.branches || []) dot(br.gate, '#ff4d4d', Math.max(3.5, 1.3 * k));
+    c.restore();
+    const hq = S.base; if (hq) { const s = Math.max(9, 3 * k); c.fillStyle = '#3aa0ff'; c.strokeStyle = '#fff'; c.lineWidth = 2; c.fillRect(X(hq[0]) - s / 2, Z(hq[1]) - s / 2, s, s); c.strokeRect(X(hq[0]) - s / 2, Z(hq[1]) - s / 2, s, s); }
+  }
+
+  // ---------- 출격 자막: 홈 화면 캐릭터가 아래로 작아지며 3초 동안 지휘관에게 보고 ----------
+  playIntro() {
+    this.intro?.remove(); clearTimeout(this.introT);
+    const S = this.app.stage, city = GF.SETTINGS.useCityAlias ? S.alias : S.name;
+    const last = city.charCodeAt(city.length - 1), batchim = last >= 0xac00 && last <= 0xd7a3 && (last - 0xac00) % 28 !== 0;
+    const text = (GF.SETTINGS.introLine || '{name}님! {city}{ga} 빨갱이새끼들한테 다 넘어갈지경입니다. 방어해주세요!')
+      .replace('{name}', Profile.name).replace('{city}', city).replace('{ga}', batchim ? '이' : '가');
+    const o = this.intro = h('div', 'intro wait', `<div class="in-chars"></div><div class="in-box"><small>긴급 보고 · ${S.nameEn}</small><p></p></div>`, this.root);
+    const ch = o.querySelector('.in-chars');
+    if (GF.SETTINGS.homeBg) ch.style.backgroundImage = `url("${GF.SETTINGS.homeBg}")`; else ch.remove();
+    const p = o.querySelector('p');
+    // 새 도시를 처음 그릴 때 몇 초 멈출 수 있어 화면이 부드럽게 돌기 시작한 뒤에 3초를 셈
+    let prev = performance.now(), smooth = 0;
+    const t0 = prev;
+    const wait = (now) => {
+      smooth = now - prev < 80 ? smooth + 1 : 0; prev = now;
+      if (this.intro !== o) return;
+      if (smooth < 3 && now - t0 < 8000) { requestAnimationFrame(wait); return; }
+      o.classList.remove('wait');
+      let i = 0;
+      const tick = setInterval(() => { p.textContent = text.slice(0, ++i); if (i >= text.length) clearInterval(tick); }, Math.max(18, 1700 / text.length));
+      if (this.app.sound) this.app.sound.play('wave');
+      this.introT = setTimeout(() => { clearInterval(tick); o.classList.add('out'); setTimeout(() => { o.remove(); if (this.intro === o) this.intro = null; }, 350); }, 3000);
+    };
+    requestAnimationFrame(wait);
+  }
   best(id = this.app.stage.id) { try { return JSON.parse(localStorage.getItem('gf_progress') || '{}')[id] || 0; } catch (e) { return 0; } }
   stageList() { return Object.values(GF.STAGES).sort((a, b) => a.no - b.no); }
   resetLabels() { for (const { e } of this.labelEls) e.remove(); this.labelEls = []; }
