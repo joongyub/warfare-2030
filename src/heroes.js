@@ -10,6 +10,12 @@ export const HEROES = {
   limbaegeun: { name: '임배근', short: '임배근', nation: '대한민국', title: '비숑을 품은 무적의 사나이', color: '#ffffff', legend: true,
     shot: 'bark', range: 10.5, dmg: 300, rate: 1.2, salvo: 8, splash: 3.0, hits: ['ground', 'air'],
     role: '비숑 음파 짖기', desc: '근육질 팔에 하얀 비숑을 안고 있음. 비숑을 적 쪽으로 내밀면 왈왈! 짖는 음파가 날아가 목표 주변 적 8명에게 큰 피해를 주고 잠깐 멈춰 세움(공중 포함)', gesture: '비숑을 품에 안고 있다가 두 팔로 번쩍 내밀면 비숑이 왈왈 짖음' },
+  leejunhak: { name: '이준학', short: '이준학', nation: '대한민국', title: '벨트 하나로 전선을 지키는 키다리', color: '#3a6ea5', legend: true,
+    shot: 'belt', range: 9.5, dmg: 300, rate: 1.2, salvo: 8, splash: 3.0, hits: ['ground', 'air'],
+    role: '바지 벨트 채찍', desc: '흰 티셔츠에 청바지를 입은 키 큰 동양 남자. 바지 벨트를 풀어 머리 위로 휘두르면 짝! 찰싹! 두 번 내리쳐 목표 주변 적 8명에게 큰 피해를 주고 잠깐 멈춰 세움(공중 포함). 공격력은 임배근과 같음', gesture: '한 손으로 흘러내리는 바지를 붙잡고, 다른 손으로 벨트를 머리 위로 돌렸다가 내리침' },
+  kimdeokhun: { name: '김덕훈', short: '김덕훈', nation: '대한민국', title: '길리슈트 속에 숨은 특수부대 저격수', color: '#5b6b2e', legend: true,
+    shot: 'snipe', range: 16, dmg: 900, rate: 0.6, salvo: 5, hits: ['ground', 'air'],
+    role: 'Kar98 관통 저격', desc: '풀잎 가닥이 덮인 길리슈트와 두건, 조준경 달린 Kar98 볼트액션 소총. 아주 먼 거리에서 한 발을 쏘면 총알이 일직선으로 날아가 줄 선 적 5명까지 관통(공중 포함)', gesture: '소총을 어깨에 견착해 조준경을 들여다보다 쏘고, 반동 뒤 노리쇠를 당겨 장전' },
   macarthur: { name: '더글러스 맥아더', short: '맥아더', nation: '미국', title: '인천상륙작전의 지휘관', color: '#c9a24a',
     shot: 'bombrun', range: 10, dmg: 120, rate: 0.55, salvo: 5, splash: 1.9, hits: ['ground'],
     role: '폭격기 융단 폭격', desc: '선글라스와 옥수수 파이프. 손끝으로 가리킨 곳에 폭격기 편대가 폭탄 5발을 줄지어 떨어뜨림', gesture: '파이프를 물다가 손을 뻗어 목표를 가리킴' },
@@ -32,7 +38,7 @@ export const HEROES = {
 export const HERO_IDS = Object.keys(HEROES);
 // 뽑기 규칙. lucky = [받는 보급, 확률 %]
 export const GACHA = {
-  heroCost: 600,                // 영웅 모집 1회 (7명 중 무작위 1명, 각 1/7. 이미 있는 영웅이면 강화)
+  heroCost: 600,                // 영웅 모집 1회 (9명 중 무작위 1명, 각 1/9. 이미 있는 영웅이면 강화)
   heroMaxRefund: 250,           // 이미 최대 강화된 영웅이 또 나오면 돌려주는 보급
   luckyCost: 100, luckyPerWave: 3,
   lucky: [[30, 20], [60, 25], [100, 25], [150, 18], [300, 10], [600, 2]]
@@ -99,6 +105,8 @@ function smoke(parent, x, y, z) {
 // 깃발 그림
 const FLAGS = {
   limbaegeun: (g, w, h) => { const gr = g.createLinearGradient(0, 0, w, h); gr.addColorStop(0, '#fff6d8'); gr.addColorStop(0.5, '#ffd36a'); gr.addColorStop(1, '#ffb0e0'); g.fillStyle = gr; g.fillRect(0, 0, w, h); g.fillStyle = '#fff'; const paw = (x, y) => { g.beginPath(); g.ellipse(x, y + 6, 11, 9, 0, 0, 7); g.fill(); for (const [dx, dy] of [[-11, -6], [-4, -12], [4, -12], [11, -6]]) { g.beginPath(); g.arc(x + dx, y + dy, 4.5, 0, 7); g.fill(); } }; g.strokeStyle = '#c99a2e'; g.lineWidth = 3; paw(w / 2, h / 2 + 2); g.strokeRect(2, 2, w - 4, h - 4); },
+  leejunhak: (g, w, h) => { g.fillStyle = '#2f5d8f'; g.fillRect(0, 0, w, h); g.fillStyle = '#8fb6dc'; for (let x = 0; x < w; x += 6) g.fillRect(x, 0, 2, h); g.fillStyle = '#5a3418'; g.fillRect(0, h * 0.42, w, h * 0.18); g.fillStyle = '#e8c14a'; g.fillRect(w * 0.4, h * 0.36, w * 0.2, h * 0.3); g.fillStyle = '#5a3418'; g.fillRect(w * 0.45, h * 0.44, w * 0.1, h * 0.14); },
+  kimdeokhun: (g, w, h) => { g.fillStyle = '#3e4a22'; g.fillRect(0, 0, w, h); for (let i = 0; i < 40; i++) { g.fillStyle = ['#5f6b34', '#2c3618', '#76713f', '#4a5a2a'][i % 4]; g.fillRect((i * 37) % w, (i * 23) % h, 10, 6); } g.strokeStyle = '#f2f2e8'; g.lineWidth = 3; g.beginPath(); g.arc(w / 2, h / 2, h * 0.3, 0, 7); g.moveTo(w / 2 - h * 0.42, h / 2); g.lineTo(w / 2 + h * 0.42, h / 2); g.moveTo(w / 2, h * 0.08); g.lineTo(w / 2, h * 0.92); g.stroke(); },
   macarthur: (g, w, h) => { for (let i = 0; i < 7; i++) { g.fillStyle = i % 2 ? '#f4f4f4' : '#b8262e'; g.fillRect(0, i * h / 7, w, h / 7 + 1); } g.fillStyle = '#2b3a78'; g.fillRect(0, 0, w * 0.45, h * 4 / 7); g.fillStyle = '#fff'; for (let y = 0; y < 3; y++) for (let x = 0; x < 4; x++) g.fillRect(6 + x * 13, 6 + y * 12, 3, 3); },
   yisunsin: (g, w, h) => { g.fillStyle = '#efe6cf'; g.fillRect(0, 0, w, h); g.strokeStyle = '#7a1c1c'; g.lineWidth = 8; g.strokeRect(4, 4, w - 8, h - 8); g.fillStyle = '#111'; g.font = `bold ${h * 0.62}px serif`; g.textAlign = 'center'; g.textBaseline = 'middle'; g.fillText('帥', w / 2, h / 2 + 3); },
   hideyoshi: (g, w, h) => { g.fillStyle = '#7a1a1a'; g.fillRect(0, 0, w, h); g.fillStyle = '#e8b830'; const gourd = (cx, cy, s) => { g.beginPath(); g.arc(cx, cy, s, 0, 7); g.fill(); g.beginPath(); g.arc(cx, cy - s * 1.3, s * 0.65, 0, 7); g.fill(); }; gourd(w / 2, h * 0.62, h * 0.2); },
@@ -192,6 +200,86 @@ export function makeHero(id) {
       jaw.rotation.z = -bark * 0.7; mouthIn.visible = bark > 0.15;
       body.rotation.z = lerp(0, -0.08, push) + breathe; h.head.rotation.z = lerp(0.05, 0.18, push);
       h.torso.scale.y = 1.04 + breathe;
+    };
+  } else if (id === 'leejunhak') {
+    // 키 큰 동양 남자: 흰 티셔츠 + 청바지. 왼손은 흘러내리는 바지를 잡고, 오른손에 푼 가죽 벨트 (마디 8개 사슬이라 채찍처럼 휨)
+    const h = humanoid({ coat: 0xf2f2ee, pants: 0x34557f, boots: 0xeeeeee, wide: 0.25 });
+    body.add(h.fig);
+    h.fig.scale.set(1, 1.18, 1);   // 키다리
+    const skin = M(0xe8be98);
+    h.fig.traverse((o) => { if (o.isMesh && o.material === M(0xe3b48f)) o.material = skin; });
+    for (const j of [h.R, h.L]) j.el.traverse((o) => { if (o.isMesh && o.material === h.coat) o.material = skin; });   // 반팔: 아래팔은 맨살
+    mesh(h.fig, new THREE.BoxGeometry(0.152, 0.035, 0.255), M(0xa9c8e8), 0, 0.33, 0);   // 바지가 내려가 살짝 보이는 하늘색 속옷 밴드
+    mesh(h.fig, new THREE.BoxGeometry(0.16, 0.07, 0.26), M(0x34557f), 0, 0.29, 0);    // 청바지 허리
+    // 검은 머리 (앞머리 내림) + 가는 눈 + 입
+    mesh(h.head, new THREE.SphereGeometry(0.072, 14, 8, 0, Math.PI * 2, 0, Math.PI / 2.1), M(0x111111, { roughness: 0.8 }), -0.004, 0.01, 0);
+    mesh(h.head, new THREE.BoxGeometry(0.02, 0.03, 0.11), M(0x111111, { roughness: 0.8 }), 0.058, 0.04, 0);
+    for (const s of [-1, 1]) mesh(h.head, new THREE.BoxGeometry(0.006, 0.006, 0.024), M(0x111111), 0.065, 0.024, s * 0.026);
+    mesh(h.head, new THREE.BoxGeometry(0.006, 0.006, 0.03), M(0x8a4a3a), 0.067, -0.032, 0);
+    // 벨트: 오른손에서 늘어진 가죽 마디 + 끝에 금색 버클
+    const leather = M(0x5a3418, { roughness: 0.5 }), segs = [];
+    let par = h.R.hand;
+    for (let i = 0; i < 8; i++) {
+      const sg = new THREE.Group(); sg.position.y = i ? -0.05 : -0.02; par.add(sg); segs.push(sg);
+      mesh(sg, new THREE.BoxGeometry(0.008, 0.052, 0.028), leather, 0, -0.025, 0);
+      par = sg;
+    }
+    const buckle = mesh(par, new THREE.BoxGeometry(0.012, 0.04, 0.045), M(0xe8c14a, { metalness: 0.85, roughness: 0.25 }), 0, -0.065, 0);
+    void buckle;
+    pose = (t, a) => {
+      // a: 1 → 0. 1~0.72 벨트를 머리 위로 / 0.72~0.3 앞으로 두 번 내리침 / 이후 내림
+      const up = a > 0.72 ? ease((1 - a) / 0.28) : a > 0.3 ? 1 : ease(a / 0.3);
+      const lash = a <= 0.72 && a > 0.3 ? Math.sin((0.72 - a) / 0.42 * Math.PI * 2) : 0;
+      const sway = Math.sin(t * 1.8) * 0.06;
+      set(h.R, lerp(0.3, 2.6, up) - Math.max(0, lash) * 1.6 + Math.max(0, -lash) * 0.3, lerp(0.15, -0.2, up), lerp(0.25, 0.1, up));
+      set(h.L, 0.25, 0.25, 1.55);   // 왼손은 허리춤에서 바지를 꽉
+      segs.forEach((sg, i) => { sg.rotation.z = up < 0.05 ? sway * (i + 1) * 0.3 : (lash * 0.55 - up * 0.25) * (1 + i * 0.12) + Math.sin(t * 9 - i * 0.7) * 0.12 * up; });
+      body.rotation.z = lerp(0, -0.06, up) - Math.max(0, lash) * 0.08; h.head.rotation.z = lerp(0.03, 0.15, up);
+    };
+  } else if (id === 'kimdeokhun') {
+    // 특수부대 저격수: 길리슈트(풀잎 가닥 덮개) + 두건 + Kar98 볼트액션 소총(나무 개머리·조준경). 소총은 +x 를 겨눔
+    const h = humanoid({ coat: 0x4a5a2a, pants: 0x3e4a22, boots: 0x2a2418, gloves: 0x2c2c22, wide: 0.27 });
+    body.add(h.fig);
+    h.fig.traverse((o) => { if (o.isMesh && o.material === M(0xe3b48f)) o.material = M(0x8a6a4a); });   // 위장 크림 바른 얼굴
+    const greens = [0x4a5a2a, 0x5f6b34, 0x3b4a22, 0x76713f, 0x2f3a1a].map((c) => M(c, { roughness: 1 }));
+    let seed = 7; const rnd = () => ((seed = (seed * 16807) % 2147483647) / 2147483647);
+    const tuft = (par, n, sx, sy, sz, oy = 0) => {
+      for (let i = 0; i < n; i++) {
+        const u = rnd() * Math.PI * 2, v = rnd() * 2 - 1;
+        const f = mesh(par, new THREE.BoxGeometry(0.006, 0.05 + rnd() * 0.05, 0.022), greens[i % greens.length], Math.cos(u) * sx, oy + v * sy, Math.sin(u) * sz);
+        f.rotation.set(rnd() - 0.5, u, (rnd() - 0.5) * 1.2);
+      }
+    };
+    tuft(h.torso, 46, 0.085, 0.13, 0.14);
+    for (const j of [h.R, h.L]) { tuft(j.sh, 8, 0.04, 0.08, 0.04, -0.08); tuft(j.el, 6, 0.035, 0.07, 0.035, -0.07); }
+    for (const s of [-1, 1]) { const leg = new THREE.Group(); leg.position.set(0, 0.17, s * 0.055); h.fig.add(leg); tuft(leg, 10, 0.045, 0.12, 0.045); }
+    // 두건 (얼굴만 보이게) + 풀잎
+    mesh(h.head, new THREE.SphereGeometry(0.082, 14, 10, Math.PI * 0.25, Math.PI * 1.5), M(0x3e4a22, { roughness: 1 }), -0.008, 0.008, 0).rotation.y = Math.PI;
+    tuft(h.head, 22, 0.075, 0.06, 0.08, 0.03);
+    for (const s of [-1, 1]) mesh(h.head, new THREE.BoxGeometry(0.004, 0.012, 0.03), M(0x2a2a1a), 0.066, -0.01 + s * 0.0, s * 0.026).rotation.x = s * 0.3;   // 위장 크림 줄
+    // Kar98: 나무 개머리·총몸 + 긴 총열 + 조준경 + 노리쇠 손잡이 (몸에 붙여 어깨 견착)
+    const rifle = new THREE.Group(); rifle.position.set(0.05, 0.56, 0.07); body.add(rifle);
+    const wood = M(0x7a4a24, { roughness: 0.55 }), steel = M(0x22252a, { metalness: 0.7, roughness: 0.35 });
+    mesh(rifle, new THREE.BoxGeometry(0.2, 0.05, 0.03), wood, -0.02, -0.02, 0);                   // 개머리
+    mesh(rifle, new THREE.BoxGeometry(0.06, 0.07, 0.03), wood, -0.1, -0.035, 0).rotation.z = 0.2;
+    mesh(rifle, new THREE.BoxGeometry(0.34, 0.032, 0.026), wood, 0.24, -0.006, 0);                // 총몸·덮개
+    mesh(rifle, new THREE.CylinderGeometry(0.008, 0.009, 0.24, 8), steel, 0.48, 0.006, 0).rotation.z = Math.PI / 2;   // 총열
+    mesh(rifle, new THREE.CylinderGeometry(0.013, 0.013, 0.11, 10), steel, 0.13, 0.04, 0).rotation.z = Math.PI / 2;   // 조준경
+    for (const x of [0.07, 0.19]) mesh(rifle, new THREE.CylinderGeometry(0.017, 0.017, 0.02, 10), steel, x, 0.04, 0).rotation.z = Math.PI / 2;
+    const bolt = new THREE.Group(); bolt.position.set(0.09, 0.015, 0.016); rifle.add(bolt);
+    mesh(bolt, new THREE.CylinderGeometry(0.004, 0.004, 0.035, 6), steel, 0, 0, 0.016).rotation.x = Math.PI / 2;
+    mesh(bolt, new THREE.SphereGeometry(0.008, 8, 6), steel, 0, 0, 0.035);
+    pose = (t, a) => {
+      // a: 1 → 0. 쏜 순간 반동(총이 뒤·위로) → 0.65~0.35 노리쇠 뒤로 당겼다 밀기 → 다시 조준
+      const kick = a > 0.85 ? (a - 0.85) / 0.15 : 0;
+      const cyc = a <= 0.65 && a > 0.35 ? Math.sin((0.65 - a) / 0.3 * Math.PI) : 0;
+      const breathe = Math.sin(t * 1.3) * 0.004;
+      rifle.position.set(0.05 - kick * 0.05, 0.56 + breathe, 0.07); rifle.rotation.z = kick * 0.25;
+      bolt.rotation.x = -cyc * 1.2; bolt.position.x = 0.09 - cyc * 0.03;
+      set(h.R, 1.25 + kick * 0.2, -0.35, 1.1);            // 오른손: 손잡이·방아쇠
+      set(h.L, 1.5 + kick * 0.25, 0.3 - cyc * 0.4, 0.15 + cyc * 0.9);   // 왼손: 앞 덮개 받침 → 장전할 때 노리쇠로
+      h.head.rotation.z = -0.12 + kick * 0.1; h.head.position.x = 0.02;
+      body.rotation.z = -0.05 + kick * 0.04;
     };
   } else if (id === 'macarthur') {
     const h = humanoid({ coat: 0xb59a6a, pants: 0xa98f62, belt: 0x5a3c22, wide: 0.24 });
@@ -372,7 +460,7 @@ export function makeHero(id) {
   }
 
   // 공격 순간 몸짓이 크게 보이도록 act 1 → 0 으로 줄어듦 (game.js 가 fire 때 act = 1)
-  const muzzle = new THREE.Object3D(); muzzle.position.set(id === 'limbaegeun' ? 0.45 : 0.3, id === 'limbaegeun' ? 0.75 : 0.9, 0); yaw.add(muzzle);
+  const muzzle = new THREE.Object3D(); muzzle.position.set(...({ limbaegeun: [0.45, 0.75], leejunhak: [0.35, 1.1], kimdeokhun: [0.66, 0.68] }[id] || [0.3, 0.9]), 0); yaw.add(muzzle);
   const animate = (dt, t) => {
     P.act = Math.max(0, P.act - dt * 0.9);
     pose(t + P.idle, P.act);

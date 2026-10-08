@@ -150,6 +150,7 @@ class App {
     this.ui.showTitle(this.icons);
   }
   applySettings() {
+    GF.savePrefs();
     this.sound.apply();
     const q = GF.SETTINGS.graphics === 'auto' ? this.look.q : GF.SETTINGS.graphics;
     if (q && q !== this.look.q) { this.look.setQuality(q); this.resize(); this.city.shadowDirty = true; }
@@ -196,7 +197,12 @@ class App {
   fitView() {
     if (!this.W) return;
     const b = this.stage.bounds, f0 = this.fieldRect(), cx = (b.x0 + b.x1) / 2, cz = (b.z0 + b.z1) / 2;
-    const f = { top: f0.top + (f0.bottom - f0.top) * 0.1, bottom: f0.bottom };   // 위쪽 10%는 구역 너머 도시·한강이 보이게 비움
+    // 여백 줄임 (2026-10-08 사용자 요청): 위쪽 빈 띠 10%→5%, 아래 카드 줄 쪽으로 4% 더 씀
+    const f = { top: f0.top + (f0.bottom - f0.top) * 0.05, bottom: f0.bottom + (f0.bottom - f0.top) * 0.04 };
+    // 적 입구·지휘부·도로는 반드시 화면 안에 (가로 맞춤 기준)
+    const keyPts = [];
+    const grab = (v) => { if (Array.isArray(v)) { if (v.length === 2 && typeof v[0] === 'number') keyPts.push(v); else v.forEach(grab); } else if (v && typeof v === 'object') Object.values(v).forEach(grab); };
+    grab([this.stage.gate, this.stage.base, this.stage.route, this.stage.branches || []]);
     const az = this.AZ, el = this.EL;
     const fwd = new THREE.Vector3(-Math.sin(az), 0, -Math.cos(az));            // 화면 위쪽 = 땅 위 앞 방향
     const right = new THREE.Vector3(Math.cos(az), 0, -Math.sin(az));
@@ -209,7 +215,8 @@ class App {
       const top = Math.min(...ps.map((p) => p.y)), bot = Math.max(...ps.map((p) => p.y));
       const xl = Math.min(...ps.map((p) => p.x)), xr = Math.max(...ps.map((p) => p.x)), bw = xr - xl;
       const span = bot - top, want = f.bottom - f.top;
-      d *= Math.max(span / want, bw / (this.W * 1.12));   // 가까운 쪽 모서리는 화면 밖으로 살짝 나가도 됨 (시안처럼 꽉 차게)
+      const kp = keyPts.map(([x, z]) => this.toPx(x, 0, z)), kw = 2 * Math.max(...kp.map((p) => Math.abs(p.x - (xl + xr) / 2))) + 160;
+      d *= Math.max(span / want, bw / (this.W * 1.3), kw / (this.W * 0.96));   // 가까운 쪽 빈 모서리는 화면 밖으로 나가도 됨, 도로·입구·지휘부는 화면 안
       const k = ((top + bot) / 2 - (f.top + f.bottom) / 2) * (b.z1 - b.z0) / span;
       t.addScaledVector(fwd, -k);
       t.addScaledVector(right, ((xl + xr) / 2 - this.W / 2) * (b.x1 - b.x0) / bw * 0.5);   // 좌우 가운데 맞춤

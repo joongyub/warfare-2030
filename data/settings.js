@@ -2,7 +2,7 @@
 window.GF = window.GF || {};
 
 GF.SETTINGS = {
-  version: '0.28.0 (베타 · 10개 도시)',
+  version: '0.29.0 (베타 · 10개 도시)',
   // true: 실제 무기 이름 (K9 썬더, 재블린 …) / false: 살짝 바꾼 이름 (K9-X 썬더, 재블런스 …)
   // 출시 직전 상표 검토 후 결정 (문서 10번 2장 참고)
   useRealWeaponNames: true,
@@ -25,7 +25,8 @@ GF.SETTINGS = {
   music: false,             // 배경 음악 없음 (2026-10-07 사용자 요청으로 뺌, 효과음만)
   musicVolume: 0.35,        // 배경 음악 크기 (0~1)
   shadows: true,            // 그림자 (느린 컴퓨터는 false)
-  graphics: 'auto',         // 그래픽 품질: 'auto'(PC 높음·휴대폰 보통) / 'high' / 'medium' / 'low'(느린 기기)
+  graphics: 'ultra',        // 그래픽 품질 기본 = 최고 (2026-10-08 사용자 요청). 'auto'(느리면 자동으로 낮춤) / 'ultra' / 'high' / 'medium' / 'low'. 사용자가 바꾸면 gf_prefs 에 기억
+  difficulty: 'easy',       // 난이도 기본값 (전투지역 화면에서 고름, gf_prefs 에 기억)
   comboWindow: 2.5,         // 이 시간(초) 안에 연속으로 처치하면 연쇄 격파 보너스
   homeBg: 'img/home_bg.jpg',
   // 전투 시작 자막 (3초). {name} 지휘관 이름, {city} 도시 이름, {ga} 받침에 맞춰 이/가
@@ -41,3 +42,14 @@ GF.SETTINGS = {
     appId: '1:257635768085:web:f33d48119ebc338947bb1c'
   }
 };
+
+// 난이도: hp = 적 체력 배수, cnt = 웨이브 적 수 배수(보스 제외). 쉬움 = v0.28까지의 적 그대로 (2026-10-08 사용자 지정)
+GF.DIFF = {
+  easy:   { name: '쉬움',   hp: 1,   cnt: 1 },
+  normal: { name: '보통',   hp: 1.5, cnt: 1.5 },
+  hard:   { name: '어려움', hp: 2,   cnt: 2 }
+};
+// 사용자가 바꾼 설정(그래픽·난이도·효과음 등)은 이 기기에 기억
+GF.PREF_KEYS = ['graphics', 'difficulty', 'sound', 'shadows', 'showLandmarkLabels', 'useRealWeaponNames'];
+try { Object.assign(GF.SETTINGS, JSON.parse(localStorage.getItem('gf_prefs') || '{}')); } catch (e) { /* 저장 불가 환경 */ }
+GF.savePrefs = () => { try { const o = {}; GF.PREF_KEYS.forEach((k) => { o[k] = GF.SETTINGS[k]; }); localStorage.setItem('gf_prefs', JSON.stringify(o)); } catch (e) { /* 저장 불가 환경 */ } };

@@ -200,6 +200,11 @@
   .zn-legend span { display: inline-block; width: 18px; height: 6px; border-radius: 3px; margin-left: 8px; } .zn-legend span:first-child { margin-left: 0; }
   .lg-r { background: #e8dcc0; } .lg-b { background: #f2a33a; } .zn-legend .lg-g { width: 10px; height: 10px; border-radius: 50%; background: #ff4d4d; } .zn-legend .lg-h { width: 10px; height: 10px; border-radius: 2px; background: #3aa0ff; }
   .zn-go { display: flex; gap: 12px; margin-top: 18px; }
+  .zn-diff { display: flex; gap: 8px; align-items: center; margin-top: 14px; } .zn-diff > span { font-size: 16px; color: #c9d6de; margin-right: 4px; }
+  .zn-diff button { flex: 1; display: flex; flex-direction: column; align-items: center; padding: 8px 4px; border-radius: 12px; border: 2px solid rgba(255,255,255,.25); background: rgba(10,20,30,.55); color: #e8f0f4; font-size: 20px; font-weight: 800; cursor: pointer; }
+  .zn-diff button small { font-size: 12px; font-weight: 500; opacity: .75; }
+  .zn-diff button[data-d="easy"].on { border-color: #7FE0A8; background: rgba(60,160,100,.45); } .zn-diff button[data-d="normal"].on { border-color: #F2C14E; background: rgba(190,140,30,.45); } .zn-diff button[data-d="hard"].on { border-color: #FF6A6E; background: rgba(190,40,50,.5); }
+  .pc-gq { display: flex; align-items: center; justify-content: space-between; gap: 8px; margin-top: 6px; font-size: 14px; color: #c9d6de; } .pc-gq select { flex: 1; max-width: 62%; padding: 4px; border-radius: 8px; background: #102028; color: #fff; border: 1px solid rgba(255,255,255,.25); }
   .zn-go button { flex: 1; height: 84px; border: 0; border-radius: 16px; font-size: 34px; font-weight: 800; cursor: pointer; }
   .zn-start { color: #062a2e; background: linear-gradient(#6af0ea, #2cb9bd); box-shadow: 0 0 0 4px rgba(120,250,245,.35), 0 10px 30px rgba(0,0,0,.35); }
   .zn-cont { display: flex; flex-direction: column; align-items: center; justify-content: center; color: #3a2600; background: linear-gradient(#ffd96a, #f2a33a); font-size: 28px !important; }
@@ -379,6 +384,7 @@
   .mobile .zn-side { right: 20px; top: 18px; width: 384px; padding: 12px 14px 14px; border-radius: 14px; } .mobile .zn-big { width: 342px; height: 180px; }
   .mobile .zn-no { margin-top: 6px; font-size: 12px; } .mobile .zn-city { font-size: 32px; } .mobile .zn-city em { font-size: 16px; }
   .mobile .zn-side p { font-size: 12px; margin: 3px 0 5px; } .mobile .zn-meta { font-size: 12px; } .mobile .zn-legend { font-size: 11px; margin-top: 5px; }
+  .mobile .zn-diff { margin-top: 6px; gap: 5px; } .mobile .zn-diff > span { font-size: 11px; } .mobile .zn-diff button { font-size: 14px; padding: 4px 2px; border-radius: 9px; } .mobile .zn-diff button small { font-size: 9px; }
   .mobile .zn-go { margin-top: 10px; gap: 8px; } .mobile .zn-go button { height: 58px; font-size: 24px; border-radius: 12px; } .mobile .zn-cont { font-size: 19px !important; } .mobile .zn-cont small { font-size: 11px; } .mobile .zn-go .zn-cont + .zn-start { font-size: 18px; }
   .mobile .in-chars { left: 20px; width: 340px; height: 290px; background-size: 917px 516px; background-position: -307px -22px; }
   .mobile .in-box { left: 350px; right: 30px; bottom: 30px; padding: 14px 18px; } .mobile .in-box small { font-size: 12px; } .mobile .in-box p { font-size: 22px; min-height: 62px; }

@@ -7,6 +7,16 @@ window.GF = window.GF || {};
 GF.STAGES = GF.STAGES || {};
 
 (function () {
+  // 웨이브 늘리기: 20웨이브 짜임새를 N웨이브로 늘리고 뒤로 갈수록 적 수를 늘림 (적 체력 곡선은 game.js 가 N에 맞춰 늘림)
+  const stretch = (w, N) => {
+    const out = [];
+    for (let i = 0; i < N - 1; i++) {
+      const src = w[Math.floor(i * (w.length - 1) / (N - 1))], k = 1 + 0.35 * i / (N - 2);
+      out.push(src.replace(/(\d+)/g, (n) => String(Math.round(+n * k))));
+    }
+    out.push(w[w.length - 1].replace(/(\b(?!boss)[a-z]+ )(\d+)/g, (m, a, n) => a + Math.round(+n * 1.35)));
+    return out;
+  };
   // 환로 반폭 [x, z]: 4환(바깥) · 3환 · 2환(안쪽). 줄 사이 8
   const R4 = [37, 23], R3 = [29, 15], R2 = [21, 7];
   // 본 도로: 북쪽 입구 → 4환로 북변 동쪽으로 → 시계 방향(동→남→서)으로 거의 한 바퀴 → 서변 z=-9 틈으로 3환로
@@ -50,12 +60,12 @@ GF.STAGES = GF.STAGES || {};
       { id: 'bjnest', label: '냐오차오', x: -56, z: -14, y: 5 },
       { id: 'river', label: '퉁후이강', x: -24, z: -37.6, y: 0.3 }
     ],
-    waves: [
+    waves: stretch([
       'apc 22', 'inf 49', 'apc 24 drone 19', 'apc 27 inf 38', 'drone 41 apc 22',
       'tank 10 apc 33', 'inf 76 drone 35', 'tank 15 apc 38', 'drone 65 apc 35', 'heli 8 tank 12 apc 38',
       'apc 68 inf 65', 'drone 82 tank 16', 'tank 24 apc 52', 'heli 14 drone 65', 'apc 82 tank 16',
       'inf 131 heli 11', 'drone 114 apc 65', 'tank 33 heli 15', 'apc 109 drone 95 tank 22', 'boss 1 tank 27 apc 82 drone 68'
-    ],
+    ], 30),   // 사용자 요청: 베이징 30웨이브
     autoNextSec: 10
   };
 })();

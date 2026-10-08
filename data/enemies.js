@@ -8,5 +8,7 @@ GF.ENEMIES = {
   tank:  { name: '주력 전차',       hp: 420,  speed: 1.6, armor: 0.4, reward: 18,  leak: 2,  gap: 1.0 },
   drone: { name: '자폭 드론',       hp: 34,   speed: 3.0, armor: 0,   reward: 4,   leak: 1,  gap: 0.28, air: true },
   heli:  { name: '공격 헬기',       hp: 320,  speed: 2.0, armor: 0.2, reward: 20,  leak: 2,  gap: 1.8,  air: true },
-  boss:  { name: '중전차 "티탄"',   hp: 4200, speed: 1.0, armor: 0.5, reward: 300, leak: 12, gap: 2,    boss: true }
+  boss:  { name: '중전차 "티탄"',   hp: 4200, speed: 1.0, armor: 0.5, reward: 300, leak: 12, gap: 2,    boss: true },
+  // 최종 보스: 모든 도시 마지막 웨이브 끝에 나옴 (game.js waveTokens)
+  kim:   { name: '최종 보스 김정은',   hp: 7000, speed: 0.9, armor: 0.5, reward: 800, leak: 20, gap: 2,    boss: true, final: true }
 };

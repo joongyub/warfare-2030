@@ -52,6 +52,7 @@ export class Game {
     this.fxGroup.clear(); this.vfx.clear();
     this.city.resetRoutes(); this.city.resetTrees();
     this.money = S.startMoney; this.lives = S.lives;
+    this.diffId = GF.DIFF[SET.difficulty] ? SET.difficulty : 'easy'; this.diff = GF.DIFF[this.diffId];
     this.cp = SET.cpStart; this.cpT = 0;
     this.speed = 1;
     this.waveNo = 0; this.kills = 0;
@@ -67,7 +68,7 @@ export class Game {
     this.computeSynergy();
     this.updateRemain();
     this.state = 'ready';
-    this.ui().toast('도로 밖 어디든 무기를 놓고 "작전 개시"를 누르세요', '#8FF3FF', 4200);
+    this.ui().toast(`난이도 ${this.diff.name} · 도로 밖 어디든 무기를 놓고 "작전 개시"를 누르세요`, '#8FF3FF', 4200);
   }
 
   computeSynergy() {
@@ -109,7 +110,7 @@ export class Game {
 
   launchWave(early) {
     this.waveNo++;
-    const tok = this.S.waves[this.waveNo - 1].trim().split(/\s+/);
+    const tok = this.waveTokens(this.waveNo);
     let t = this.clock + 0.2;
     // 진입로가 여러 개면 적을 번갈아 나눠 보냄 (무리마다 시작 입구를 바꿔서)
     const lanes = this.openLanes(this.waveNo);
@@ -128,8 +129,9 @@ export class Game {
     let msg = `웨이브 ${this.waveNo} · 적 ${total}`;
     if (bonus) msg += ` · 보급 +${bonus}`;
     if (early) msg += ` · 조기 투입 +${early}`;
-    this.ui().toast(msg, this.S.waves[this.waveNo - 1].includes('boss') ? '#FF8A8E' : '#ffffff');
+    this.ui().toast(msg, tok.some((x) => GF.ENEMIES[x] && GF.ENEMIES[x].boss) ? '#FF8A8E' : '#ffffff');
     this.snd('wave');
+    if (tok.includes('kim')) this.timers.push({ t: 2.2, fn: () => { this.ui().toast('최종 웨이브! 최종 보스 김정은 출현', '#FF4A3D', 4200); this.snd('siren'); } });
     // 전략 무기 재보급
     for (const [id, C] of Object.entries(GF.STRATEGIC)) {
       const st = this.strat[id];
@@ -140,6 +142,14 @@ export class Game {
     }
     this.luckyLeft = GACHA.luckyPerWave;   // 보급 뽑기 횟수는 웨이브마다 다시 참
     this.nextT = 0;
+  }
+
+  // 웨이브 적 목록 [종류, 수, ...]: 난이도만큼 수를 늘리고(보스 제외), 마지막 웨이브 끝에 최종 보스 김정은
+  waveTokens(n) {
+    const tok = this.S.waves[n - 1].trim().split(/\s+/), m = this.diff ? this.diff.cnt : 1;
+    for (let i = 1; i < tok.length; i += 2) if (!GF.ENEMIES[tok[i - 1]].boss) tok[i] = String(Math.round(parseInt(tok[i], 10) * m));
+    if (n === this.S.waves.length) tok.push('kim', '1');
+    return tok;
   }
 
   finish(won) {
@@ -172,7 +182,7 @@ export class Game {
     }
     if (mid && this.waveNo > 1) money -= 40 + this.waveNo * 8;
     return {
-      v: 1, stage: this.S.id, time: Date.now(),
+      v: 1, stage: this.S.id, time: Date.now(), diff: this.diffId,
       wave, money: Math.max(0, Math.floor(money)), lives: this.lives, kills: this.kills, cp: this.cp, bestCombo: this.bestCombo,
       towers: this.towers.map((t) => ({ type: t.type, x: +t.pos.x.toFixed(2), z: +t.pos.z.toFixed(2), level: t.level, invested: t.invested, dmg: Math.round(t.dmgTotal), kills: t.kills })),
       detours: this.city.steps.map((st, i) => (st.open ? i : -1)).filter((i) => i >= 0),
@@ -182,6 +192,7 @@ export class Game {
   }
   restore(d) {
     this.start();
+    if (GF.DIFF[d.diff]) { this.diffId = d.diff; this.diff = GF.DIFF[d.diff]; }   // 저장할 때 난이도 그대로 (예전 저장은 지금 설정)
     this.quiet = true;
     for (const i of d.detours || []) this.city.openDetour(i);
     this.updateRemain();
@@ -508,9 +519,11 @@ export class Game {
   // ---------- 적 ----------
   spawnEnemy(type, wave, lane = null) {
     const E = GF.ENEMIES[type];
-    const hp = E.hp * (1 + this.S.hpScale * (wave - 1) + (this.S.hpQuad || 0) * (wave - 1) ** 2) * (E.boss ? this.S.bossHp ?? 1 : 1);   // bossHp: 길이 짧은 스테이지는 보스 체력을 줄임
+    // 웨이브가 20보다 긴 도시(베이징 30·모스크바 40)는 체력 곡선을 늘려서 마지막 웨이브 체력이 예전 20웨이브 때와 같게
+    const N = this.S.waves.length, w = N > 20 ? 1 + (wave - 1) * 19 / (N - 1) : wave;
+    const hp = E.hp * (1 + this.S.hpScale * (w - 1) + (this.S.hpQuad || 0) * (w - 1) ** 2) * (E.boss ? this.S.bossHp ?? 1 : 1) * (this.diff ? this.diff.hp : 1);   // bossHp: 길이 짧은 스테이지는 보스 체력을 줄임
     const model = getEnemy(type);
-    const sc = E.boss ? 2.4 : type === "inf" ? 1.6 : 1.85;
+    const sc = E.final ? 2.6 : E.boss ? 2.4 : type === "inf" ? 1.6 : 1.85;
     model.root.scale.setScalar(sc);
     const e = { type, E, hp, maxHp: hp, d: 0, air: !!E.air, off: E.boss ? 0 : (Math.random() - 0.5) * 0.9, wob: Math.random() * 10, stun: 0, slowMul: 1, dead: false, model, pos: V(), sc, si: 0, k: 0, rem: 1e9 };
     if (e.air) {
@@ -847,6 +860,41 @@ export class Game {
           } });
         } });
       }
+    } else if (W.shot === 'belt') {
+      // 바지 벨트를 풀어 휘두름: 짝! 짝! 두 번. 벨트 끝 충격파가 목표 주변 적들에게 피해 + 잠깐 멈춤 (임배근과 같은 공격력)
+      for (let b = 0; b < 2; b++) {
+        this.timers.push({ t: 0.42 + b * 0.24, fn: () => {
+          this.snd('whip');
+          const from = m.muzzle.getWorldPosition(V()), c = e.dead ? g0 : this.targetPoint(e), r2 = W.splash * W.splash;
+          this.tracer(from, c, 0xc89a5a);
+          for (let k = 1; k <= 3; k++) this.spawnSpark(from.clone().lerp(c, k / 3), 0xffe2b0, 0.14, 0.12);
+          const list = this.enemies.filter((x) => !x.dead && (x.pos.x - c.x) ** 2 + (x.pos.z - c.z) ** 2 <= r2).sort((a2, b2) => a2.rem - b2.rem).slice(0, W.salvo);
+          for (const x of list) { this.hurt(x, st.dmg / 2, tw, { pierce: true }); if (!x.E.boss) x.stun = Math.max(x.stun, 0.35); this.vfx.impact(this.targetPoint(x), x.air); }
+          this.spawnRing(c, W.splash, 0xffd6a0, 0.4); this.spawnRing(c, W.splash * 0.5, 0xffffff, 0.3);
+          this.ui().floatText(c.clone().setY(1.6), b ? '찰싹!' : '짝!', '#FFE2B0');
+        } });
+      }
+    } else if (W.shot === 'snipe') {
+      // Kar98 저격: 한 발이 영웅 → 목표 방향 일직선으로 사거리 끝까지 날아가며 줄 선 적들을 모두 관통
+      this.timers.push({ t: 0.28, fn: () => {
+        this.snd('snipe');
+        const from = m.muzzle.getWorldPosition(V()), c = e.dead ? tp : this.targetPoint(e);
+        const dir = V(c.x - tw.pos.x, 0, c.z - tw.pos.z); if (dir.lengthSq() < 1e-6) dir.set(1, 0, 0); dir.normalize();
+        const reach = st.range + 1.5, end = tw.pos.clone().addScaledVector(dir, reach).setY(c.y);
+        const hit = [];
+        for (const x of this.enemies) {
+          if (x.dead || !W.hits.includes(x.air ? 'air' : 'ground')) continue;
+          const dx = x.pos.x - tw.pos.x, dz = x.pos.z - tw.pos.z, along = dx * dir.x + dz * dir.z;
+          if (along < 0 || along > reach) continue;
+          if (Math.abs(dx * dir.z - dz * dir.x) <= 0.75 + (x.E.boss ? 0.6 : 0)) hit.push([along, x]);
+        }
+        hit.sort((p, q) => p[0] - q[0]);
+        if (!hit.some(([, x]) => x === e) && !e.dead) hit.unshift([0, e]);
+        hit.slice(0, W.salvo).forEach(([, x], i) => { this.hurt(x, st.dmg * (1 - i * 0.08), tw, { pierce: true }); this.vfx.impact(this.targetPoint(x), x.air); });
+        this.tracer(from, end, 0xfff6c8); this.tracer(from.clone().setY(from.y + 0.02), end, 0xffffff);
+        this.vfx.muzzle(from, dir.clone(), true); this.spawnPuff(from, 0xcfd2c4, 2, 0.16);
+        if (hit.length >= 3) this.ui().floatText(c.clone().setY(1.6), `${Math.min(hit.length, W.salvo)}명 관통!`, '#FFF6C8');
+      } });
     } else if (W.shot === 'finest') {
       // V자 손짓 → 거대한 중포탄 한 발
       this.timers.push({ t: 0.45, fn: () => {
@@ -937,7 +985,7 @@ export class Game {
     if (!e.air && e.type !== 'inf') this.wreck(e);
     if (e.air) this.fallDebris(e);
     if (reward >= 10) this.ui().floatText(e.pos.clone().setY(1), '+' + reward, '#F2C14E');
-    if (e.E.boss) { this.app.shake(0.5); this.ui().toast('보스 "티탄" 격파!', '#7FE0A8'); }
+    if (e.E.boss) { this.app.shake(e.E.final ? 0.9 : 0.5); this.ui().toast(e.E.final ? '최종 보스 김정은 격파!' : '보스 "티탄" 격파!', '#7FE0A8', e.E.final ? 4200 : undefined); }
     // 연쇄 격파
     this.combo++; this.comboT = GF.SETTINGS.comboWindow;
     if (this.combo >= 10 && this.combo % 10 === 0) { this.ui().combo(this.combo); this.snd('combo'); }
