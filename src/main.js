@@ -2,6 +2,7 @@
 // 카메라: 시안처럼 비스듬히 내려다보는 3D 원근 시점. 각도는 하나로 고정, 전투 구역이 화면을 꽉 채우도록 맞춤.
 // 확대·축소는 같은 각도 그대로 카메라만 앞뒤로 움직임(커서 아래 지점이 그대로 유지됨)
 import { Saves } from './save.js';
+import { Cloud } from './cloud.js';
 import * as THREE from 'three';
 import { City } from './city.js';
 import { Game } from './game.js';
@@ -62,6 +63,9 @@ class App {
 
     this.icons = this.makeIcons();
     this.ui.showTitle(this.icons);
+    // 구글 로그인 저장: 상태가 바뀌면 처음 화면의 로그인 칸을 다시 그림 (서버 기록을 받아 오면 화면 전체 새로)
+    Cloud.onChange(() => { if (this.game.state === 'title') this.ui.renderCloud(); });
+    Cloud.init();
     this.setupInput();
     window.addEventListener('resize', () => this.resize());
     this.resize();

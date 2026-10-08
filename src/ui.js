@@ -1,6 +1,7 @@
 // 화면 위 정보창 (HTML로 만듦). 1920x1080 기준으로 만들고 창 크기에 맞게 확대·축소
 // 배치는 서울 시안 그대로: 왼쪽 위 제목, 오른쪽 위 기지·보급·웨이브·배속·일시정지·설정, 아래 카드 줄 + 다음 웨이브
 import { Profile } from './profile.js';
+import { Cloud } from './cloud.js';
 import { layout } from './layout.js';
 import { HEROES, HERO_IDS, GACHA } from './heroes.js';
 import { Saves } from './save.js';
@@ -45,6 +46,7 @@ export class UI {
       <div class="brand"><span>MODERN WAR TOWER DEFENSE</span><h1>2030 Warfare 1</h1><p>부카니스탄이 세계 50개 도시를 침공했다. 연합군 지휘관으로서 도시를 지켜라.</p></div>
       <div class="profile-card">
         <div class="pc-title">지휘관 프로필</div>
+        <div class="pc-cloud"></div>
         <div class="pc-row"><input class="pc-name" maxlength="12" placeholder="이름을 정하세요" value=""><button class="pc-save">저장</button></div>
         <div class="pc-stat"><span>보급창</span><b class="pc-cred"></b></div>
         <div class="pc-stat"><span>${S.name} 최고 기록</span><b>${'★'.repeat(best)}${'☆'.repeat(3 - best)}</b></div>
@@ -81,7 +83,24 @@ export class UI {
       ip.prompt(); ip.userChoice.then(() => { window.__installPrompt = null; document.body.classList.remove('can-install'); });
     };
     if (this.L.mobile) t.querySelector('.help').textContent = '조작: 무기 카드 터치 → 회색 공간 터치로 배치 · 한 손가락 끌기 이동 · 두 손가락 벌리기 확대 · 두 손가락 비틀기 회전 · 무기 터치로 강화 · 같은 카드 다시 터치하면 취소';
+    this.renderCloud(true);
     this.refreshProfile();
+  }
+  // 구글 로그인 칸: 로그인하면 어느 기기에서든 같은 저장을 불러옴
+  renderCloud(first) {
+    const t = this.title; if (!t) return;
+    const box = t.querySelector('.pc-cloud'), C = Cloud;
+    if (!first && this.cloudBusy && !C.busy) { this.cloudBusy = false; this.hideTitle(); this.showTitle(this.icons); return; }  // 서버 기록 받아 옴 → 화면 새로
+    this.cloudBusy = C.busy;
+    if (!C.enabled) { box.innerHTML = C.error ? `<div class="cl-err">${C.error}</div>` : ''; return; }
+    if (!C.user) {
+      box.innerHTML = `<button class="cl-in"><i>G</i>구글로 로그인 <small>어느 기기에서나 이어하기</small></button>${C.error ? `<div class="cl-err">${C.error}</div>` : ''}`;
+      box.querySelector('.cl-in').onclick = () => C.signIn();
+    } else {
+      box.innerHTML = `<div class="cl-on"><span>☁ <b></b> · ${C.busy ? '서버 기록 불러오는 중…' : '서버에 자동 저장'}</span><button class="cl-out">로그아웃</button></div>${C.error ? `<div class="cl-err">${C.error}</div>` : ''}`;
+      box.querySelector('b').textContent = C.user.name;
+      box.querySelector('.cl-out').onclick = () => C.signOut();
+    }
   }
   // 처음 화면: 저장된 게임 목록 + 이어하기 버튼
   renderSaves() {

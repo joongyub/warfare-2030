@@ -6,10 +6,11 @@ export const Profile = {
     try { Object.assign(this.data, JSON.parse(localStorage.getItem(KEY) || '{}')); } catch (e) { /* 저장 불가 환경 */ }
     return this;
   },
-  save() { try { localStorage.setItem(KEY, JSON.stringify(this.data)); } catch (e) { /* 저장 불가 환경 */ } },
+  save() { this.data.t = Date.now(); try { localStorage.setItem(KEY, JSON.stringify(this.data)); } catch (e) { /* 저장 불가 환경 */ } if (GF.cloudPush) GF.cloudPush(); },
   get name() { return this.data.name || '지휘관'; },
   setName(n) { this.data.name = String(n || '').trim().slice(0, 12); this.save(); },
   get credits() { return this.data.credits || 0; },
   addCredits(n, memo) { this.data.credits = this.credits + n; if (memo) this.data.purchases.push({ t: Date.now(), memo, n }); this.save(); },
   spend(n) { if (this.credits < n) return false; this.data.credits -= n; this.save(); return true; }
 };
+GF.Profile = Profile;
