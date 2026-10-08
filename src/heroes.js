@@ -6,6 +6,10 @@ import * as THREE from 'three';
 // shot: bombrun 폭격기 융단폭격 / volley 총통 일제 포격 / musket 조총 일제 사격(여러 명) / broadside 전열함 현측 포격
 //       carrier 함재기 유도탄(여러 명, 공중 포함) / finest 중포 일격 + 주변 감속
 export const HEROES = {
+  // legend: 최상위 등급(빛나는 테두리·무지개 받침 고리). DPS 가장 높음
+  limbaegeun: { name: '임배근', short: '임배근', nation: '대한민국', title: '비숑을 품은 무적의 사나이', color: '#ffffff', legend: true,
+    shot: 'bark', range: 10.5, dmg: 300, rate: 1.2, salvo: 8, splash: 3.0, hits: ['ground', 'air'],
+    role: '비숑 음파 짖기', desc: '근육질 팔에 하얀 비숑을 안고 있음. 비숑을 적 쪽으로 내밀면 왈왈! 짖는 음파가 날아가 목표 주변 적 8명에게 큰 피해를 주고 잠깐 멈춰 세움(공중 포함)', gesture: '비숑을 품에 안고 있다가 두 팔로 번쩍 내밀면 비숑이 왈왈 짖음' },
   macarthur: { name: '더글러스 맥아더', short: '맥아더', nation: '미국', title: '인천상륙작전의 지휘관', color: '#c9a24a',
     shot: 'bombrun', range: 10, dmg: 120, rate: 0.55, salvo: 5, splash: 1.9, hits: ['ground'],
     role: '폭격기 융단 폭격', desc: '선글라스와 옥수수 파이프. 손끝으로 가리킨 곳에 폭격기 편대가 폭탄 5발을 줄지어 떨어뜨림', gesture: '파이프를 물다가 손을 뻗어 목표를 가리킴' },
@@ -28,7 +32,7 @@ export const HEROES = {
 export const HERO_IDS = Object.keys(HEROES);
 // 뽑기 규칙. lucky = [받는 보급, 확률 %]
 export const GACHA = {
-  heroCost: 600,                // 영웅 모집 1회 (6명 중 무작위 1명, 각 1/6. 이미 있는 영웅이면 강화)
+  heroCost: 600,                // 영웅 모집 1회 (7명 중 무작위 1명, 각 1/7. 이미 있는 영웅이면 강화)
   heroMaxRefund: 250,           // 이미 최대 강화된 영웅이 또 나오면 돌려주는 보급
   luckyCost: 100, luckyPerWave: 3,
   lucky: [[30, 20], [60, 25], [100, 25], [150, 18], [300, 10], [600, 2]]
@@ -94,6 +98,7 @@ function smoke(parent, x, y, z) {
 
 // 깃발 그림
 const FLAGS = {
+  limbaegeun: (g, w, h) => { const gr = g.createLinearGradient(0, 0, w, h); gr.addColorStop(0, '#fff6d8'); gr.addColorStop(0.5, '#ffd36a'); gr.addColorStop(1, '#ffb0e0'); g.fillStyle = gr; g.fillRect(0, 0, w, h); g.fillStyle = '#fff'; const paw = (x, y) => { g.beginPath(); g.ellipse(x, y + 6, 11, 9, 0, 0, 7); g.fill(); for (const [dx, dy] of [[-11, -6], [-4, -12], [4, -12], [11, -6]]) { g.beginPath(); g.arc(x + dx, y + dy, 4.5, 0, 7); g.fill(); } }; g.strokeStyle = '#c99a2e'; g.lineWidth = 3; paw(w / 2, h / 2 + 2); g.strokeRect(2, 2, w - 4, h - 4); },
   macarthur: (g, w, h) => { for (let i = 0; i < 7; i++) { g.fillStyle = i % 2 ? '#f4f4f4' : '#b8262e'; g.fillRect(0, i * h / 7, w, h / 7 + 1); } g.fillStyle = '#2b3a78'; g.fillRect(0, 0, w * 0.45, h * 4 / 7); g.fillStyle = '#fff'; for (let y = 0; y < 3; y++) for (let x = 0; x < 4; x++) g.fillRect(6 + x * 13, 6 + y * 12, 3, 3); },
   yisunsin: (g, w, h) => { g.fillStyle = '#efe6cf'; g.fillRect(0, 0, w, h); g.strokeStyle = '#7a1c1c'; g.lineWidth = 8; g.strokeRect(4, 4, w - 8, h - 8); g.fillStyle = '#111'; g.font = `bold ${h * 0.62}px serif`; g.textAlign = 'center'; g.textBaseline = 'middle'; g.fillText('帥', w / 2, h / 2 + 3); },
   hideyoshi: (g, w, h) => { g.fillStyle = '#7a1a1a'; g.fillRect(0, 0, w, h); g.fillStyle = '#e8b830'; const gourd = (cx, cy, s) => { g.beginPath(); g.arc(cx, cy, s, 0, 7); g.fill(); g.beginPath(); g.arc(cx, cy - s * 1.3, s * 0.65, 0, 7); g.fill(); }; gourd(w / 2, h * 0.62, h * 0.2); },
@@ -105,12 +110,19 @@ const FLAGS = {
 export function makeHero(id) {
   const H = HEROES[id];
   const root = new THREE.Group(), yaw = new THREE.Group(); root.add(yaw);
-  const glow = [], spin = [];
+  const glow = [], spin = [], beams = [];
   // 받침대: 검은 대리석 + 금테 + 빛나는 고리 (전설 등급 표시)
   mesh(root, new THREE.CylinderGeometry(0.34, 0.38, 0.1, 28), M(0x2a2c30, { roughness: 0.35, metalness: 0.3 }), 0, 0.05, 0);
   mesh(root, new THREE.CylinderGeometry(0.35, 0.35, 0.02, 28), M(0xd8aa45, { metalness: 0.9, roughness: 0.25 }), 0, 0.1, 0);
   const ring = new THREE.Mesh(new THREE.TorusGeometry(0.42, 0.018, 6, 40), new THREE.MeshStandardMaterial({ color: 0xffd36a, emissive: 0xffb020, emissiveIntensity: 1.2 }));
   ring.rotation.x = -Math.PI / 2; ring.position.y = 0.03; root.add(ring); glow.push(ring);
+  if (H.legend) {   // 최상위 등급: 흰빛 고리 하나 더 + 빛기둥
+    ring.material = new THREE.MeshStandardMaterial({ color: 0xffffff, emissive: 0xfff0c0, emissiveIntensity: 1.6 });
+    const r2 = new THREE.Mesh(new THREE.TorusGeometry(0.5, 0.014, 6, 44), new THREE.MeshStandardMaterial({ color: 0xffb0e8, emissive: 0xff8ad8, emissiveIntensity: 1.4 }));
+    r2.rotation.x = -Math.PI / 2; r2.position.y = 0.05; root.add(r2); glow.push(r2);
+    const beam = new THREE.Mesh(new THREE.CylinderGeometry(0.36, 0.42, 1.3, 24, 1, true), new THREE.MeshBasicMaterial({ color: 0xfff2c8, alphaMap: canvasTex('beamA', 4, 64, (g, w, h) => { const gr = g.createLinearGradient(0, 0, 0, h); gr.addColorStop(0, '#000'); gr.addColorStop(1, '#fff'); g.fillStyle = gr; g.fillRect(0, 0, w, h); }), transparent: true, opacity: 0.13, depthWrite: false, side: THREE.DoubleSide, blending: THREE.AdditiveBlending }));
+    beam.position.y = 0.7; root.add(beam); beams.push(beam);
+  }
   // 뒤 깃발 (영웅을 따라 돌지 않음)
   const pole = mesh(root, new THREE.CylinderGeometry(0.008, 0.01, 0.9, 6), M(0xb9a46a, { metalness: 0.7, roughness: 0.3 }), -0.26, 0.55, -0.2);
   mesh(root, new THREE.SphereGeometry(0.018, 8, 6), M(0xd8aa45, { metalness: 0.9, roughness: 0.25 }), -0.26, 1.0, -0.2);
@@ -124,7 +136,64 @@ export function makeHero(id) {
   let pose = () => {}, pre = null;
   const P = { act: 0, idle: Math.random() * 10 };
 
-  if (id === 'macarthur') {
+  if (id === 'limbaegeun') {
+    const skin = M(0xd9a47c);
+    const h = humanoid({ coat: 0x18181c, pants: 0x3e4434, belt: 0x111111, boots: 0x222018, wide: 0.33 });
+    body.add(h.fig);
+    h.torso.scale.set(1.35, 1.04, 1);   // 두꺼운 가슴
+    h.fig.traverse((o) => { if (o.isMesh && o.material === M(0xe3b48f)) o.material = skin; });
+    // 민소매: 팔은 맨살, 굵은 팔뚝·어깨
+    for (const [j, s] of [[h.R, 1], [h.L, -1]]) {
+      j.sh.position.z = s * 0.2; j.sh.scale.set(1.45, 1, 1.45);
+      j.sh.traverse((o) => { if (o.isMesh && o.material === h.coat) o.material = skin; });
+      mesh(j.sh, new THREE.SphereGeometry(0.05, 10, 8), skin, 0, -0.07, 0).scale.set(1, 1.3, 1);   // 이두
+    }
+    for (const s of [-1, 1]) {
+      mesh(h.fig, new THREE.SphereGeometry(0.075, 10, 8), skin, -0.005, 0.56, s * 0.12).scale.set(0.8, 0.55, 1);   // 승모근·어깨
+      mesh(h.torso, new THREE.BoxGeometry(0.03, 0.08, 0.12), M(0x222228), 0.1, 0.06, s * 0.065);   // 가슴 근육
+    }
+    mesh(h.fig, new THREE.CylinderGeometry(0.05, 0.06, 0.05, 10), skin, 0, 0.6, 0);   // 굵은 목
+    // 짧은 검은 머리 + 눈썹
+    mesh(h.head, new THREE.SphereGeometry(0.071, 14, 8, 0, Math.PI * 2, 0, Math.PI / 2.2), M(0x141210, { roughness: 0.9 }), -0.006, 0.012, 0);
+    for (const s of [-1, 1]) mesh(h.head, new THREE.BoxGeometry(0.008, 0.008, 0.026), M(0x141210), 0.064, 0.034, s * 0.024);
+    mesh(h.head, new THREE.BoxGeometry(0.006, 0.006, 0.03), M(0x8a4a3a), 0.068, -0.03, 0);   // 입
+    // 하얀 비숑 (몸에 붙어 있고 팔이 감싸 안음). 얼굴은 +x
+    const dog = new THREE.Group(); dog.position.set(0.15, 0.43, 0); body.add(dog);
+    const fur = new THREE.MeshStandardMaterial({ color: 0xfbfbf7, roughness: 1 }), dark = M(0x0d0d0d, { roughness: 0.3 });
+    const puff = (par, r, x, y, z) => mesh(par, new THREE.SphereGeometry(r, 10, 8), fur, x, y, z);
+    puff(dog, 0.075, 0, 0, 0).scale.set(1.25, 0.9, 0.95);
+    for (const [x, y, z] of [[0.05, 0.03, 0.04], [-0.05, 0.03, -0.04], [0.04, -0.04, -0.05], [-0.06, -0.02, 0.05], [0, 0.05, 0]]) puff(dog, 0.045, x, y, z);
+    for (const s of [-1, 1]) puff(dog, 0.028, 0.07, -0.07, s * 0.035);   // 앞발
+    puff(dog, 0.035, -0.1, 0.05, 0);   // 꼬리 털뭉치
+    const dh = new THREE.Group(); dh.position.set(0.085, 0.085, 0); dog.add(dh);
+    puff(dh, 0.068, 0, 0.01, 0);   // 둥근 솜사탕 머리
+    for (const [x, y, z] of [[0.02, 0.05, 0.03], [0.02, 0.05, -0.03], [-0.02, 0.06, 0]]) puff(dh, 0.04, x, y, z);
+    for (const s of [-1, 1]) puff(dh, 0.035, -0.005, -0.015, s * 0.06).scale.set(0.8, 1.3, 0.8);   // 처진 귀
+    const snout = puff(dh, 0.032, 0.06, -0.012, 0);
+    for (const s of [-1, 1]) mesh(dh, new THREE.SphereGeometry(0.011, 8, 6), dark, 0.058, 0.018, s * 0.026);   // 까만 눈
+    mesh(dh, new THREE.SphereGeometry(0.012, 8, 6), dark, 0.093, -0.005, 0);   // 코
+    const jaw = new THREE.Group(); jaw.position.set(0.06, -0.03, 0); dh.add(jaw);
+    mesh(jaw, new THREE.BoxGeometry(0.035, 0.008, 0.026), M(0xe07a8a), 0.012, -0.004, 0);   // 혀
+    puff(jaw, 0.018, 0.01, -0.01, 0).scale.set(1.3, 0.6, 1);
+    const mouthIn = mesh(dh, new THREE.SphereGeometry(0.016, 8, 6), M(0x3a1010), 0.08, -0.03, 0); mouthIn.scale.set(1, 0.4, 1.3);
+    void snout;
+    // 굵은 금 목걸이
+    mesh(h.torso, new THREE.TorusGeometry(0.06, 0.006, 6, 16), M(0xd8aa45, { metalness: 0.9, roughness: 0.25 }), 0.07, 0.11, 0).rotation.y = Math.PI / 2;
+    pose = (t, a) => {
+      // a: 1 → 0. 1~0.75 비숑을 앞으로 내밈 / 0.75~0.35 왈왈 두 번 짖음 / 이후 다시 품에
+      const push = a > 0.75 ? ease((1 - a) / 0.25) : a > 0.35 ? 1 : ease(a / 0.35);
+      const bark = a <= 0.75 && a > 0.35 ? Math.abs(Math.sin((0.75 - a) / 0.4 * Math.PI * 2)) : 0;
+      const breathe = Math.sin(t * 1.6) * 0.012;
+      // 품에 안기: 팔을 앞으로 굽혀 비숑 밑을 받침. 내밀기: 팔을 펴고 비숑을 앞·위로
+      for (const [j, s] of [[h.R, 1], [h.L, -1]]) { j.sh.rotation.set(s * lerp(0.12, 0.1, push), s * lerp(0.75, 0.4, push), lerp(0.35, 1.35, push)); j.el.rotation.set(0, 0, lerp(1.35, 0.3, push)); }
+      dog.position.set(lerp(0.15, 0.3, push), lerp(0.43, 0.55, push) + breathe + bark * 0.015, 0);
+      dog.rotation.z = Math.sin(t * 2) * 0.04 + bark * 0.12;
+      dh.rotation.z = bark * 0.35; dh.rotation.y = Math.sin(t * 0.9) * 0.3 * (1 - push);
+      jaw.rotation.z = -bark * 0.7; mouthIn.visible = bark > 0.15;
+      body.rotation.z = lerp(0, -0.08, push) + breathe; h.head.rotation.z = lerp(0.05, 0.18, push);
+      h.torso.scale.y = 1.04 + breathe;
+    };
+  } else if (id === 'macarthur') {
     const h = humanoid({ coat: 0xb59a6a, pants: 0xa98f62, belt: 0x5a3c22, wide: 0.24 });
     body.add(h.fig);
     // 장교 정모 (구겨진 크라운 + 챙 + 금 장식) · 선글라스 · 옥수수 파이프
@@ -303,10 +372,11 @@ export function makeHero(id) {
   }
 
   // 공격 순간 몸짓이 크게 보이도록 act 1 → 0 으로 줄어듦 (game.js 가 fire 때 act = 1)
-  const muzzle = new THREE.Object3D(); muzzle.position.set(0.3, 0.9, 0); yaw.add(muzzle);
+  const muzzle = new THREE.Object3D(); muzzle.position.set(id === 'limbaegeun' ? 0.45 : 0.3, id === 'limbaegeun' ? 0.75 : 0.9, 0); yaw.add(muzzle);
   const animate = (dt, t) => {
     P.act = Math.max(0, P.act - dt * 0.9);
     pose(t + P.idle, P.act);
+    for (const b of beams) { b.rotation.y += dt * 0.8; b.material.opacity = 0.1 + Math.sin(t * 3) * 0.05; }
     for (let i = 0; i < flagPos.count; i++) { const x = flag0[i * 3]; flagPos.setZ(i, Math.sin(t * 5 + x * 22) * 0.025 * (x / 0.3)); }
     flagPos.needsUpdate = true;
   };

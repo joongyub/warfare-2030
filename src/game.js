@@ -407,7 +407,7 @@ export class Game {
   // ---------- 영웅 모집 · 보급 뽑기 ----------
   canGacha() { return this.state === 'ready' || this.state === 'battle'; }
   heroOnField(id) { return this.towers.find((t) => t.W.hero === id); }
-  // 영웅 모집: 6명 중 1명 무작위. 이미 배치된 영웅이면 무료 강화, 대기 중이면 배치할 때 강화, 최대 강화면 보급 일부 환급
+  // 영웅 모집: 7명 중 1명 무작위. 이미 배치된 영웅이면 무료 강화, 대기 중이면 배치할 때 강화, 최대 강화면 보급 일부 환급
   pullHero() {
     if (!this.canGacha()) return null;
     if (this.money < GACHA.heroCost) { this.snd('deny'); return { fail: '보급이 부족합니다 (영웅 모집 ' + GACHA.heroCost + ')' }; }
@@ -466,7 +466,7 @@ export class Game {
     tw.model.fire();
     tw.label = { text: '★ ' + HEROES[id].short, pos: V(p.x, 2.5, p.z), kind: 'hero' };
     this.city.labels.push(tw.label); this.ui().resetLabels();
-    this.ui().toast(`전설의 영웅 ${HEROES[id].name} 출전!`, '#FFD36A', 2600);
+    this.ui().toast(HEROES[id].legend ? `레전더리 영웅 ${HEROES[id].name} 출전! 비숑도 함께!` : `전설의 영웅 ${HEROES[id].name} 출전!`, '#FFD36A', 2600);
     this.cancelMode();
   }
 
@@ -837,6 +837,25 @@ export class Game {
           this.timers.push({ t: i * 0.1, fn: () => this.addShot('missile', mz, { target: x, speed: x.air ? 11 : 8, dmg: st.dmg, tw, pierce: true, splash: x.air ? 0 : W.splash }) });
         }
       } });
+    } else if (W.shot === 'bark') {
+      // 비숑이 왈왈 두 번 짖음: 음파 고리가 목표까지 날아가 주변 적들에게 피해 + 잠깐 멈춤
+      for (let b = 0; b < 2; b++) {
+        this.timers.push({ t: 0.32 + b * 0.2, fn: () => {
+          this.snd('bark');
+          const from = m.muzzle.getWorldPosition(V()), to = this.targetPoint(e);
+          for (let k = 1; k <= 4; k++) this.timers.push({ t: k * 0.04, fn: () => {
+            const p = from.clone().lerp(to, k / 4);
+            this.spawnRing(p, 0.5 + k * 0.25, 0xffffff, 0.35); this.spawnSpark(p, 0xfff4d0, 0.12, 0.15);
+          } });
+          this.timers.push({ t: 0.18, fn: () => {
+            const c = e.dead ? to : this.targetPoint(e), r2 = W.splash * W.splash;
+            const list = this.enemies.filter((x) => !x.dead && (x.pos.x - c.x) ** 2 + (x.pos.z - c.z) ** 2 <= r2).sort((a, b2) => a.rem - b2.rem).slice(0, W.salvo);
+            for (const x of list) { this.hurt(x, st.dmg / 2, tw, { pierce: true }); if (!x.E.boss) x.stun = Math.max(x.stun, 0.35); this.vfx.impact(this.targetPoint(x), x.air); }
+            this.spawnRing(c, W.splash, 0xfff0c8, 0.5); this.spawnRing(c, W.splash * 0.6, 0xffb0e8, 0.4);
+            if (b === 0) this.ui().floatText(c.clone().setY(1.6), '왈!', '#FFFFFF');
+          } });
+        } });
+      }
     } else if (W.shot === 'finest') {
       // V자 손짓 → 거대한 중포탄 한 발
       this.timers.push({ t: 0.45, fn: () => {

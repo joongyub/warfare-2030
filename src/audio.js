@@ -98,6 +98,9 @@ export class Sound {
       case 'sell':
         [784, 523].forEach((f, i) => this.tone(t + i * 0.08, { f, dur: 0.15, type: 'triangle', vol: 0.15 * v }));
         break;
+      case 'bark': // 비숑 왈! (짧고 높은 개 짖음)
+        this.tone(t, { f: 720, fEnd: 380, dur: 0.09, type: 'square', vol: 0.12 * v }); this.tone(t, { f: 1080, fEnd: 560, dur: 0.07, type: 'sawtooth', vol: 0.05 * v });
+        this.noiseHit(t, { dur: 0.08, f: 1500, type: 'bandpass', q: 1.5, vol: 0.18 * v }); break;
       case 'coin':
         this.tone(t, { f: 1318, dur: 0.08, type: 'square', vol: 0.06 * v }); this.tone(t + 0.06, { f: 1760, dur: 0.12, type: 'square', vol: 0.06 * v }); break;
       case 'click':

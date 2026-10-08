@@ -60,6 +60,17 @@
   .sh-tabs button { flex: 1; height: 54px; border: 0; border-radius: 14px; background: rgba(255,255,255,.07); color: #c9d6df; font-size: 22px; font-weight: 800; cursor: pointer; }
   .sh-tabs button.on { background: linear-gradient(#f6d27a, #d9a43a); color: #2a1a00; }
   .sh-body { min-height: 470px; }
+  @property --lga { syntax: '<angle>'; initial-value: 0deg; inherits: false; }
+  @keyframes lgspin { to { --lga: 360deg; } }
+  @keyframes lgglow { 0%, 100% { box-shadow: 0 0 14px rgba(255,240,200,.55), 0 0 30px rgba(255,150,230,.3); } 50% { box-shadow: 0 0 26px rgba(255,250,220,.95), 0 0 56px rgba(255,170,235,.6); } }
+  .lg { border: 3px solid transparent !important; animation: lgspin 2.4s linear infinite, lgglow 1.6s ease-in-out infinite !important; }
+  .hr.lg { grid-column: 1 / -1; min-height: 124px; background: linear-gradient(135deg, #3a2c14, #1c1626) padding-box, conic-gradient(from var(--lga), #fff, #ffd36a, #ff8ad8, #8ad8ff, #fff) border-box; }
+  .hr.lg b { color: #fff; text-shadow: 0 0 10px #ffd36a, 0 0 18px #ff8ad8; font-size: 22px; }
+  .lg-tag { position: absolute; right: 12px; top: 10px; font-style: normal; font-size: 12px; font-weight: 900; letter-spacing: 2px; color: #2a1a00; padding: 3px 9px; border-radius: 8px; background: linear-gradient(90deg, #fff4c8, #ffd36a, #ffb0e8); }
+  .hbench .hb.lg { background: linear-gradient(#4a3818, #24182a) padding-box, conic-gradient(from var(--lga), #fff, #ffd36a, #ff8ad8, #8ad8ff, #fff) border-box; }
+  .hbench .hb.lg.sel { background: linear-gradient(#6a5020, #3a2440) padding-box, conic-gradient(from var(--lga), #fff, #ffd36a, #ff8ad8, #8ad8ff, #fff) border-box; }
+  .hr-stage.lg { background: radial-gradient(circle at 50% 40%, #6a5a3a, #1a1020 70%) padding-box, conic-gradient(from var(--lga), #fff, #ffd36a, #ff8ad8, #8ad8ff, #fff) border-box; }
+  .hr-stage.lg .hr-name { color: #fff; text-shadow: 0 0 10px #ffd36a, 0 0 20px #ff8ad8; }
   .hr-wrap, .lk-wrap { display: flex; gap: 22px; }
   .hr-grid { flex: 1; display: grid; grid-template-columns: repeat(3, 1fr); gap: 12px; }
   .hr { position: relative; padding: 10px 12px 10px 116px; min-height: 140px; border-radius: 16px; background: linear-gradient(135deg, #2b2213, #161b22); border: 2px solid rgba(255,211,106,.35); box-sizing: border-box; }
