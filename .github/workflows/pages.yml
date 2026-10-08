@@ -12,7 +12,7 @@ jobs:
     environment: { name: github-pages, url: '${{ steps.d.outputs.page_url }}' }
     steps:
       - uses: actions/checkout@v4
-      - run: mkdir site && cp -r index.html manifest.webmanifest sw.js icons data dist site/
+      - run: mkdir site && cp -r index.html manifest.webmanifest sw.js icons img data dist site/
       - uses: actions/upload-pages-artifact@v3
         with: { path: site }
       - id: d
