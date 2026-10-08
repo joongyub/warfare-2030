@@ -23,5 +23,6 @@ GF.SETTINGS = {
   musicVolume: 0.35,        // 배경 음악 크기 (0~1)
   shadows: true,            // 그림자 (느린 컴퓨터는 false)
   graphics: 'auto',         // 그래픽 품질: 'auto'(PC 높음·휴대폰 보통) / 'high' / 'medium' / 'low'(느린 기기)
-  comboWindow: 2.5          // 이 시간(초) 안에 연속으로 처치하면 연쇄 격파 보너스
+  comboWindow: 2.5,         // 이 시간(초) 안에 연속으로 처치하면 연쇄 격파 보너스
+  homeBg: 'img/home_bg.jpg' // 홈 화면 배경 그림 (지우면 3D 전장이 보임)
 };
