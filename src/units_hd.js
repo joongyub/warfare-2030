@@ -77,7 +77,11 @@ const CAMO = {
   tan: ['#ad9a74', '#a08d68', '#b5a37c', '#94825f'],    // 미군·이스라엘 사막색
   jgsdf: ['#5e6b45', '#40472f', '#6d5c3f', '#2a2c22'],
   enemy: ['#5d605b', '#474a45', '#6d6e67', '#33352f'], // 적: 짙은 회색 계열
-  uni: ['#6a6e4c', '#4d5236', '#7d6c4c', '#30321f'],    // 아군 군복
+  ger: ['#4f5a3a', '#2f3624', '#6a5a3c', '#1d2018'],    // 독일 3색
+  fr: ['#8a8466', '#6d6a4e', '#9a9070', '#55513c'],     // 프랑스 사막·녹
+  uk: ['#56603f', '#3a4130', '#2a2c24', '#6b6a50'],
+  ru: ['#5f6a45', '#3e472d', '#7a7356', '#2a2e20'],
+    uni: ['#6a6e4c', '#4d5236', '#7d6c4c', '#30321f'],    // 아군 군복
   euni: ['#4b4f4a', '#383b37', '#5e5f58', '#2a2c29']    // 적 군복
 };
 function camoTex(kind) {
@@ -547,6 +551,231 @@ const TOWERS = {
       add(pitch, CY(0.082, 0.082, 0.01, 18), white(), 0.922, y, z, 0, 0, Math.PI / 2);
     }
     muzzle.position.set(0.95, 0.2, 0);
+  },
+
+  // ---------- v0.33 추가 무기 ----------
+  // FPV 자폭 드론: 고글 쓴 조종병(무릎) + 조종기 + 앞에 떠 있는 4프로펠러 드론 + 예비 드론 상자
+  fpv({ root, yaw, pitch, muzzle }) {
+    blob(root, 0.9, 0.9);
+    sandbagRing(root, 0.36, -1.4, 1.4, 6);
+    const K = allyKit();
+    person(yaw, Object.assign({ x: -0.18, z: 0, pose: 'kneel', kit: 'binoc' }, K));
+    add(yaw, RB(0.07, 0.03, 0.09, 0.008), dark(), -0.1, 0.27, 0);                         // 고글
+    add(yaw, RB(0.06, 0.02, 0.08, 0.006), paint(0x3a3c38), -0.06, 0.19, 0);               // 조종기
+    antenna(yaw, -0.06, 0.2, 0.03, 0.08);
+    for (const z of [0.18, 0.28]) add(yaw, RB(0.12, 0.06, 0.08, 0.008), paint(0x4b4f36, 0.9, 0), -0.32, 0.03, z);
+    pitch.position.set(0.18, 0.36, 0);
+    add(pitch, RB(0.07, 0.025, 0.07, 0.008), dark(), 0, 0, 0);
+    for (const [x, z] of [[1, 1], [1, -1], [-1, 1], [-1, -1]]) {
+      rod(pitch, [0, 0, 0], [x * 0.06, 0.005, z * 0.06], 0.006, dark(), false);
+      const pr = new THREE.Group(); pr.position.set(x * 0.06, 0.018, z * 0.06); pitch.add(pr);
+      add(pr, BX(0.09, 0.003, 0.012), paint(0x8fa2ad, 0.4, 0.2), 0, 0, 0); pr.userData.spin = ['y', 40];
+    }
+    add(pitch, RB(0.035, 0.05, 0.035, 0.006), paint(0x6b5a3a), 0.0, -0.035, 0);             // 매단 탄두
+    add(pitch, CY(0.008, 0.008, 0.01, 8), glass(), 0.036, 0.005, 0, 0, 0, Math.PI / 2);
+    muzzle.position.set(0.04, 0, 0);
+  },
+
+  // 게파르트: 레오파르트1 궤도 차체 + 큰 포탑 양옆 35mm 기관포 2문 + 뒤 수색 레이더(회전) + 앞 추적 레이더
+  gepard({ root, yaw, pitch, muzzle, spin }) {
+    const cm = camo('ger');
+    blob(root, 1.1, 0.6);
+    add(yaw, prism('gphull', [[-0.42, 0.075], [0.32, 0.075], [0.44, 0.14], [0.36, 0.215], [-0.42, 0.215]], 0.3), cm);
+    for (const s of [-1, 1]) { trackSet(yaw, { x0: -0.36, x1: 0.36, y: 0.1, r: 0.072, w: 0.07, n: 5, z: s * 0.18, wr: 0.046 }); add(yaw, RB(0.84, 0.014, 0.07, 0.004), cm, 0, 0.215, s * 0.19); }
+    add(yaw, RB(0.36, 0.16, 0.32, 0.014), cm, -0.06, 0.29, 0);
+    add(yaw, RB(0.1, 0.05, 0.2, 0.008), cm, 0.16, 0.24, 0);
+    // 뒤 수색 레이더 (빙글)
+    const sr = new THREE.Group(); sr.position.set(-0.2, 0.44, 0); yaw.add(sr);
+    add(sr, CY(0.015, 0.015, 0.08, 8), dark(), 0, -0.04, 0);
+    add(sr, RB(0.05, 0.06, 0.26, 0.01), paint(0x8e927f), 0, 0.02, 0, 0, 0, 0.2);
+    spin.push([sr, 'y', 2.4]);
+    pitch.position.set(0.06, 0.32, 0); pitch.rotation.z = 0.35;
+    add(pitch, CY(0.06, 0.06, 0.06, 14), paint(0x8e927f), 0.12, 0.06, 0, 0, 0, Math.PI / 2);   // 추적 레이더 접시
+    for (const s of [-1, 1]) {
+      add(pitch, RB(0.22, 0.09, 0.07, 0.01), cm, 0.0, 0, s * 0.2);
+      tube(pitch, 0.014, 0.012, 0.5, steel(), 0.1, 0, s * 0.2);
+      add(pitch, CY(0.019, 0.019, 0.05, 10), dark(), 0.6, 0, s * 0.2, 0, 0, Math.PI / 2);
+    }
+    muzzle.position.set(0.62, 0, 0);
+  },
+
+  // 천궁: 8륜 발사차량 + 거의 수직으로 세운 8연장 발사관 묶음
+  chungung({ root, yaw, pitch, muzzle }) {
+    const cm = camo('kor', 2);
+    blob(root, 1.2, 0.55);
+    add(yaw, RB(1.0, 0.06, 0.26, 0.008), dark(), 0, 0.14, 0);
+    axles(yaw, [0.36, 0.2, -0.22, -0.38], 0.16, 0.07, 0.055, paint(0x3e4430));
+    cab(yaw, 0.28, 0.52, 0.36, 0.25, 0.14, cm, true);
+    add(yaw, RB(0.66, 0.05, 0.36, 0.008), cm, -0.12, 0.2, 0);
+    for (const [x, s] of [[0.2, 1], [0.2, -1], [-0.48, 1], [-0.48, -1]]) { rod(yaw, [x, 0.16, s * 0.14], [x, 0.01, s * 0.24], 0.01, dark(), false); add(yaw, CY(0.025, 0.025, 0.01, 10), dark(), x, 0.008, s * 0.24); }
+    pitch.position.set(-0.42, 0.24, 0); pitch.rotation.z = 1.25;
+    add(pitch, RB(0.62, 0.3, 0.34, 0.012), cm, 0.3, 0.16, 0);
+    for (let i = 0; i < 4; i++) add(pitch, BX(0.012, 0.305, 0.345), dark(), 0.06 + i * 0.16, 0.16, 0);
+    for (let r = 0; r < 2; r++) for (let c = 0; c < 4; c++) add(pitch, CY(0.04, 0.04, 0.012, 14), white(), 0.612, 0.08 + r * 0.15, -0.12 + c * 0.08, 0, 0, Math.PI / 2);
+    muzzle.position.set(0.64, 0.16, 0);
+  },
+
+  // AN/TPY-2 레이더: 트레일러 위 큰 평판 안테나 + 발전기 + 냉각 장비 + 초록 지원 고리
+  radar({ root, yaw, muzzle, spin, glow }) {
+    const cm = camo('tan', 2);
+    blob(root, 1.2, 0.8);
+    add(yaw, RB(0.9, 0.05, 0.36, 0.008), dark(), 0, 0.13, 0);
+    axles(yaw, [-0.25, -0.36], 0.17, 0.065, 0.05, paint(0x7a6a4c));
+    for (const [x, s] of [[0.36, 1], [0.36, -1]]) { rod(yaw, [x, 0.13, s * 0.15], [x + 0.04, 0.01, s * 0.26], 0.01, dark(), false); add(yaw, CY(0.025, 0.025, 0.01, 10), dark(), x + 0.04, 0.008, s * 0.26); }
+    add(yaw, RB(0.18, 0.18, 0.34, 0.012), cm, -0.32, 0.25, 0);                       // 장비함
+    for (let i = 0; i < 5; i++) add(yaw, BX(0.004, 0.14, 0.3), dark(), -0.4 + i * 0.04, 0.25, 0);
+    // 평판 안테나 (약간 뒤로 기울어진 큰 판)
+    const pan = new THREE.Group(); pan.position.set(0.12, 0.42, 0); pan.rotation.z = 0.35; yaw.add(pan);
+    add(pan, RB(0.08, 0.5, 0.62, 0.014), cm, 0, 0, 0);
+    add(pan, BX(0.006, 0.44, 0.56), paint(0x6f7266, 0.4, 0.4), 0.042, 0, 0);
+    for (let r = 0; r < 6; r++) for (let c = 0; c < 8; c++) add(pan, BX(0.004, 0.05, 0.05), paint(0x8a8e80, 0.35, 0.5), 0.046, -0.19 + r * 0.075, -0.24 + c * 0.068);
+    rod(yaw, [-0.05, 0.16, 0], [0.04, 0.32, 0], 0.02, steel(), false);
+    // 위쪽 작은 회전 안테나
+    const top = new THREE.Group(); top.position.set(-0.32, 0.4, 0); yaw.add(top);
+    add(top, CY(0.012, 0.012, 0.06, 8), dark(), 0, -0.03, 0);
+    add(top, RB(0.03, 0.04, 0.16, 0.006), white(), 0, 0.01, 0);
+    spin.push([top, 'y', 2]);
+    const ring = noShadow(add(root, geo('rdring', () => new THREE.TorusGeometry(0.58, 0.016, 6, 40)), pbr('rdglow', { color: 0x9cff8a, emissive: 0x5aff5a, emissiveIntensity: 1.3 }), 0, 0.03, 0, Math.PI / 2, 0, 0));
+    glow.push(ring);
+    muzzle.position.set(0.12, 0.42, 0);
+  },
+
+  // 보급 수송 트럭: 6륜 카고 트럭 + 방수포 덮개 + 짐칸 뒤 탄약 상자·연료통
+  truck({ root, yaw, muzzle }) {
+    const cm = camo('nato');
+    blob(root, 1.15, 0.6);
+    add(yaw, RB(0.92, 0.05, 0.24, 0.008), dark(), 0, 0.12, 0);
+    axles(yaw, [0.3, -0.16, -0.32], 0.16, 0.07, 0.055, paint(0x3e4430));
+    cab(yaw, 0.2, 0.46, 0.34, 0.26, 0.14, cm);
+    add(yaw, RB(0.6, 0.04, 0.36, 0.008), cm, -0.15, 0.17, 0);
+    for (const s of [-1, 1]) add(yaw, RB(0.6, 0.08, 0.012, 0.004), cm, -0.15, 0.22, s * 0.175);
+    // 방수포 덮개 (둥근 지붕)
+    const tarp = add(yaw, CY(0.16, 0.16, 0.46, 16), paint(0x5c6040, 0.95, 0), -0.18, 0.24, 0, 0, 0, Math.PI / 2); tarp.scale.set(1, 1, 1.05);
+    add(yaw, BX(0.46, 0.08, 0.32), paint(0x5c6040, 0.95, 0), -0.18, 0.2, 0);
+    for (let i = 0; i < 4; i++) add(yaw, CY(0.163, 0.163, 0.008, 16), dark(), -0.38 + i * 0.13, 0.24, 0, 0, 0, Math.PI / 2);
+    // 땅에 내려 둔 보급 상자·연료통
+    const crate = paint(0x6b5a3a, 0.85, 0), drum = paint(0x3c5a3a, 0.6, 0.3);
+    add(root, RB(0.14, 0.09, 0.1, 0.008), crate, -0.55, 0.045, 0.2); add(root, RB(0.14, 0.09, 0.1, 0.008), crate, -0.55, 0.045, 0.08); add(root, RB(0.14, 0.09, 0.1, 0.008), crate, -0.55, 0.135, 0.14);
+    for (const z of [-0.12, -0.24]) add(root, CY(0.045, 0.045, 0.12, 12), drum, -0.56, 0.06, z);
+    add(root, BX(0.1, 0.004, 0.06), paint(0xd9b23a, 0.5, 0.1), -0.55, 0.181, 0.14);
+    muzzle.position.set(-0.2, 0.45, 0);
+  },
+
+  // 카이사르: 6륜 트럭 운전실 + 뒤에서 앞으로 길게 뻗은 155mm 포 + 뒤 고정 삽(스페이드)
+  caesar({ root, yaw, pitch, muzzle }) {
+    const cm = camo('fr');
+    blob(root, 1.2, 0.55);
+    add(yaw, RB(0.96, 0.06, 0.24, 0.008), dark(), 0, 0.13, 0);
+    axles(yaw, [0.33, -0.18, -0.33], 0.16, 0.075, 0.06, paint(0x4a4a38));
+    cab(yaw, 0.2, 0.48, 0.36, 0.26, 0.14, cm, true);
+    add(yaw, RB(0.66, 0.05, 0.34, 0.008), cm, -0.15, 0.19, 0);
+    for (const s of [-1, 1]) add(yaw, RB(0.4, 0.06, 0.06, 0.008), dark(), -0.2, 0.24, s * 0.12);
+    // 뒤 스페이드
+    rod(yaw, [-0.46, 0.16, 0], [-0.58, 0.02, 0], 0.02, dark(), false);
+    add(yaw, RB(0.04, 0.08, 0.3, 0.006), dark(), -0.59, 0.04, 0, 0, 0, 0.4);
+    pitch.position.set(-0.36, 0.3, 0); pitch.rotation.z = 0.22;
+    add(pitch, RB(0.18, 0.09, 0.16, 0.012), cm, 0, 0, 0);
+    add(pitch, RB(0.3, 0.035, 0.05, 0.008), steel(), 0.18, -0.05, 0);
+    tube(pitch, 0.024, 0.02, 1.0, pbr('cgun', { color: 0x4e5240, roughness: 0.55, metalness: 0.4 }), 0.06, 0);
+    add(pitch, RB(0.08, 0.05, 0.065, 0.012), dark(), 1.08, 0, 0);
+    muzzle.position.set(1.12, 0, 0);
+  },
+
+  // 스타스트릭 (스토머 장갑차): 궤도 차체 + 회전 포탑 양옆 4연장 발사기 2개 + 조준 장치
+  starstreak({ root, yaw, pitch, muzzle }) {
+    const cm = camo('uk');
+    blob(root, 1.05, 0.55);
+    add(yaw, prism('sshull', [[-0.4, 0.07], [0.3, 0.07], [0.42, 0.15], [0.32, 0.22], [-0.4, 0.22]], 0.3), cm);
+    for (const s of [-1, 1]) trackSet(yaw, { x0: -0.34, x1: 0.34, y: 0.1, r: 0.068, w: 0.065, n: 5, z: s * 0.18, wr: 0.044 });
+    add(yaw, CY(0.13, 0.14, 0.07, 18), cm, -0.06, 0.255, 0);
+    add(yaw, RB(0.08, 0.04, 0.08, 0.008), cm, 0.25, 0.235, -0.08);
+    pitch.position.set(-0.06, 0.34, 0); pitch.rotation.z = 0.3;
+    add(pitch, RB(0.12, 0.1, 0.12, 0.012), cm, 0, 0, 0);
+    add(pitch, CY(0.03, 0.03, 0.03, 12), glass(), 0.065, 0.01, 0, 0, 0, Math.PI / 2);
+    for (const s of [-1, 1]) {
+      add(pitch, RB(0.42, 0.12, 0.12, 0.012), cm, 0.08, 0, s * 0.14);
+      for (let r = 0; r < 2; r++) for (let c = 0; c < 2; c++) add(pitch, CY(0.022, 0.022, 0.01, 10), dark(), 0.295, -0.028 + r * 0.056, s * 0.14 - 0.028 + c * 0.056, 0, 0, Math.PI / 2);
+    }
+    muzzle.position.set(0.3, 0, 0);
+  },
+
+  // TOS-1A: 전차 차체 + 큰 상자형 24연장 열압력 로켓 발사기
+  tos({ root, yaw, pitch, muzzle }) {
+    const cm = camo('ru');
+    blob(root, 1.1, 0.6);
+    add(yaw, prism('toshull', [[-0.42, 0.07], [0.32, 0.07], [0.43, 0.14], [0.36, 0.2], [-0.42, 0.2], [-0.43, 0.13]], 0.3), cm);
+    for (const s of [-1, 1]) { trackSet(yaw, { x0: -0.36, x1: 0.35, y: 0.1, r: 0.07, w: 0.07, n: 6, z: s * 0.18, wr: 0.045 }); add(yaw, RB(0.66, 0.06, 0.012, 0.004), cm, 0.02, 0.165, s * 0.22); }
+    add(yaw, RB(0.84, 0.012, 0.42, 0.004), cm, -0.005, 0.2, 0);
+    for (const s of [-1, 1]) add(yaw, CY(0.035, 0.035, 0.14, 12), paint(0x3a3c36), -0.46, 0.15, s * 0.08, Math.PI / 2, 0, 0);
+    add(yaw, RB(0.16, 0.08, 0.28, 0.01), cm, -0.05, 0.24, 0);
+    pitch.position.set(-0.28, 0.28, 0); pitch.rotation.z = 0.4;
+    add(pitch, RB(0.66, 0.26, 0.36, 0.014), cm, 0.3, 0.12, 0);
+    for (let i = 0; i < 3; i++) add(pitch, BX(0.012, 0.265, 0.365), dark(), 0.08 + i * 0.22, 0.12, 0);
+    for (let r = 0; r < 4; r++) for (let c = 0; c < 6; c++) add(pitch, CY(0.022, 0.022, 0.01, 10), dark(), 0.632, 0.025 + r * 0.063, -0.15 + c * 0.06, 0, 0, Math.PI / 2);
+    muzzle.position.set(0.64, 0.12, 0);
+  },
+
+  // 바이락타르 TB2: 땅 위 짧은 활주로 + 이륙 대기 무인기 + 지상 통제 트레일러·위성 안테나
+  tb2({ root, yaw, pitch, muzzle }) {
+    blob(root, 1.3, 0.9);
+    // 활주로 (돌지 않음)
+    add(root, BX(1.3, 0.012, 0.3), paint(0x3d3f3c, 0.9, 0), 0, 0.006, 0.18);
+    for (let i = 0; i < 6; i++) add(root, BX(0.1, 0.002, 0.018), paint(0xe8e6da, 0.6, 0), -0.55 + i * 0.22, 0.013, 0.18);
+    // 지상 통제 트레일러 + 위성 안테나
+    add(root, RB(0.4, 0.2, 0.22, 0.012), paint(0xc9ccc6, 0.6, 0.2), -0.35, 0.13, -0.24);
+    for (const x of [-0.48, -0.22]) wheel(root, x, 0.05, -0.12, 0.05, 0.04, steel());
+    add(root, SP(0.08, 14, 0.5), white(), -0.2, 0.25, -0.24, 0, 0, -0.9);
+    antenna(root, -0.48, 0.23, -0.3, 0.25);
+    // 무인기 (yaw 위: 목표 쪽으로 기수 돌림)
+    pitch.position.set(0.05, 0.12, 0.18);
+    const body = paint(0xd9dcd6, 0.45, 0.2);
+    add(pitch, CAP(0.035, 0.42), body, 0, 0, 0, 0, 0, Math.PI / 2);
+    add(pitch, RB(0.08, 0.012, 0.9, 0.004), body, 0.02, 0.025, 0);
+    for (const s of [-1, 1]) add(pitch, RB(0.07, 0.008, 0.16, 0.003), body, -0.24, 0.05, s * 0.06, s * 0.6, 0, 0);
+    rod(pitch, [-0.08, 0.0, 0.18], [-0.24, 0.03, 0.06], 0.006, body, false); rod(pitch, [-0.08, 0.0, -0.18], [-0.24, 0.03, -0.06], 0.006, body, false);
+    add(pitch, BX(0.008, 0.12, 0.012), dark(), -0.27, 0, 0);
+    add(pitch, SP(0.025, 10), dark(), 0.16, -0.035, 0);
+    for (const [x, z] of [[0.15, 0], [-0.02, 0.06], [-0.02, -0.06]]) rod(pitch, [x, -0.02, z], [x, -0.1, z], 0.004, dark(), false);
+    muzzle.position.set(0.25, 0, 0);
+  },
+
+  // 아이언빔: 트레일러 + 큰 원통 레이저 포탑 + 붉게 빛나는 렌즈 + 냉각기
+  ironbeam({ root, yaw, pitch, muzzle, glow }) {
+    const cm = camo('tan', 2);
+    blob(root, 1.05, 0.8);
+    add(yaw, RB(0.82, 0.06, 0.44, 0.01), dark(), 0, 0.12, 0);
+    axles(yaw, [-0.22, -0.34], 0.2, 0.06, 0.05, paint(0x7a6a4c));
+    for (const [x, s] of [[0.3, 1], [0.3, -1], [-0.36, 1], [-0.36, -1]]) { rod(yaw, [x, 0.12, s * 0.18], [x, 0.01, s * 0.3], 0.01, dark(), false); add(yaw, CY(0.025, 0.025, 0.01, 10), dark(), x, 0.008, s * 0.3); }
+    add(yaw, RB(0.24, 0.18, 0.4, 0.014), cm, -0.25, 0.24, 0);
+    for (let i = 0; i < 4; i++) add(yaw, BX(0.2, 0.004, 0.36), dark(), -0.25, 0.18 + i * 0.04, 0);
+    add(yaw, CY(0.16, 0.18, 0.08, 20), cm, 0.08, 0.19, 0);
+    pitch.position.set(0.08, 0.38, 0); pitch.rotation.z = 0.15;
+    add(pitch, RB(0.26, 0.24, 0.3, 0.03), cm, -0.05, 0, 0);
+    add(pitch, CY(0.13, 0.13, 0.32, 24), paint(0xc9c3a8, 0.5, 0.3), 0.18, 0, 0, 0, 0, Math.PI / 2);
+    add(pitch, CY(0.135, 0.135, 0.03, 24), dark(), 0.34, 0, 0, 0, 0, Math.PI / 2);
+    const lens = add(pitch, CY(0.1, 0.1, 0.012, 24), pbr('ibglow', { color: 0xff5040, emissive: 0xff2010, emissiveIntensity: 1.6, roughness: 0.15 }), 0.357, 0, 0, 0, 0, Math.PI / 2);
+    glow.push(lens);
+    for (const s of [-1, 1]) add(pitch, RB(0.1, 0.06, 0.04, 0.008), white(), 0.0, 0.08, s * 0.17);
+    muzzle.position.set(0.37, 0, 0);
+  },
+
+  // 레일건: 받침 + 축전기 묶음 + 길쭉한 두 줄 레일 + 파랗게 빛나는 코일
+  railgun({ root, yaw, pitch, muzzle, glow }) {
+    blob(root, 1.2, 0.9);
+    add(root, CY(0.42, 0.46, 0.08, 24), paint(0x45484a, 0.6, 0.5), 0, 0.04, 0);
+    add(yaw, CY(0.3, 0.34, 0.12, 24), paint(0x5a5e62, 0.5, 0.6), 0, 0.14, 0);
+    for (const s of [-1, 1]) {
+      add(yaw, RB(0.3, 0.2, 0.14, 0.02), paint(0x2e3236, 0.45, 0.6), -0.18, 0.3, s * 0.2);
+      for (let i = 0; i < 3; i++) add(yaw, CY(0.03, 0.03, 0.22, 12), paint(0x7a8088, 0.3, 0.8), -0.28 + i * 0.1, 0.3, s * 0.2);
+    }
+    pitch.position.set(0, 0.38, 0); pitch.rotation.z = 0.06;
+    add(pitch, RB(0.34, 0.18, 0.2, 0.02), paint(0x3c4044, 0.4, 0.7), -0.05, 0, 0);
+    const coil = pbr('rgglow', { color: 0x7fe8ff, emissive: 0x30c8ff, emissiveIntensity: 1.5, roughness: 0.2 });
+    for (const s of [-1, 1]) add(pitch, RB(1.2, 0.05, 0.035, 0.008), steel(), 0.6, 0, s * 0.045);
+    for (let i = 0; i < 6; i++) { const r = add(pitch, RB(0.03, 0.12, 0.15, 0.01), coil, 0.25 + i * 0.16, 0, 0); glow.push(r); }
+    add(pitch, RB(0.06, 0.08, 0.14, 0.01), dark(), 1.2, 0, 0);
+    muzzle.position.set(1.24, 0, 0);
+
   }
 };
 

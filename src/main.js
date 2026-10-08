@@ -376,8 +376,9 @@ class App {
       this.keys[e.code] = true;
       const g = this.game;
       if (g.state === 'title') { if (e.code === 'Enter') { if (this.ui.zone) this.ui.zoneStart(false); else this.ui.openZone(); } if (e.code === 'Escape') this.ui.closeZone(); return; }
-      const n = parseInt(e.key, 10);
-      if (n >= 1 && n <= GF.LOADOUT.length) g.setMode(GF.LOADOUT[n - 1]);
+      // 무기 단축키: 윗줄 1~9·0, 아랫줄 Shift + 1~9·0
+      const dg = /^Digit(\d)$/.exec(e.code);
+      if (dg) { const d = +dg[1], i = (d === 0 ? 9 : d - 1) + (e.shiftKey ? 10 : 0); if (GF.LOADOUT[i]) g.setMode(GF.LOADOUT[i]); }
       if (e.code === 'KeyZ') g.pickStrat('icbm');
       if (e.code === 'KeyX') g.pickStrat('nuke');
       if (e.code === 'KeyQ') g.pickCard(0);

@@ -30,12 +30,12 @@ export function layout() {
   if (fold) {
     // 화면 전체 사용. 정보창은 가로 1280 기준(큰 버튼), 세로는 화면 비율만큼 늘림
     const bw = 1280, bh = Math.round(bw * ih / iw);
-    const base = { w: bw, h: bh, top: 58, bottom: bh - 122 };
+    const base = { w: bw, h: bh, top: 58, bottom: bh - 180 };
     return { x: Math.round(ox), y: Math.round(oy), w: Math.round(iw), h: Math.round(ih), portrait: ih > iw * 1.3, mobile: true, fold, base, k: iw / bw };
   }
   const w = Math.min(iw, ih * 16 / 9), h = w * 9 / 16;
   const mobile = isTouch() && h < 620;
   // base: 정보창 기준 크기 / top·bottom: 그 기준에서 전투 화면이 보이는 위·아래 (정보줄과 카드 줄 사이)
-  const base = mobile ? { w: 1280, h: 720, top: 58, bottom: 720 - 122 } : { w: 1920, h: 1080, top: 84, bottom: 1080 - 180 };
+  const base = mobile ? { w: 1280, h: 720, top: 58, bottom: 720 - 180 } : { w: 1920, h: 1080, top: 84, bottom: 1080 - 266 };
   return { x: Math.round(ox + (iw - w) / 2), y: Math.round(oy + (ih - h) / 2), w: Math.floor(w), h: Math.floor(h), portrait: ih > iw, mobile, fold: false, base, k: Math.floor(w) / base.w };
 }

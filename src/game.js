@@ -37,7 +37,7 @@ export class Game {
     this.ghosts = {};
     this.state = 'title';
     this.speed = 1;
-    this.enemies = []; this.towers = []; this.shots = []; this.fx = []; this.zones = []; this.timers = [];
+    this.enemies = []; this.towers = []; this.shots = []; this.fx = []; this.zones = []; this.timers = []; this.fires = [];
   }
 
   ui() { return this.app.ui; }
@@ -58,7 +58,7 @@ export class Game {
     this.waveNo = 0; this.kills = 0;
     this.queue = []; this.clock = 0; this.nextT = 0;
     this.combo = 0; this.comboT = 0; this.bestCombo = 0;
-    this.enemies = []; this.towers = []; this.shots = []; this.fx = []; this.zones = []; this.timers = [];
+    this.enemies = []; this.towers = []; this.shots = []; this.fx = []; this.zones = []; this.timers = []; this.fires = [];
     this.mode = null; this.cardSel = -1; this.selected = null;
     this.deck = GF.CARD_DECK.slice().sort(() => Math.random() - 0.5);
     this.hand = this.deck.splice(0, GF.HAND_SIZE);
@@ -110,6 +110,12 @@ export class Game {
 
   launchWave(early) {
     this.waveNo++;
+    // 보급 수송 트럭: 웨이브 시작마다 보급
+    for (const tw of this.towers) if (tw.W.income) {
+      const add = Math.round(tw.W.income * (1 + 0.35 * (tw.level - 1)));
+      this.money += add;
+      this.ui().floatText(tw.pos.clone().setY(1.4), `보급 +${add}`, '#FFD36A');
+    }
     const tok = this.waveTokens(this.waveNo);
     let t = this.clock + 0.2;
     // 진입로가 여러 개면 적을 번갈아 나눠 보냄 (무리마다 시작 입구를 바꿔서)
@@ -520,8 +526,9 @@ export class Game {
     const U = tw.W.hero ? GF.SETTINGS.heroUpgrade : GF.SETTINGS.upgrade, i = Math.min(level, U.dmg.length) - 1;
     let rate = tw.W.rate;
     if (this.syn.usSet && tw.W.nation.indexOf('미국') >= 0) rate *= 1.05;
-    const dmg = tw.W.dmg * U.dmg[i], r = rate * U.rate[i];
-    return { dmg, range: tw.W.range * U.range[i], rate: r, dps: (dmg || 0) * r * (tw.W.salvo || 1), mul: U.dmg[i] };
+    const bf = tw.buff || { range: 0, dmg: 0 };   // 레이더 기지 범위 안이면 사거리·피해 +
+    const dmg = tw.W.dmg * U.dmg[i] * (1 + bf.dmg), r = rate * U.rate[i];
+    return { dmg, range: tw.W.range * U.range[i] * (1 + bf.range), rate: r, dps: (dmg || 0) * r * (tw.W.salvo || 1), mul: U.dmg[i] };
   }
   upgradeCost(tw) { return Math.round(tw.W.cost * 0.75 * tw.level); }
   upgradeTower(tw, quiet) {
@@ -712,8 +719,29 @@ export class Game {
 
     // 감속·교란
     for (const e of this.enemies) e.slowMul = 1;
+    // 레이더 기지: 범위 안 아군 무기 강화 (가장 센 레이더 하나만)
+    const radars = this.towers.filter((t) => t.W.buff);
     for (const tw of this.towers) {
-      if (tw.W.shot !== 'aura') continue;
+      tw.buff = null;
+      if (tw.W.buff || tw.W.shot === 'aura') continue;
+      for (const rd of radars) {
+        const rr = this.stats(rd).range;
+        if (rd.pos.distanceToSquared(tw.pos) > rr * rr) continue;
+        const k = 1 + 0.25 * (rd.level - 1), b = { range: rd.W.buff.range * k, dmg: rd.W.buff.dmg * k };
+        if (!tw.buff || b.range > tw.buff.range) tw.buff = b;
+      }
+    }
+    for (const rd of radars) { rd.pulse -= dt; if (rd.pulse <= 0) { rd.pulse = 2.2; this.spawnRing(rd.pos, this.stats(rd).range, 0x9cff8a, 1.2); } }
+    // 화염 지대 (TOS-1A): 안에 있는 지상 적이 계속 탐
+    for (const f of this.fires) {
+      f.t -= dt;
+      for (const e of this.enemies) if (!e.dead && !e.air && (e.pos.x - f.pos.x) ** 2 + (e.pos.z - f.pos.z) ** 2 <= f.r * f.r) this.hurt(e, f.dps * dt, f.tw, { pierce: true });
+      this.vfx.burn(f.pos, f.r * 1.2, dt, 1.4);
+      f.mesh.material.opacity = 0.55 * Math.min(1, f.t / 0.6) * (0.8 + Math.random() * 0.2);
+    }
+    this.fires = this.fires.filter((f) => { if (f.t <= 0) { this.fxGroup.remove(f.mesh); return false; } return true; });
+    for (const tw of this.towers) {
+      if (tw.W.shot !== 'aura' || !tw.W.slow) continue;
       const st = this.stats(tw), r = st.range, lvMul = st.mul;
       tw.pulse -= dt;
       let any = false;
@@ -792,7 +820,7 @@ export class Game {
     tw.model.root.updateMatrixWorld(true);
     const mz = tw.model.muzzle.getWorldPosition(V());
     const tp = this.targetPoint(e);
-    this.snd(W.heavy ? 'cruise' : W.pierce ? 'javelin' : W.shot);
+    this.snd(W.sfx || (W.heavy ? 'cruise' : W.pierce ? 'javelin' : W.shot));
     if (W.shot === 'bullet') {
       this.hurt(e, st.dmg, tw);
       const hit = tp.add(V((Math.random() - 0.5) * 0.2, 0, (Math.random() - 0.5) * 0.2));
@@ -810,12 +838,32 @@ export class Game {
       this.vfx.muzzle(mz, V(0, 1, 0), !!W.heavy);
       this.addShot('missile', mz, { target: e, speed: e.air ? 10 : 7, dmg: st.dmg, tw, pierce: !!W.pierce, splash: W.splash || 0, heavy: !!W.heavy });
     } else if (W.shot === 'intercept') {
-      this.addShot('missile', mz, { target: e, speed: 12, dmg: st.dmg, tw, pierce: true, splash: 0, small: true });
+      for (let i = 0; i < (W.salvo || 1); i++) this.timers.push({ t: i * 0.05, fn: () => this.addShot('missile', mz, { target: e, speed: W.salvo ? 18 : 12, dmg: st.dmg, tw, pierce: true, splash: 0, small: true }) });
     } else if (W.shot === 'rockets') {
       for (let i = 0; i < W.salvo; i++) {
         const off = V((Math.random() - 0.5) * 2.2, 0, (Math.random() - 0.5) * 2.2);
-        this.timers.push({ t: i * 0.12, fn: () => this.addShot('rocket', mz, { to: tp.clone().setY(0).add(off), speed: 11, arc: 3, dmg: st.dmg, splash: W.splash, tw }) });
+        this.timers.push({ t: i * 0.12, fn: () => this.addShot('rocket', mz, { to: tp.clone().setY(0).add(off), speed: 11, arc: 3, dmg: st.dmg, splash: W.splash, tw, burn: W.burn }) });
       }
+    } else if (W.shot === 'drone') {
+      // 무인기 출격: FPV는 목표에 그대로 자폭, TB2는 목표 위로 날아가 폭탄 투하
+      const fpv = W.drone === 'fpv';
+      this.addShot('missile', mz.clone().setY(mz.y + 0.2), { target: e, speed: fpv ? 7.5 : 6, dmg: st.dmg, tw, pierce: !!W.pierce, splash: W.splash || 0, mesh: this.droneMesh(W.drone), drone: true });
+    } else if (W.shot === 'laser') {
+      // 레이저: 즉시 명중, 붉은 빛줄기가 잠깐 남음
+      this.hurt(e, st.dmg, tw, { pierce: true });
+      this.beam(mz, tp, 0xff3a2a, 0.035, 0.12);
+      this.vfx.impact(tp, e.air);
+    } else if (W.shot === 'rail') {
+      // 레일건: 목표 방향 일직선 위의 모든 지상 적을 꿰뚫음
+      const dir = tp.clone().sub(mz).setY(0).normalize(), end = mz.clone().add(dir.clone().multiplyScalar(st.range * 1.15)).setY(0.3);
+      for (const x of this.enemies) {
+        if (x.dead || x.air) continue;
+        const rel = x.pos.clone().sub(mz).setY(0), along = rel.dot(dir);
+        if (along < 0 || along > st.range * 1.15) continue;
+        if (rel.clone().sub(dir.clone().multiplyScalar(along)).lengthSq() <= 0.55 * 0.55) { this.hurt(x, st.dmg, tw, { pierce: true }); this.vfx.impact(this.targetPoint(x), false); }
+      }
+      this.beam(mz, end, 0x8fe8ff, 0.07, 0.35);
+      this.vfx.muzzle(mz, dir, true); this.app.shake(0.08);
     }
   }
 
@@ -1014,14 +1062,14 @@ export class Game {
       s.pos.y = s.from.y * (1 - k) + s.to.y * k + s.arc * 4 * k * (1 - k);
       if (k >= 1 && s.onHit) { s.done = true; this.fxGroup.remove(s.mesh); s.onHit(s.to); return; }
       if (s.mesh.userData.spinY !== false && s.onHit) s.mesh.rotation.y += dt * 6;   // 날아가는 부처님은 빙글
-      if (k >= 1) { s.done = true; this.fxGroup.remove(s.mesh); this.explode(s.to, s.splash, s.dmg, s.tw); if (s.big) { this.snd('bigboom', 1); this.app.shake(0.3); this.explodeFx(s.to.clone().setY(0.3), 2); } return; }
+      if (k >= 1) { s.done = true; this.fxGroup.remove(s.mesh); this.explode(s.to, s.splash, s.dmg, s.tw); if (s.burn) this.addFire(s.to, s.burn, s.tw); if (s.big) { this.snd('bigboom', 1); this.app.shake(0.3); this.explodeFx(s.to.clone().setY(0.3), 2); } return; }
     }
     s.mesh.position.copy(s.pos);
     if (s.kind !== 'shell') {
       const d = s.pos.clone().sub(prev);
       if (d.lengthSq() > 0) s.mesh.quaternion.setFromUnitVectors(V(0, 1, 0), d.normalize());
       if (s.arrow) this.vfx.emit(this.vfx.glow, { x: s.pos.x, y: s.pos.y, z: s.pos.z, life: 0.18, s0: 0.14, s1: 0.04, c0: [2, 0.9, 0.3], tile: 2 });
-      else this.vfx.trail(s.pos, prev, !!s.heavy, dt);
+      else if (!s.drone) this.vfx.trail(s.pos, prev, !!s.heavy, dt);
     } else this.vfx.emit(this.vfx.glow, { x: s.pos.x, y: s.pos.y, z: s.pos.z, life: 0.08, s0: 0.12, c0: [2, 1.4, 0.6], tile: 2 });
   }
 
@@ -1152,6 +1200,45 @@ export class Game {
     this.pushFx(m, life, (o, k) => { o.scale.setScalar(r * (0.3 + 0.7 * k)); o.material.opacity = 0.9 * (1 - k); });
   }
   tracer(a, b, color = 0xffe08a) { this.vfx.tracer(a, b, color); }
+  // 빛줄기 (레이저·레일건): 두 점을 잇는 빛나는 원기둥이 잠깐 남았다 사라짐
+  beam(a, b, color, r, life) {
+    const d = b.clone().sub(a), L = d.length();
+    const m = new THREE.Mesh(G.beam || (G.beam = new THREE.CylinderGeometry(1, 1, 1, 8, 1, true)), new THREE.MeshBasicMaterial({ color, transparent: true, opacity: 0.95, blending: THREE.AdditiveBlending, depthWrite: false }));
+    m.position.copy(a).addScaledVector(d, 0.5); m.quaternion.setFromUnitVectors(V(0, 1, 0), d.normalize());
+    const core = new THREE.Mesh(G.beam, new THREE.MeshBasicMaterial({ color: 0xffffff, transparent: true, blending: THREE.AdditiveBlending, depthWrite: false })); core.scale.set(0.4, 1, 0.4); m.add(core);
+    m.scale.set(r, L, r);
+    this.pushFx(m, life, (o, k) => { o.material.opacity = 0.95 * (1 - k); o.children[0].material.opacity = 1 - k; o.scale.x = o.scale.z = r * (1 - 0.5 * k); });
+  }
+  // 날아가는 무인기 (+y 방향이 앞)
+  droneMesh(kind) {
+    const key = 'drone_' + kind;
+    if (!this[key]) {
+      const g = new THREE.Group(), body = mat(kind === 'fpv' ? 0x2b2d2a : 0xd9dcd6), dk = mat(0x222222);
+      const box = (w, h, d, m, x, y, z) => { const o = new THREE.Mesh(new THREE.BoxGeometry(w, h, d), m); o.position.set(x, y, z); g.add(o); return o; };
+      if (kind === 'fpv') {
+        box(0.12, 0.12, 0.05, body, 0, 0, 0);
+        for (const [x, y] of [[1, 1], [1, -1], [-1, 1], [-1, -1]]) { const a = box(0.2, 0.02, 0.02, dk, x * 0.07, y * 0.07, 0); a.rotation.z = Math.atan2(y, x); box(0.11, 0.11, 0.005, mat(0x9fb4c0, { transparent: true, opacity: 0.5 }), x * 0.13, y * 0.13, 0.03); }
+        box(0.07, 0.1, 0.06, mat(0x6b5a3a), 0, 0.03, -0.05);   // 매단 폭탄
+        g.scale.setScalar(1.6);
+      } else {
+        box(0.07, 0.62, 0.08, body, 0, 0, 0);                    // 동체
+        box(1.0, 0.1, 0.015, body, 0, 0.04, 0.02);              // 긴 날개
+        for (const s of [-1, 1]) { const t = box(0.16, 0.06, 0.012, body, s * 0.07, -0.3, 0.05); t.rotation.y = s * 0.7; }  // V꼬리
+        box(0.02, 0.02, 0.04, dk, 0, -0.33, 0);                  // 프로펠러 축
+        box(0.18, 0.012, 0.01, dk, 0, -0.34, 0);
+        box(0.05, 0.08, 0.05, dk, 0, 0.2, -0.05);                // 카메라 볼
+        g.scale.setScalar(1.3);
+      }
+      this[key] = g;
+    }
+    return this[key].clone(true);
+  }
+  addFire(p, B, tw) {
+    const m = new THREE.Mesh(G.fireDisc || (G.fireDisc = new THREE.CircleGeometry(1, 24)), new THREE.MeshBasicMaterial({ color: 0xff6a1a, transparent: true, opacity: 0.55, blending: THREE.AdditiveBlending, depthWrite: false }));
+    m.rotation.x = -Math.PI / 2; m.position.set(p.x, 0.07, p.z); m.scale.setScalar(B.r); this.fxGroup.add(m);
+    const lv = tw ? 1 + 0.3 * (tw.level - 1) : 1;
+    this.fires.push({ pos: p.clone().setY(0.1), r: B.r, dps: B.dps * lv, t: B.t, tw, mesh: m });
+  }
   // 부서진 차량: 검게 탄 차체가 한동안 불타며 연기를 뿜다가 가라앉음
   wreck(e) {
     const m = e.model.root;

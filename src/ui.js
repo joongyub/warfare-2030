@@ -84,7 +84,7 @@ export class UI {
       <div class="brief home">
         <div class="home-cta">2030 연합방위전선 · 도시 ${this.stageList().length}곳 · 별 ${this.stageList().reduce((n, X) => n + this.best(X.id), 0)}/${this.stageList().length * 3}</div>
         <div class="go-row"><button class="go">⚔ 전투지역</button></div>
-        <div class="help">조작: 마우스 끌기·방향키 지도 이동 · 휠 확대·축소 · 오른쪽 버튼 끌기 또는 [ ] 키 시점 회전 · R 기본 시점 · 1~9 무기 · Q W E 작전 카드 · Z ICBM · X 전략핵 · 스페이스 일시정지 · N 다음 웨이브</div>
+        <div class="help">조작: 마우스 끌기·방향키 지도 이동 · 휠 확대·축소 · 오른쪽 버튼 끌기 또는 [ ] 키 시점 회전 · R 기본 시점 · 1~0 무기(Shift+1~0 아랫줄) · Q W E 작전 카드 · Z ICBM · X 전략핵 · 스페이스 일시정지 · N 다음 웨이브</div>
         <div class="disc">이 게임은 가상의 이야기입니다. 실제 국가·단체·사건과 관계없습니다. · v${GF.SETTINGS.version}</div>
       </div>`;
     t.querySelector('.go').onclick = () => this.openZone();
@@ -334,10 +334,12 @@ export class UI {
     const rb = h('button', 'sq home-v', '⌂', rv); rb.title = '기본 시점 (R 키)'; rb.onclick = () => this.app.resetView();
     spinBtn('⟳', 1, '오른쪽으로 돌리기 (] 키)');
 
-    // 아래 카드 줄: 무기 8
+    // 아래 카드 줄: 무기 20개를 가격 순서대로 10개씩 2줄 (단축키 윗줄 1~0, 아랫줄 Shift+1~0)
     const bar = h('div', 'bar', null, hud);
+    const grid = h('div', 'cgrid', null, bar);
     this.cards = GF.LOADOUT.map((id, i) => {
-      const c = h('div', 'card', `<img src="${this.icons[id]}"><div class="txt"><b class="wn"></b><span>${GF.WEAPONS[id].role}</span></div><div class="cost">${GF.WEAPONS[id].cost}</div><i>${i + 1}</i>`, bar);
+      const key = (i < 10 ? '' : '⇧') + ((i % 10) + 1) % 10;
+      const c = h('div', 'card', `<img src="${this.icons[id]}"><div class="txt"><b class="wn"></b><span>${GF.WEAPONS[id].role}</span></div><div class="cost">${GF.WEAPONS[id].cost}</div><i>${key}</i>`, grid);
       c.onclick = () => g.setMode(id);
       return { id, c, n: c.querySelector('.wn') };
     });
