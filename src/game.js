@@ -1,7 +1,7 @@
 // 전투 규칙 (v4 서울): 도로 밖 자유 배치 → 작전 개시 → 웨이브가 자동으로 이어짐 (다음 웨이브 ≫ 로 앞당기기)
 import * as THREE from 'three';
 import { getTower, getEnemy, getGhost, mat, ghostMat, ghostBad } from './models.js';
-import { makeHero, HEROES, HERO_IDS, GACHA } from './heroes.js';
+import { makeHero, HEROES, HERO_IDS, GACHA, rollHero } from './heroes.js';
 import { VFX } from './vfx.js';
 
 const V = (x = 0, y = 0, z = 0) => new THREE.Vector3(x, y, z);
@@ -425,7 +425,7 @@ export class Game {
     if (!this.canGacha()) return null;
     if (this.money < GACHA.heroCost) { this.snd('deny'); return { fail: '보급이 부족합니다 (영웅 모집 ' + GACHA.heroCost + ')' }; }
     this.money -= GACHA.heroCost;
-    const id = HERO_IDS[Math.floor(Math.random() * HERO_IDS.length)];
+    const id = rollHero();
     const owned = this.towers.filter((t) => t.W.hero === id).length + this.heroBench.filter((x) => x === id).length;
     this.heroBench.push(id);
     const result = { id, count: owned + 1 };
