@@ -54,6 +54,7 @@ export class UI {
         <button class="pc-hero">🎖 전설의 영웅 보기</button>
         <button class="pc-fs">⛶ 전체 화면으로 하기</button>
         <button class="pc-install">📲 앱으로 설치하기</button>
+        <label class="pc-gq"><span>그래픽</span>${this.gqSelect()}</label>
         <div class="pc-saves"></div>
       </div>
       <div class="brief home">
@@ -63,6 +64,7 @@ export class UI {
         <div class="disc">이 게임은 가상의 이야기입니다. 실제 국가·단체·사건과 관계없습니다. · v${GF.SETTINGS.version}</div>
       </div>`;
     t.querySelector('.go').onclick = () => this.openZone();
+    t.querySelector('.pc-gq select').onchange = (e) => { GF.SETTINGS.graphics = e.target.value; this.app.applySettings(); this.toastAny('그래픽: ' + e.target.selectedOptions[0].textContent); };
     this.renderSaves();
     const inp = t.querySelector('.pc-name'); inp.value = Profile.data.name || '';
     const saveName = () => { Profile.setName(inp.value); this.toastAny('지휘관 이름 저장: ' + Profile.name); };
@@ -155,9 +157,11 @@ export class UI {
       <p>${X.briefing}</p>
       <div class="zn-meta">웨이브 ${X.waves.length} · 기지 체력 ${X.lives} · 적 진입로 ${1 + (X.branches || []).length}곳 · 최고 기록 <b>${this.stars(this.best(id))}</b></div>
       <div class="zn-legend"><span class="lg-r"></span>본 도로 <span class="lg-b"></span>갈래 길 <span class="lg-g"></span>적 입구 <span class="lg-h"></span>연합 지휘부</div>
-      <div class="zn-go">${d ? `<button class="zn-cont">▶ 이어하기<small>웨이브 ${d.wave + 1}부터</small></button>` : ''}<button class="zn-start">${d ? '새로 전투시작' : '⚔ 전투시작'}</button></div>`;
+      <div class="zn-diff"><span>난이도</span>${Object.entries(GF.DIFF).map(([k, D]) => `<button data-d="${k}" class="${GF.SETTINGS.difficulty === k ? 'on' : ''}">${D.name}<small>${D.hp === 1 ? '기본 적' : `체력·수 ×${D.hp}`}</small></button>`).join('')}</div>
+      <div class="zn-go">${d ? `<button class="zn-cont">▶ 이어하기<small>웨이브 ${d.wave + 1}부터${GF.DIFF[d.diff] ? ' · ' + GF.DIFF[d.diff].name : ''}</small></button>` : ''}<button class="zn-start">${d ? '새로 전투시작' : '⚔ 전투시작'}</button></div>`;
     this.drawMap(side.querySelector('.zn-big'), X);
     side.querySelector('.zn-start').onclick = () => this.zoneStart(false);
+    side.querySelectorAll('.zn-diff button').forEach((b) => { b.onclick = () => { GF.SETTINGS.difficulty = b.dataset.d; GF.savePrefs(); side.querySelectorAll('.zn-diff button').forEach((x) => x.classList.toggle('on', x === b)); }; });
     const c = side.querySelector('.zn-cont'); if (c) c.onclick = () => this.zoneStart(true);
   }
   zoneStart(cont) {
@@ -314,6 +318,11 @@ export class UI {
     this.refreshProfile();
   }
 
+  // 그래픽 품질 고르기 (홈 프로필 칸·게임 안 설정에서 같이 씀)
+  gqSelect() {
+    const SET = GF.SETTINGS, cur = SET.graphics === 'auto' ? 'auto' : this.app.look.q;
+    return `<select class="gq">${[['ultra', '최고 (기본)'], ['high', '높음'], ['medium', '보통'], ['low', '낮음 (느린 기기)'], ['auto', '자동 (느리면 낮춤)']].map(([v, n]) => `<option value="${v}" ${cur === v ? 'selected' : ''}>${n}</option>`).join('')}</select>`;
+  }
   renderSettings() {
     const SET = GF.SETTINGS, s = this.settings;
     s.innerHTML = `<b>설정</b>
@@ -321,7 +330,7 @@ export class UI {
       <label><input type="checkbox" data-k="useRealWeaponNames" ${SET.useRealWeaponNames ? 'checked' : ''}> 무기 실제 이름 <small>(끄면 살짝 바꾼 이름)</small></label>
       <label><input type="checkbox" data-k="sound" ${SET.sound ? 'checked' : ''}> 효과음</label>
       <label><input type="checkbox" data-k="shadows" ${SET.shadows ? 'checked' : ''}> 그림자 <small>(느리면 끄기)</small></label>
-      <label>그래픽 <select class="gq">${[['auto', '자동 (추천)'], ['ultra', '최고 (고사양 PC)'], ['high', '높음'], ['medium', '보통'], ['low', '낮음 (느린 기기)']].map(([v, n]) => `<option value="${v}" ${(SET.graphics === 'auto' ? 'auto' : this.app.look.q) === v ? 'selected' : ''}>${n}</option>`).join('')}</select></label>
+      <label>그래픽 ${this.gqSelect()}</label>
       <div class="row"><button class="save">💾 저장하기</button><button class="savex">저장하고 나가기</button></div>
       <div class="row"><button class="home">저장 안 하고 나가기</button><button class="close">닫기</button></div>`;
     s.querySelectorAll('input').forEach((inp) => { inp.onchange = () => { SET[inp.dataset.k] = inp.checked; this.app.applySettings(); }; });

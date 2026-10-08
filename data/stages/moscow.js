@@ -10,6 +10,16 @@ window.GF = window.GF || {};
 GF.STAGES = GF.STAGES || {};
 
 (function () {
+  // 웨이브 늘리기: 20웨이브 짜임새를 N웨이브로 늘리고 뒤로 갈수록 적 수를 늘림 (적 체력 곡선은 game.js 가 N에 맞춰 늘림)
+  const stretch = (w, N) => {
+    const out = [];
+    for (let i = 0; i < N - 1; i++) {
+      const src = w[Math.floor(i * (w.length - 1) / (N - 1))], k = 1 + 0.35 * i / (N - 2);
+      out.push(src.replace(/(\d+)/g, (n) => String(Math.round(+n * k))));
+    }
+    out.push(w[w.length - 1].replace(/(\b(?!boss)[a-z]+ )(\d+)/g, (m, a, n) => a + Math.round(+n * 1.35)));
+    return out;
+  };
   const CX = 0, CZ = -16, RA = 37, RB = 30, RC = 17, RK = 10.5, A0 = -14, A1 = 194, SECT = 9;
   const P = (r, a) => [+(CX + Math.cos(a * Math.PI / 180) * r).toFixed(2), +(CZ + Math.sin(a * Math.PI / 180) * r).toFixed(2)];
   // 고리 길: 모서리 바로 옆(약 0.8)에 점을 하나 더 찍어 꺾이는 곳은 날카롭게, 고리 부분은 부드럽게
@@ -69,12 +79,12 @@ GF.STAGES = GF.STAGES || {};
       { id: 'saviour', label: '구세주 그리스도 대성당', x: -16, z: -50, y: 11 },
       { id: 'river', label: '모스크바강', x: 20, z: -37.8, y: 0.3 }
     ],
-    waves: [
+    waves: stretch([
       'apc 19', 'inf 43', 'apc 22 inf 20', 'apc 24 inf 34', 'inf 40 apc 19',
       'tank 8 apc 29', 'inf 67 drone 22', 'tank 9 apc 32', 'drone 30 apc 34', 'heli 6 tank 11 apc 34',
       'apc 60 inf 58', 'drone 60 tank 14', 'tank 22 apc 46', 'heli 10 drone 48', 'apc 72 tank 14',
       'inf 115 heli 8', 'drone 84 apc 58', 'tank 29 heli 11', 'apc 96 drone 70 tank 19', 'boss 1 tank 24 apc 72 drone 50'
-    ],
+    ], 40),   // 사용자 요청: 모스크바 40웨이브
     autoNextSec: 10
   };
 })();
