@@ -151,6 +151,7 @@ export class Game {
       const r = this.lives / this.S.lives;
       stars = r >= 0.9 ? 3 : r >= 0.5 ? 2 : 1;
       try { const p = JSON.parse(localStorage.getItem('gf_progress') || '{}'); p[this.S.id] = Math.max(p[this.S.id] || 0, stars); localStorage.setItem('gf_progress', JSON.stringify(p)); } catch (e) { /* 저장 불가 환경 */ }
+      if (GF.cloudPush) GF.cloudPush();
     }
     this.ui().showResult(won, stars);
     this.snd(won ? 'win' : 'lose');
