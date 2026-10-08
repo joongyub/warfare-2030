@@ -10,7 +10,7 @@ import { UI } from './ui.js';
 import { Sound } from './audio.js';
 import { layout, isTouch, looksFolded } from './layout.js';
 import { getTower } from './models.js';
-import { makeHero, HERO_IDS, registerHeroes } from './heroes.js';
+import { makeHero, HEROES, HERO_IDS, registerHeroes } from './heroes.js';
 import { Look } from './look.js';
 import { Backdrop, exportGuide } from './backdrop.js';
 import { TitleScene } from './titlescene.js';
@@ -104,7 +104,7 @@ class App {
     // 영웅 얼굴 그림 (몸 위쪽을 크게)
     const hc = new THREE.OrthographicCamera(-0.42, 0.42, 0.42, -0.42, 0.1, 20);
     hc.position.set(2.4, 1.6, 1.1); hc.lookAt(0, 0.62, 0);
-    for (const id of HERO_IDS) {
+    for (const id of Object.keys(HEROES)) {
       const m = makeHero(id); m.yaw.rotation.y = -0.45; m.fire(); m.animate(0.45, 0.5);
       sc.add(m.root); r.render(sc, hc); out['hero_' + id] = r.domElement.toDataURL(); sc.remove(m.root);
     }

@@ -19,6 +19,10 @@ export const HEROES = {
   simjaegwan: { name: '심재관', short: '심재관', nation: '대한민국', title: '뿔테 너머로 모든 걸 꿰뚫어 보는 키다리', color: '#222222', legend: true,
     shot: 'glasses', range: 10.5, dmg: 300, rate: 1.2, salvo: 8, splash: 3.0, hits: ['ground', 'air'],
     role: '뿔테안경 섬광 광선', desc: '검정 뿔테안경을 쓴 키 큰 동양 남자. 검지로 안경을 쓱 올리면 렌즈가 번쩍이며 두 줄기 광선이 날아가 목표 주변 적 8명을 두 번 태우고 잠깐 눈부시게 해 멈춰 세움(공중 포함). 공격력은 임배근·이준학과 같음', gesture: '검지로 뿔테안경을 밀어 올리면 렌즈가 번쩍임' },
+  // 조합 영웅: 임배근 + 김덕훈을 가까이 놓으면 합체. 크기 1.45배, 두 영웅을 합친 것보다 조금 강함
+  monk: { name: '능인 스님', short: '목탁 스님', nation: '능인고', title: '능인고 조합 영웅 (임배근 + 김덕훈)', color: '#d98a2b', legend: true, combo: true, big: 1.45,
+    shot: 'moktak', range: 13, dmg: 800, rate: 1.0, salvo: 8, splash: 3.2, hits: ['ground', 'air'],
+    role: '목탁 부처님 공격', desc: '회색 승복에 주황 가사를 걸친 대형 스님. 목탁을 똑! 똑! 두드릴 때마다 금빛 부처님이 날아가 목표 주변 적 8명에게 큰 피해를 주고 잠깐 멈춰 세움(공중 포함)', gesture: '합장하듯 목탁을 들고 나무채로 똑똑 두드림' },
   macarthur: { name: '더글러스 맥아더', short: '맥아더', nation: '미국', title: '인천상륙작전의 지휘관', color: '#c9a24a',
     shot: 'bombrun', range: 10, dmg: 120, rate: 0.55, salvo: 5, splash: 1.9, hits: ['ground'],
     role: '폭격기 융단 폭격', desc: '선글라스와 옥수수 파이프. 손끝으로 가리킨 곳에 폭격기 편대가 폭탄 5발을 줄지어 떨어뜨림', gesture: '파이프를 물다가 손을 뻗어 목표를 가리킴' },
@@ -38,9 +42,14 @@ export const HEROES = {
     shot: 'finest', range: 9, dmg: 300, rate: 0.42, salvo: 1, splash: 3.0, slow: 0.25, hits: ['ground'],
     role: '중포 일격 + 결의의 연설', desc: '중절모·나비넥타이·시가·지팡이. V자 승리 손짓마다 거대한 포탄 한 발, 사거리 안 적은 늘 25% 느려짐', gesture: '시가를 피우다 오른손을 번쩍 들어 V자 승리 손짓' }
 };
-export const HERO_IDS = Object.keys(HEROES);
-// 뽑기 확률: 전설(legend) 영웅은 일반 영웅의 절반 (2026-10-08 사용자 요청)
-export const heroWeight = (id) => (HEROES[id].legend ? 0.5 : 1);
+// 조합 영웅(combo)은 뽑기에 나오지 않고 조합으로만 생김
+export const HERO_IDS = Object.keys(HEROES).filter((id) => !HEROES[id].combo);
+// 뽑기 확률: 모든 영웅 같음 (2026-10-08 사용자 요청으로 전설 절반 → 다시 동일하게 원복)
+export const heroWeight = () => 1;
+// 영웅 조합: 두 영웅이 가까이(dist 안) 놓이면 합체 → into 영웅 (game.js checkCombo)
+export const COMBOS = [
+  { a: 'limbaegeun', b: 'kimdeokhun', into: 'monk', dist: 3.6, name: '능인고 조합완성' }
+];
 export const heroChance = (id) => heroWeight(id) / HERO_IDS.reduce((s, x) => s + heroWeight(x), 0);
 export function rollHero() {
   let r = Math.random() * HERO_IDS.reduce((s, x) => s + heroWeight(x), 0);
@@ -119,6 +128,7 @@ const FLAGS = {
   leejunhak: (g, w, h) => { g.fillStyle = '#2f5d8f'; g.fillRect(0, 0, w, h); g.fillStyle = '#8fb6dc'; for (let x = 0; x < w; x += 6) g.fillRect(x, 0, 2, h); g.fillStyle = '#5a3418'; g.fillRect(0, h * 0.42, w, h * 0.18); g.fillStyle = '#e8c14a'; g.fillRect(w * 0.4, h * 0.36, w * 0.2, h * 0.3); g.fillStyle = '#5a3418'; g.fillRect(w * 0.45, h * 0.44, w * 0.1, h * 0.14); },
   kimdeokhun: (g, w, h) => { g.fillStyle = '#3e4a22'; g.fillRect(0, 0, w, h); for (let i = 0; i < 40; i++) { g.fillStyle = ['#5f6b34', '#2c3618', '#76713f', '#4a5a2a'][i % 4]; g.fillRect((i * 37) % w, (i * 23) % h, 10, 6); } g.strokeStyle = '#f2f2e8'; g.lineWidth = 3; g.beginPath(); g.arc(w / 2, h / 2, h * 0.3, 0, 7); g.moveTo(w / 2 - h * 0.42, h / 2); g.lineTo(w / 2 + h * 0.42, h / 2); g.moveTo(w / 2, h * 0.08); g.lineTo(w / 2, h * 0.92); g.stroke(); },
   simjaegwan: (g, w, h) => { g.fillStyle = '#f4f1e8'; g.fillRect(0, 0, w, h); g.strokeStyle = '#111'; g.lineWidth = 7; for (const cx of [w * 0.3, w * 0.7]) { g.beginPath(); g.ellipse(cx, h / 2, w * 0.16, h * 0.24, 0, 0, 7); g.stroke(); } g.beginPath(); g.moveTo(w * 0.46, h / 2 - 3); g.lineTo(w * 0.54, h / 2 - 3); g.stroke(); g.fillStyle = 'rgba(120,200,255,.55)'; for (const cx of [w * 0.3, w * 0.7]) { g.beginPath(); g.ellipse(cx, h / 2, w * 0.13, h * 0.2, 0, 0, 7); g.fill(); } },
+  monk: (g, w, h) => { g.fillStyle = '#e8a33a'; g.fillRect(0, 0, w, h); g.fillStyle = '#fff3c8'; for (let i = 0; i < 8; i++) { g.save(); g.translate(w / 2, h * 0.62); g.rotate(-1.2 + i * 0.34); g.beginPath(); g.ellipse(0, -h * 0.22, h * 0.07, h * 0.22, 0, 0, 7); g.fill(); g.restore(); } g.fillStyle = '#b5651d'; g.fillRect(0, h * 0.82, w, h * 0.18); },
   macarthur: (g, w, h) => { for (let i = 0; i < 7; i++) { g.fillStyle = i % 2 ? '#f4f4f4' : '#b8262e'; g.fillRect(0, i * h / 7, w, h / 7 + 1); } g.fillStyle = '#2b3a78'; g.fillRect(0, 0, w * 0.45, h * 4 / 7); g.fillStyle = '#fff'; for (let y = 0; y < 3; y++) for (let x = 0; x < 4; x++) g.fillRect(6 + x * 13, 6 + y * 12, 3, 3); },
   yisunsin: (g, w, h) => { g.fillStyle = '#efe6cf'; g.fillRect(0, 0, w, h); g.strokeStyle = '#7a1c1c'; g.lineWidth = 8; g.strokeRect(4, 4, w - 8, h - 8); g.fillStyle = '#111'; g.font = `bold ${h * 0.62}px serif`; g.textAlign = 'center'; g.textBaseline = 'middle'; g.fillText('帥', w / 2, h / 2 + 3); },
   hideyoshi: (g, w, h) => { g.fillStyle = '#7a1a1a'; g.fillRect(0, 0, w, h); g.fillStyle = '#e8b830'; const gourd = (cx, cy, s) => { g.beginPath(); g.arc(cx, cy, s, 0, 7); g.fill(); g.beginPath(); g.arc(cx, cy - s * 1.3, s * 0.65, 0, 7); g.fill(); }; gourd(w / 2, h * 0.62, h * 0.2); },
@@ -330,6 +340,40 @@ export function makeHero(id) {
       h.head.rotation.z = lerp(0.02, 0.1, up) + Math.sin(t * 0.7) * 0.02; h.head.rotation.y = Math.sin(t * 0.5) * 0.15 * (1 - up);
       body.rotation.z = lerp(0, -0.03, up);
     };
+  } else if (id === 'monk') {
+    // 스님: 회색 승복 + 주황 가사(어깨에 비스듬히) + 민머리. 왼손에 목탁(둥근 나무 물고기), 오른손에 나무채
+    const h = humanoid({ coat: 0x8a8a84, pants: 0x7e7e78, boots: 0xd8d2c0, wide: 0.29, skirt: 0.17, skirtColor: 0x8a8a84 });
+    body.add(h.fig);
+    h.torso.scale.set(1.2, 1, 1);
+    const kasaya = M(0xd9822b, { roughness: 0.8 });
+    const sash = mesh(h.torso, new THREE.BoxGeometry(0.19, 0.06, 0.32), kasaya, 0.0, 0.02, 0); sash.rotation.x = 0.75;   // 비스듬한 가사 띠
+    mesh(h.torso, new THREE.BoxGeometry(0.188, 0.1, 0.3), kasaya, 0, -0.09, 0);
+    h.head.scale.setScalar(1.12);
+    for (const s of [-1, 1]) {
+      mesh(h.head, new THREE.SphereGeometry(0.016, 8, 6), M(0xe3b48f), -0.005, -0.005, s * 0.068).scale.set(0.7, 1.5, 0.6);   // 귀
+      mesh(h.head, new THREE.BoxGeometry(0.004, 0.003, 0.022), M(0x2a1a10), 0.066, 0.016, s * 0.024);   // 지그시 감은 눈
+    }
+    mesh(h.head, new THREE.BoxGeometry(0.004, 0.004, 0.03), M(0x8a4a3a), 0.067, -0.03, 0);
+    // 염주 (목에)
+    const beads = M(0x5a2a10, { roughness: 0.4 });
+    for (let i = 0; i < 14; i++) { const a = (i / 14) * Math.PI * 2; mesh(h.torso, new THREE.SphereGeometry(0.012, 6, 4), beads, 0.05 + Math.cos(a) * 0.055, 0.08 + Math.sin(a) * 0.05 - 0.02, Math.sin(a) * 0.09); }
+    // 목탁: 왼손 앞, 둥근 몸통 + 가로 홈 + 손잡이
+    const wood = M(0x9a5a22, { roughness: 0.45, metalness: 0.05 }), moktak = new THREE.Group(); moktak.position.set(0.2, 0.36, 0.04); body.add(moktak);
+    mesh(moktak, new THREE.SphereGeometry(0.075, 16, 12), wood, 0, 0, 0).scale.set(1, 0.85, 0.95);
+    mesh(moktak, new THREE.BoxGeometry(0.08, 0.008, 0.11), M(0x2a1606), 0.035, 0, 0);
+    mesh(moktak, new THREE.TorusGeometry(0.025, 0.008, 6, 12, Math.PI), wood, -0.07, 0.03, 0).rotation.z = Math.PI / 2;
+    const stick = new THREE.Group(); h.R.hand.add(stick);
+    mesh(stick, new THREE.CylinderGeometry(0.008, 0.01, 0.16, 6), M(0xc79a5a), 0, -0.06, 0).rotation.x = 0;
+    mesh(stick, new THREE.SphereGeometry(0.018, 8, 6), M(0xc79a5a), 0, -0.14, 0);
+    pose = (t, a) => {
+      // 평소: 천천히 똑... 똑... / 공격(a 1→0): 빠르게 두 번 똑똑
+      const beat = a > 0.25 ? Math.abs(Math.sin((1 - a) / 0.75 * Math.PI * 2)) : Math.max(0, Math.sin(t * 2.4)) * 0.5;
+      set(h.L, 1.1, 0.35, 0.9);                           // 왼손: 목탁 받침
+      h.R.sh.rotation.set(-0.15, -0.25, 1.25 + beat * 0.55); h.R.el.rotation.set(0, 0, 0.9 + beat * 0.5);   // 오른손: 채를 들었다 내리침
+      moktak.rotation.z = -beat * 0.05;
+      h.head.rotation.z = 0.05 + beat * 0.04; h.head.rotation.y = Math.sin(t * 0.4) * 0.08;
+      body.rotation.z = Math.sin(t * 0.8) * 0.01;
+    };
   } else if (id === 'macarthur') {
     const h = humanoid({ coat: 0xb59a6a, pants: 0xa98f62, belt: 0x5a3c22, wide: 0.24 });
     body.add(h.fig);
@@ -509,7 +553,7 @@ export function makeHero(id) {
   }
 
   // 공격 순간 몸짓이 크게 보이도록 act 1 → 0 으로 줄어듦 (game.js 가 fire 때 act = 1)
-  const muzzle = new THREE.Object3D(); muzzle.position.set(...({ limbaegeun: [0.45, 0.75], leejunhak: [0.35, 1.1], simjaegwan: [0.12, 0.95], kimdeokhun: [0.66, 0.68] }[id] || [0.3, 0.9]), 0); yaw.add(muzzle);
+  const muzzle = new THREE.Object3D(); muzzle.position.set(...({ monk: [0.25, 0.6], limbaegeun: [0.45, 0.75], leejunhak: [0.35, 1.1], simjaegwan: [0.12, 0.95], kimdeokhun: [0.66, 0.68] }[id] || [0.3, 0.9]), 0); yaw.add(muzzle);
   const animate = (dt, t) => {
     P.act = Math.max(0, P.act - dt * 0.9);
     pose(t + P.idle, P.act);
@@ -519,4 +563,23 @@ export function makeHero(id) {
   };
   pose(0, 0);
   return { root, yaw, pitch: yaw, muzzle, spin, glow, animate, fire: () => { P.act = 1; }, hero: id, P };
+}
+
+// 목탁 스님 공격 때 날아가는 금빛 부처님 (작은 좌상: 연꽃 받침 + 몸 + 머리 + 육계 + 광배)
+let buddhaProto = null;
+export function makeBuddha() {
+  if (!buddhaProto) {
+    const g = new THREE.Group();
+    const gold = new THREE.MeshStandardMaterial({ color: 0xffc94a, emissive: 0xffa000, emissiveIntensity: 0.9, metalness: 0.6, roughness: 0.3 });
+    const halo = new THREE.MeshBasicMaterial({ color: 0xfff0a0, transparent: true, opacity: 0.7, side: THREE.DoubleSide, depthWrite: false, blending: THREE.AdditiveBlending });
+    const m = (geo, mat, x, y, z) => { const o = new THREE.Mesh(geo, mat); o.position.set(x, y, z); g.add(o); return o; };
+    m(new THREE.CylinderGeometry(0.2, 0.14, 0.06, 12), gold, 0, 0, 0);                    // 연꽃 받침
+    m(new THREE.SphereGeometry(0.17, 12, 8), gold, 0, 0.1, 0).scale.set(1.2, 0.55, 1);      // 결가부좌 다리
+    m(new THREE.SphereGeometry(0.12, 12, 8), gold, 0, 0.24, 0).scale.set(1, 1.25, 0.85);    // 몸
+    m(new THREE.SphereGeometry(0.075, 12, 8), gold, 0, 0.42, 0);                           // 머리
+    m(new THREE.SphereGeometry(0.035, 8, 6), gold, 0, 0.5, 0);                             // 육계
+    const h = m(new THREE.RingGeometry(0.12, 0.2, 24), halo, -0.05, 0.4, 0); h.rotation.y = Math.PI / 2;   // 광배
+    buddhaProto = g;
+  }
+  return buddhaProto.clone();
 }
