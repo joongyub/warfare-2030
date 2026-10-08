@@ -109,7 +109,7 @@
   /* 전투 화면: 영웅 버튼 · 배치 대기 영웅 */
   #hud .sq.hq { width: auto; padding: 0 16px; gap: 6px; background: linear-gradient(#ffe08a, #d9a43a); color: #2a1a00; font-weight: 900; font-size: 17px; border: 0; box-shadow: 0 0 14px rgba(255,200,80,.5); }
   #hud .sq.hq span { font-size: 22px; }
-  .hbench { position: absolute; left: 22px; bottom: 170px; display: flex; gap: 8px; align-items: flex-end; }
+  .hbench { position: absolute; left: 22px; bottom: 258px; display: flex; gap: 8px; align-items: flex-end; }
   .hb-t { position: absolute; left: 2px; top: -24px; font-size: 14px; color: #ffd36a; font-weight: 800; white-space: nowrap; text-shadow: 0 1px 3px #000; }
   .hbench .hb { position: relative; width: 170px; height: 64px; padding: 6px 6px 6px 62px; border-radius: 14px; border: 2px solid #ffd36a; background: linear-gradient(#3a2c10, #1a140a); color: #fff; text-align: left; cursor: pointer; box-shadow: 0 0 16px rgba(255,200,80,.5); animation: sbpulse 1.6s infinite; pointer-events: auto; }
   .hbench .hb.sel { border-color: #fff; background: linear-gradient(#5a4416, #2a200c); }
@@ -247,15 +247,16 @@
   .sq.exit { font-size: 17px; padding: 0 14px; }
   .sq:hover { background: rgba(30,60,72,.95); }
 
-  .bar { position: absolute; left: 14px; right: 330px; bottom: 14px; height: 150px; display: flex; gap: 10px; padding: 12px; box-sizing: border-box; background: var(--panel); border-radius: 22px; box-shadow: 0 8px 30px rgba(0,0,0,.3); }
-  .card { position: relative; flex: 1; min-width: 0; border-radius: 14px; border: 2px solid rgba(255,255,255,.12); background: rgba(255,255,255,.05); display: flex; flex-direction: column; align-items: center; justify-content: flex-start; cursor: pointer; transition: transform .1s; }
+  .bar { position: absolute; left: 14px; right: 330px; bottom: 14px; height: 236px; display: flex; gap: 10px; padding: 12px; box-sizing: border-box; background: var(--panel); border-radius: 22px; box-shadow: 0 8px 30px rgba(0,0,0,.3); }
+  .cgrid { flex: 1; min-width: 0; display: grid; grid-template-columns: repeat(10, minmax(0, 1fr)); grid-template-rows: 1fr 1fr; gap: 6px; }
+  .card { position: relative; min-width: 0; min-height: 0; overflow: hidden; border-radius: 14px; border: 2px solid rgba(255,255,255,.12); background: rgba(255,255,255,.05); display: flex; flex-direction: column; align-items: center; justify-content: flex-start; cursor: pointer; transition: transform .1s; }
   .card:hover { transform: translateY(-3px); border-color: var(--line); }
-  .card img { width: 74px; height: 74px; margin-top: 0; }
+  .card img { width: 64px; height: 64px; margin-top: 0; }
   .card .txt { text-align: center; line-height: 1.1; }
-  .card .txt b { font-size: 15px; white-space: nowrap; } .card .txt span { display: block; font-size: 11px; color: #9fb2c0; }
-  .card .cost { position: absolute; right: 6px; top: 6px; background: rgba(0,0,0,.55); border-radius: 999px; padding: 2px 9px 2px 24px; font-size: 15px; font-weight: 700; color: var(--gold); }
-  .card .cost::before { content: ''; position: absolute; left: 8px; top: 5px; width: 11px; height: 13px; background: linear-gradient(135deg, #ffe17a, #e9a316); clip-path: polygon(50% 0, 100% 25%, 100% 75%, 50% 100%, 0 75%, 0 25%); }
-  .card i { position: absolute; left: 8px; top: 5px; font-style: normal; font-weight: 800; color: var(--teal); font-size: 15px; }
+  .card .txt { max-width: 100%; padding: 0 3px; box-sizing: border-box; } .card .txt b { display: block; font-size: 14px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; } .card .txt span { display: block; font-size: 10px; color: #9fb2c0; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+  .card .cost { position: absolute; right: 4px; top: 4px; background: rgba(0,0,0,.55); border-radius: 999px; padding: 1px 7px 1px 20px; font-size: 13px; font-weight: 700; color: var(--gold); }
+  .card .cost::before { content: ''; position: absolute; left: 6px; top: 4px; width: 11px; height: 13px; background: linear-gradient(135deg, #ffe17a, #e9a316); clip-path: polygon(50% 0, 100% 25%, 100% 75%, 50% 100%, 0 75%, 0 25%); }
+  .card i { position: absolute; left: 6px; top: 3px; font-style: normal; font-weight: 800; color: var(--teal); font-size: 13px; }
   .card.sel { border-color: var(--teal); background: rgba(63,214,210,.16); box-shadow: 0 0 0 3px rgba(120,250,245,.35), 0 0 22px rgba(63,214,210,.45); }
   .card.off { opacity: .45; }
   .card.pulse { animation: pulse .5s 3; }
@@ -284,7 +285,7 @@
   .float { position: absolute; transform: translate(-50%, -50%); font-size: 20px; font-weight: 800; text-shadow: 0 0 4px #000, 0 0 2px #000; }
   .toast { position: absolute; left: 0; right: 0; top: 120px; text-align: center; font-size: 30px; font-weight: 800; text-shadow: 0 0 8px #000, 0 2px 4px #000; opacity: 0; transition: opacity .4s; }
   .toast.on { opacity: 1; }
-  .hint { position: absolute; left: 210px; right: 340px; bottom: 172px; text-align: center; font-size: 19px; text-shadow: 0 0 6px #000, 0 1px 3px #000; }
+  .hint { position: absolute; left: 210px; right: 340px; bottom: 258px; text-align: center; font-size: 19px; text-shadow: 0 0 6px #000, 0 1px 3px #000; }
   .dmgflash { position: absolute; inset: 0; background: radial-gradient(transparent 50%, rgba(229,72,77,.6)); opacity: 0; }
   .dmgflash.on { animation: dmg .45s; } @keyframes dmg { 0% { opacity: 1; } 100% { opacity: 0; } }
   .paused { position: absolute; left: 0; right: 0; top: 440px; text-align: center; font-size: 80px; font-weight: 800; text-shadow: 0 0 20px #000; display: none; }
@@ -345,15 +346,15 @@
   .mobile .tr { right: 8px; top: 5px; gap: 6px; }
   .mobile .pill { height: 44px; min-width: 0; padding: 0 12px; gap: 6px; font-size: 21px; border-radius: 12px; } .mobile .pill span { display: none; }
   .mobile .sq { height: 44px; min-width: 46px; font-size: 18px; border-radius: 12px; } .mobile .sq.gear { font-size: 24px; } .mobile .sq.speed { padding: 0 8px; font-size: 15px; }
-  .mobile .bar { left: 8px; right: 236px; bottom: 8px; height: 112px; gap: 6px; padding: 8px; border-radius: 16px; }
-  .mobile .card { border-radius: 10px; } .mobile .card img { width: 56px; height: 56px; } .mobile .card .txt b { font-size: 12px; } .mobile .card .txt span, .mobile .card i { display: none; }
-  .mobile .card .cost { right: 3px; top: 3px; font-size: 12px; padding: 1px 6px 1px 18px; } .mobile .card .cost::before { left: 5px; top: 3px; width: 9px; height: 11px; }
+  .mobile .bar { left: 8px; right: 236px; bottom: 8px; height: 168px; gap: 6px; padding: 6px; border-radius: 16px; } .mobile .cgrid { gap: 4px; }
+  .mobile .card { border-radius: 10px; } .mobile .card img { width: 50px; height: 50px; } .mobile .card .txt b { font-size: 11px; } .mobile .card .txt span, .mobile .card i { display: none; }
+  .mobile .card .cost { right: 2px; top: 2px; font-size: 11px; padding: 0 5px 0 16px; } .mobile .card .cost::before { left: 5px; top: 3px; width: 9px; height: 11px; }
   .mobile .ops { flex: 0 0 214px; gap: 3px; padding-left: 5px; } .mobile .ops-title { display: none; }
   .mobile .op { height: 27px; padding: 0 28px 0 8px; } .mobile .op i, .mobile .op span { display: none; } .mobile .op b { font-size: 14px; } .mobile .op em { width: 21px; height: 21px; }
   .mobile .cpbar .seg { height: 9px; }
   .mobile .nextwave { right: 8px; bottom: 66px; width: 220px; height: 54px; border-radius: 16px; gap: 1px; } .mobile .nextwave b, .mobile .nextwave.busy b { font-size: 22px; } .mobile .nextwave small { font-size: 11px; }
   .mobile .strat { right: 8px; bottom: 8px; width: 220px; gap: 6px; } .mobile .sb { height: 52px; padding: 4px 4px 0 22px; border-radius: 12px; } .mobile .sb i { left: 6px; top: 4px; font-size: 13px; } .mobile .sb b { font-size: 13px; } .mobile .sb span { display: block; font-size: 11px; white-space: nowrap; overflow: hidden; }
-  .mobile .hint { left: 160px; right: 240px; bottom: 124px; font-size: 14px; }
+  .mobile .hint { left: 160px; right: 240px; bottom: 182px; font-size: 14px; }
   .mobile .tip { font-size: 15px; padding: 5px 10px; }
   .mobile .toast { top: 76px; font-size: 22px; } .mobile .combo { top: 110px; font-size: 28px; } .mobile .combo b { font-size: 52px; }
   .mobile .paused { top: 300px; font-size: 56px; }
@@ -393,7 +394,7 @@
   .mobile .sh-box { width: 1200px; padding: 16px 20px; } .mobile .sh-head { margin-bottom: 12px; } .mobile .sh-head > b { font-size: 28px; }
   .mobile .pk { padding: 16px 8px 12px; } .mobile .pk-ico { font-size: 40px; } .mobile .pk b { font-size: 22px; } .mobile .pk button { height: 56px; font-size: 22px; }
   .mobile .hr { min-height: 128px; padding-left: 100px; } .mobile .hr img { width: 90px; height: 90px; } .mobile .hr small { display: none; } .mobile .sh-tabs button { height: 58px; } .mobile .sh-body { min-height: 0; }
-  .mobile .hbench { left: 10px; bottom: 132px; } .mobile .hbench .hb { width: 140px; height: 58px; padding-left: 56px; } .mobile .hbench .hb img { width: 48px; height: 48px; }
+  .mobile .hbench { left: 10px; bottom: 182px; } .mobile .hbench .hb { width: 140px; height: 58px; padding-left: 56px; } .mobile .hbench .hb img { width: 48px; height: 48px; }
   .mobile .sh-wd { font-size: 17px; margin-top: 14px; } .mobile .sh-wd button { height: 52px; font-size: 20px; } .mobile .sh-note { font-size: 13px; margin-top: 10px; }
 
   /* 홈 프로필 칸 (v0.31.0): 오른쪽 아래 작은 칸으로 옮겨 홈 그림 캐릭터를 가리지 않게. 저장 목록·화면 설정은 버튼으로 위로 펼침 */

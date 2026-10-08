@@ -52,7 +52,7 @@ export class Sound {
   play(name, vol = 1) {
     if (!this.ctx || !GF.SETTINGS.sound) return;
     const c = this.ctx, t = c.currentTime;
-    const gaps = { bullet: 0.07, cannon: 0.09, shell: 0.12, missile: 0.15, intercept: 0.08, rockets: 0.2, boom: 0.06, bigboom: 0.15, kill: 0.05, hit: 0.05 };
+    const gaps = { bullet: 0.07, cannon: 0.09, shell: 0.12, missile: 0.15, intercept: 0.08, rockets: 0.2, gepard: 0.2, buzz: 0.3, laser: 0.1, rail: 0.2, boom: 0.06, bigboom: 0.15, kill: 0.05, hit: 0.05 };
     if (t - (this.last[name] || -9) < (gaps[name] || 0.03)) return;
     this.last[name] = t;
     const v = vol;
@@ -71,6 +71,16 @@ export class Sound {
         break;
       case 'intercept': // 요격 퓨웅
         this.tone(t, { f: 1400, fEnd: 500, dur: 0.18, type: 'triangle', vol: 0.14 * v }); this.noiseHit(t, { dur: 0.25, f: 2500, type: 'bandpass', q: 3, vol: 0.15 * v }); break;
+      case 'gepard': // 35mm 쌍열포: 묵직한 2연발
+        for (let i = 0; i < 4; i++) { this.noiseHit(t + i * 0.06, { dur: 0.07, f: 1800, type: 'bandpass', q: 1, vol: 0.26 * v }); this.tone(t + i * 0.06, { f: 160, fEnd: 70, dur: 0.06, vol: 0.12 * v }); }
+        break;
+      case 'buzz': // 무인기 출격: 프로펠러 윙~
+        this.tone(t, { f: 180, fEnd: 240, dur: 0.6, type: 'sawtooth', vol: 0.06 * v, a: 0.05 }); this.tone(t, { f: 360, fEnd: 470, dur: 0.6, type: 'square', vol: 0.025 * v, a: 0.05 }); break;
+      case 'laser': // 레이저 지잉
+        this.tone(t, { f: 1900, fEnd: 1500, dur: 0.12, type: 'sawtooth', vol: 0.05 * v, a: 0.005 }); this.tone(t, { f: 950, dur: 0.12, type: 'sine', vol: 0.06 * v }); break;
+      case 'rail': // 레일건: 충전 윙 + 날카로운 쾅
+        this.tone(t, { f: 300, fEnd: 2400, dur: 0.18, type: 'sawtooth', vol: 0.08 * v, a: 0.01 });
+        this.noiseHit(t + 0.17, { dur: 0.5, f: 4000, fEnd: 300, vol: 0.6 * v }); this.tone(t + 0.17, { f: 90, fEnd: 30, dur: 0.5, vol: 0.5 * v }); break;
       case 'cruise': // 현무 발사: 묵직한 점화 + 긴 분사음
         this.tone(t, { f: 80, fEnd: 40, dur: 0.6, vol: 0.5 * v }); this.noiseHit(t, { dur: 1.4, f: 300, fEnd: 2500, type: 'bandpass', q: 0.8, vol: 0.5 * v }); break;
       case 'nuke':
