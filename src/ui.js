@@ -39,6 +39,8 @@ export class UI {
     this.icons = icons;
     const S = this.app.stage, best = this.best();
     const t = this.title = h('div', 'title-screen', null, this.root);
+    // 홈 배경 그림 (settings.homeBg). 없으면 뒤의 3D 전장이 보임
+    if (GF.SETTINGS.homeBg) { t.classList.add('has-bg'); t.style.setProperty('--home-bg', `url("${GF.SETTINGS.homeBg}")`); }
     t.innerHTML = `
       <div class="brand"><span>MODERN WAR TOWER DEFENSE</span><h1>2030 Warfare 1</h1><p>부카니스탄이 세계 50개 도시를 침공했다. 연합군 지휘관으로서 도시를 지켜라.</p></div>
       <div class="profile-card">
