@@ -395,6 +395,31 @@
   .mobile .hr { min-height: 128px; padding-left: 100px; } .mobile .hr img { width: 90px; height: 90px; } .mobile .hr small { display: none; } .mobile .sh-tabs button { height: 58px; } .mobile .sh-body { min-height: 0; }
   .mobile .hbench { left: 10px; bottom: 132px; } .mobile .hbench .hb { width: 140px; height: 58px; padding-left: 56px; } .mobile .hbench .hb img { width: 48px; height: 48px; }
   .mobile .sh-wd { font-size: 17px; margin-top: 14px; } .mobile .sh-wd button { height: 52px; font-size: 20px; } .mobile .sh-note { font-size: 13px; margin-top: 10px; }
+
+  /* 홈 프로필 칸 (v0.31.0): 오른쪽 아래 작은 칸으로 옮겨 홈 그림 캐릭터를 가리지 않게. 저장 목록·화면 설정은 버튼으로 위로 펼침 */
+  .title-screen .profile-card { top: auto; right: 40px; bottom: 36px; width: 520px; padding: 16px 20px 18px; background: rgba(12,22,32,.8); }
+  .title-screen .pc-head { display: flex; align-items: baseline; justify-content: space-between; margin-bottom: 8px; } .title-screen .pc-head .pc-title { margin: 0; }
+  .title-screen .pc-c { font-size: 17px; color: #b9c9d4; } .title-screen .pc-c b { color: var(--gold); font-size: 20px; }
+  .title-screen .pc-row { margin-bottom: 10px; } .title-screen .pc-name { height: 46px; font-size: 21px; }
+  .title-screen .pc-btns { display: grid; grid-template-columns: repeat(4, 1fr); gap: 8px; }
+  .title-screen .pc-btns button { display: block; width: auto; height: 46px; margin: 0; padding: 0 4px; border: 0; border-radius: 12px; font-size: 16px; font-weight: 800; cursor: pointer; color: #eaf4f8; background: #24425c; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+  .title-screen .pc-btns .pc-shop { color: #3a2600; background: linear-gradient(#ffd96a, #f2a33a); } .title-screen .pc-btns .pc-hero { color: #2a1a00; background: linear-gradient(#ffe08a, #d9a43a); }
+  .title-screen .pc-btns .pc-sv i { font-style: normal; color: var(--gold); }
+  .title-screen .pc-btns .pc-fs, .title-screen .pc-btns .pc-install { display: none; }
+  .mobile.title-screen .pc-btns .pc-fs, .mobile .title-screen .pc-btns .pc-fs, .can-install .title-screen .pc-btns .pc-install { display: block; }
+  .title-screen .pc-btns .pc-exit { background: #5a2226; color: #ffd6d8; } .title-screen .pc-btns .pc-exit.ask { background: #c0392b; color: #fff; font-size: 12px; }
+  .title-screen .pc-pop { display: none; position: absolute; left: 0; right: 0; bottom: calc(100% + 10px); max-height: 520px; overflow: auto; padding: 14px 18px; margin: 0; border-top: 0; background: rgba(12,22,32,.94); border: 1px solid rgba(143,243,255,.25); border-radius: 16px; box-shadow: 0 10px 30px rgba(0,0,0,.4); }
+  .title-screen .pc-pop.on { display: block; }
+  .mobile .title-screen .profile-card { right: 18px; bottom: 16px; top: auto; width: 400px; padding: 10px 14px 12px; }
+  .mobile .title-screen .pc-name { height: 38px; font-size: 17px; } .mobile .title-screen .pc-c { font-size: 13px; } .mobile .title-screen .pc-c b { font-size: 15px; }
+  .mobile .title-screen .pc-btns { gap: 6px; } .mobile .title-screen .pc-btns button { height: 38px; font-size: 13px; border-radius: 10px; }
+  .mobile .title-screen .pc-pop { max-height: 330px; padding: 10px 12px; }
+  .mobile .brief.home { width: 740px; } .mobile .brief.home .help { max-width: 740px; }
+  .title-screen .pc-pop .pc-gq { font-size: 17px; } .title-screen .pc-pop .pc-gq select { font-size: 16px; padding: 6px; } .title-screen .pc-pop .fold-opt { font-size: 16px; }
+  .mobile .title-screen .pc-pop .pc-gq, .mobile .title-screen .pc-pop .fold-opt { font-size: 14px; }
+  .exit-screen { position: fixed; inset: 0; z-index: 2000; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 14px; background: #0b1218; color: #dfeaf0; font-family: inherit; text-align: center; padding: 20px; }
+  .exit-screen b { font-size: 34px; color: #8ff3ff; } .exit-screen p { margin: 0; font-size: 17px; line-height: 1.6; color: #b9c9d4; }
+  .exit-screen button { margin-top: 8px; height: 50px; padding: 0 30px; border: 0; border-radius: 12px; font-size: 19px; font-weight: 800; color: #062a2e; background: linear-gradient(#6af0ea, #2cb9bd); cursor: pointer; }
 </style>
 </head>
 <body>

@@ -3,7 +3,7 @@
 import { Profile } from './profile.js';
 import { Cloud } from './cloud.js';
 import { layout, isTouch } from './layout.js';
-import { HEROES, HERO_IDS, GACHA } from './heroes.js';
+import { HEROES, HERO_IDS, GACHA, heroChance } from './heroes.js';
 import { Saves } from './save.js';
 // 화면 글자·위치가 바뀔 때만 실제로 씀 (매 프레임 다시 쓰면 휴대폰에서 끊김)
 const putCache = new WeakMap();
@@ -45,18 +45,15 @@ export class UI {
     t.innerHTML = `
       <div class="brand"><span>MODERN WAR TOWER DEFENSE</span><h1>2030 Warfare 1</h1><p>부카니스탄이 세계 50개 도시를 침공했다. 연합군 지휘관으로서 도시를 지켜라.</p></div>
       <div class="profile-card">
-        <div class="pc-title">지휘관 프로필</div>
+        <div class="pc-pop pc-saves"></div>
+        <div class="pc-pop pc-set"><div class="pc-title">⚙ 화면 설정</div><label class="pc-gq"><span>그래픽</span>${this.gqSelect()}</label>${this.foldBox()}</div>
+        <div class="pc-head"><span class="pc-title">지휘관 프로필</span><span class="pc-c">보급창 <b class="pc-cred"></b></span></div>
         <div class="pc-cloud"></div>
         <div class="pc-row"><input class="pc-name" maxlength="12" placeholder="이름을 정하세요" value=""><button class="pc-save">저장</button></div>
-        <div class="pc-stat"><span>보급창</span><b class="pc-cred"></b></div>
-        <div class="pc-stat"><span>${S.name} 최고 기록</span><b>${'★'.repeat(best)}${'☆'.repeat(3 - best)}</b></div>
-        <button class="pc-shop">🛒 상점 · 보급 충전</button>
-        <button class="pc-hero">🎖 전설의 영웅 보기</button>
-        <button class="pc-fs">⛶ 전체 화면으로 하기</button>
-        <button class="pc-install">📲 앱으로 설치하기</button>
-        <label class="pc-gq"><span>그래픽</span>${this.gqSelect()}</label>
-        ${this.foldBox()}
-        <div class="pc-saves"></div>
+        <div class="pc-btns">
+          <button class="pc-shop">🛒 상점</button><button class="pc-hero">🎖 영웅</button><button class="pc-sv">💾 저장 <i></i></button>
+          <button class="pc-cfg">⚙ 설정</button><button class="pc-fs">⛶ 전체</button><button class="pc-install">📲 설치</button><button class="pc-exit">⏻ 나가기</button>
+        </div>
       </div>
       <div class="brief home">
         <div class="home-cta">2030 연합방위전선 · 도시 ${this.stageList().length}곳 · 별 ${this.stageList().reduce((n, X) => n + this.best(X.id), 0)}/${this.stageList().length * 3}</div>
@@ -75,6 +72,11 @@ export class UI {
     t.querySelector('.pc-shop').onclick = () => this.openShop('charge');
     t.querySelector('.pc-hero').onclick = () => this.openShop('hero');
     t.querySelector('.pc-fs').onclick = () => this.fullscreen();
+    // 저장 목록·화면 설정은 버튼을 누르면 프로필 칸 위로 펼침 (홈 그림 캐릭터를 가리지 않게 평소엔 접어 둠)
+    const pop = (cls) => { const p = t.querySelector('.' + cls), open = !p.classList.contains('on'); t.querySelectorAll('.pc-pop').forEach((x) => x.classList.remove('on')); p.classList.toggle('on', open); };
+    t.querySelector('.pc-sv').onclick = () => pop('pc-saves');
+    t.querySelector('.pc-cfg').onclick = () => pop('pc-set');
+    t.querySelector('.pc-exit').onclick = (e) => this.exitGame(e.currentTarget);
     t.querySelector('.pc-install').onclick = () => {
       const ip = window.__installPrompt; if (!ip) return;
       ip.prompt(); ip.userChoice.then(() => { window.__installPrompt = null; document.body.classList.remove('can-install'); });
@@ -99,6 +101,20 @@ export class UI {
       box.querySelector('.cl-out').onclick = () => C.signOut();
     }
   }
+  // 홈 나가기: 한 번 더 누르면 전체 화면을 끄고 창 닫기 시도. 브라우저가 닫기를 막으면 종료 화면
+  exitGame(btn) {
+    if (!btn.classList.contains('ask')) { btn.classList.add('ask'); btn.textContent = '한 번 더 누르면 나가기'; setTimeout(() => { if (btn.isConnected) { btn.classList.remove('ask'); btn.textContent = '⏻ 나가기'; } }, 2500); return; }
+    this.fsOff = true;
+    const fs = document.fullscreenElement || document.webkitFullscreenElement;
+    if (fs) try { (document.exitFullscreen || document.webkitExitFullscreen).call(document); } catch (e) { /* 미지원 */ }
+    try { window.close(); } catch (e) { /* 막힘 */ }
+    setTimeout(() => {
+      if (this.app.sound && this.app.sound.ctx) try { this.app.sound.ctx.suspend(); } catch (e) { /* 소리 없음 */ }
+      this.app.renderer.setAnimationLoop(null);
+      const o = h('div', 'exit-screen', `<b>2030 Warfare 1</b><p>게임을 종료했어요. 진행 상황은 저장돼 있어요.<br>이 탭(창)을 닫거나, 아래 버튼으로 다시 시작하세요.</p><button>다시 시작</button>`, document.body);
+      o.querySelector('button').onclick = () => location.reload();
+    }, 250);
+  }
   // 처음 화면: 저장된 게임 목록 + 이어하기 버튼
   renderSaves() {
     const t = this.title; if (!t) return;
@@ -109,6 +125,7 @@ export class UI {
       const d = all[X.id];
       return `<div class="sv" data-id="${X.id}"><div class="sv-i"><b>${X.name}</b><span>웨이브 ${d.wave + 1}/${X.waves.length} · 기지 ${d.lives}/${X.lives} · 보급 ${d.money}</span><small>${Saves.when(d.time)} 저장 · 무기 ${d.towers.length}대</small></div><button class="sv-load">불러오기</button><button class="sv-del" title="삭제">✕</button></div>`;
     }).join('') : '<div class="sv-none">아직 없어요. 전투 중 💾 버튼으로 저장하세요.</div>');
+    const cnt = t.querySelector('.pc-sv i'); if (cnt) cnt.textContent = list.length || '';
     box.querySelectorAll('.sv').forEach((row) => {
       const id = row.dataset.id;
       row.querySelector('.sv-load').onclick = () => this.app.loadGame(id);
@@ -573,10 +590,10 @@ export class UI {
     if (t === 'hero') {
       const dps = (H) => Math.round(H.dmg * H.rate * (H.salvo || 1));
       body.innerHTML = `<div class="hr-wrap">
-        <div class="hr-grid">${HERO_IDS.map((id) => { const H = HEROES[id]; return `<div class="hr${H.legend ? ' lg' : ''}" data-id="${id}">${H.legend ? '<i class="lg-tag">LEGENDARY</i>' : ''}<img src="${this.icons['hero_' + id]}"><b>${H.name}</b><em>${H.title}</em><span>${H.role} · DPS ${dps(H)}</span><small>몸짓: ${H.gesture}</small></div>`; }).join('')}</div>
+        <div class="hr-grid">${HERO_IDS.map((id) => { const H = HEROES[id]; return `<div class="hr${H.legend ? ' lg' : ''}" data-id="${id}">${H.legend ? '<i class="lg-tag">LEGENDARY</i>' : ''}<img src="${this.icons['hero_' + id]}"><b>${H.name}</b><em>${H.title}</em><span>${H.role} · DPS ${dps(H)} · 확률 ${(heroChance(id) * 100).toFixed(1)}%</span><small>몸짓: ${H.gesture}</small></div>`; }).join('')}</div>
         <div class="hr-side">
           <div class="hr-stage"><div class="hr-q">?</div></div>
-          <div class="hr-res">${HERO_IDS.length}명 중 1명 무작위 (각 ${(100 / HERO_IDS.length).toFixed(1)}%)</div>
+          <div class="hr-res">${HERO_IDS.length}명 중 1명 무작위 · 일반 ${(heroChance(HERO_IDS.find((x) => !HEROES[x].legend)) * 100).toFixed(1)}% · 전설 ${(heroChance(HERO_IDS.find((x) => HEROES[x].legend)) * 100).toFixed(1)}% (절반)</div>
           <button class="hr-pull" ${inBattle ? '' : 'disabled'}>${inBattle ? `영웅 모집 <small>보급 ${GACHA.heroCost}</small>` : '전투 중에 모집할 수 있어요'}</button>
           <button class="hr-place" style="display:none"></button>
           <div class="hr-note">뽑을 때마다 영웅이 한 명씩 늘어납니다 (같은 영웅도 여러 명 배치 가능). 배치한 영웅은 보급으로 Lv.10까지 강화. 일반 무기 최고 DPS는 약 80</div>

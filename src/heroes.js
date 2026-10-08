@@ -39,9 +39,17 @@ export const HEROES = {
     role: '중포 일격 + 결의의 연설', desc: '중절모·나비넥타이·시가·지팡이. V자 승리 손짓마다 거대한 포탄 한 발, 사거리 안 적은 늘 25% 느려짐', gesture: '시가를 피우다 오른손을 번쩍 들어 V자 승리 손짓' }
 };
 export const HERO_IDS = Object.keys(HEROES);
+// 뽑기 확률: 전설(legend) 영웅은 일반 영웅의 절반 (2026-10-08 사용자 요청)
+export const heroWeight = (id) => (HEROES[id].legend ? 0.5 : 1);
+export const heroChance = (id) => heroWeight(id) / HERO_IDS.reduce((s, x) => s + heroWeight(x), 0);
+export function rollHero() {
+  let r = Math.random() * HERO_IDS.reduce((s, x) => s + heroWeight(x), 0);
+  for (const id of HERO_IDS) { r -= heroWeight(id); if (r < 0) return id; }
+  return HERO_IDS[HERO_IDS.length - 1];
+}
 // 뽑기 규칙. lucky = [받는 보급, 확률 %]
 export const GACHA = {
-  heroCost: 600,                // 영웅 모집 1회 (10명 중 무작위 1명, 각 1/10. 이미 있는 영웅이면 강화)
+  heroCost: 600,                // 영웅 모집 1회 (10명 중 무작위 1명, 전설 영웅은 일반의 절반 확률. 이미 있는 영웅이면 강화)
   heroMaxRefund: 250,           // 이미 최대 강화된 영웅이 또 나오면 돌려주는 보급
   luckyCost: 100, luckyPerWave: 3,
   lucky: [[30, 20], [60, 25], [100, 25], [150, 18], [300, 10], [600, 2]]
