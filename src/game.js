@@ -406,27 +406,17 @@ export class Game {
 
   // ---------- 영웅 모집 · 보급 뽑기 ----------
   canGacha() { return this.state === 'ready' || this.state === 'battle'; }
-  heroOnField(id) { return this.towers.find((t) => t.W.hero === id); }
-  // 영웅 모집: 7명 중 1명 무작위. 이미 배치된 영웅이면 무료 강화, 대기 중이면 배치할 때 강화, 최대 강화면 보급 일부 환급
+  // 무기별 최대 강화 단계 (영웅 10강, 일반 무기 4강)
+  maxLevel(tw) { return tw.W.hero ? GF.SETTINGS.heroMaxLevel : GF.SETTINGS.maxTowerLevel; }
+  // 영웅 모집: 7명 중 1명 무작위. 같은 영웅이 또 나와도 한 명 더 배치 대기열에 추가 (여러 명 출전 가능)
   pullHero() {
     if (!this.canGacha()) return null;
     if (this.money < GACHA.heroCost) { this.snd('deny'); return { fail: '보급이 부족합니다 (영웅 모집 ' + GACHA.heroCost + ')' }; }
     this.money -= GACHA.heroCost;
     const id = HERO_IDS[Math.floor(Math.random() * HERO_IDS.length)];
-    const tw = this.heroOnField(id), max = GF.SETTINGS.maxTowerLevel;
-    let result;
-    if (tw && tw.level < max) {
-      tw.level++; tw.invested += 0;
-      tw.model.root.scale.setScalar(HERO_SCALE * (1 + 0.06 * (tw.level - 1)));
-      this.spawnRing(tw.pos, 1.2, 0xffd36a, 1); tw.model.fire();
-      result = { id, dup: 'up', level: tw.level };
-    } else if (tw || (this.heroBench.includes(id) && 1 + (this.heroBonus[id] || 0) >= max)) {
-      this.money += GACHA.heroMaxRefund;
-      result = { id, dup: 'max', refund: GACHA.heroMaxRefund };
-    } else if (this.heroBench.includes(id)) {
-      this.heroBonus[id] = (this.heroBonus[id] || 0) + 1;
-      result = { id, dup: 'bench', level: 1 + this.heroBonus[id] };
-    } else { this.heroBench.push(id); result = { id }; }
+    const owned = this.towers.filter((t) => t.W.hero === id).length + this.heroBench.filter((x) => x === id).length;
+    this.heroBench.push(id);
+    const result = { id, count: owned + 1 };
     this.snd('upgrade');
     return result;
   }
@@ -459,7 +449,7 @@ export class Game {
     if (why) { this.ui().toast(why); return; }
     const tw = this.addTower('hero_' + id, p.x, p.z);
     const bonus = this.heroBonus[id] || 0;
-    tw.level = Math.min(GF.SETTINGS.maxTowerLevel, 1 + bonus); delete this.heroBonus[id];
+    tw.level = Math.min(this.maxLevel(tw), 1 + bonus); delete this.heroBonus[id];
     tw.model.root.scale.setScalar(HERO_SCALE * (1 + 0.06 * (tw.level - 1)));
     this.heroBench.splice(this.heroBench.indexOf(id), 1);
     this.spawnRing(tw.pos, 2.2, 0xffd36a, 1.2); this.spawnRing(tw.pos, 1.2, 0xffffff, 0.8);
@@ -475,7 +465,7 @@ export class Game {
   }
   // 강화 단계별 능력치: 피해·연사(DPS)와 사거리가 함께 오름
   statsAt(tw, level) {
-    const U = GF.SETTINGS.upgrade, i = Math.min(level, U.dmg.length) - 1;
+    const U = tw.W.hero ? GF.SETTINGS.heroUpgrade : GF.SETTINGS.upgrade, i = Math.min(level, U.dmg.length) - 1;
     let rate = tw.W.rate;
     if (this.syn.usSet && tw.W.nation.indexOf('미국') >= 0) rate *= 1.05;
     const dmg = tw.W.dmg * U.dmg[i], r = rate * U.rate[i];
@@ -483,20 +473,20 @@ export class Game {
   }
   upgradeCost(tw) { return Math.round(tw.W.cost * 0.75 * tw.level); }
   upgradeTower(tw, quiet) {
-    if (!tw || tw.level >= GF.SETTINGS.maxTowerLevel) return false;
+    if (!tw || tw.level >= this.maxLevel(tw)) return false;
     const c = this.upgradeCost(tw);
     if (this.money < c) { if (!quiet) { this.ui().toast('보급이 부족합니다'); this.snd('deny'); } return false; }
     this.money -= c; tw.invested += c; tw.level++;
     const mark = new THREE.Mesh(new THREE.BoxGeometry(0.16, 0.03, 0.05), mat(0xf2c14e, { emissive: 0x7a5a00 }));
     mark.position.set(0.3, 0.09, 0.3 - tw.marks.length * 0.08);
     tw.model.root.add(mark); tw.marks.push(mark);
-    tw.model.yaw.scale.setScalar(1 + 0.07 * (tw.level - 1));
+    tw.model.yaw.scale.setScalar(1 + (tw.W.hero ? 0.03 : 0.07) * (tw.level - 1));
     if (this.selected === tw) this.select(tw);
     this.spawnRing(tw.pos, 0.8, 0xf2c14e);
     this.snd('upgrade');
     return true;
   }
-  bulkList(type) { return this.towers.filter((x) => x.type === type && x.level < GF.SETTINGS.maxTowerLevel); }
+  bulkList(type) { return this.towers.filter((x) => x.type === type && x.level < this.maxLevel(x)); }
   bulkCost(type) { return this.bulkList(type).reduce((s, x) => s + this.upgradeCost(x), 0); }
   upgradeAll(type) {
     const list = this.bulkList(type), cost = this.bulkCost(type);
