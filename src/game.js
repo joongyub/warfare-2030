@@ -1,7 +1,7 @@
 // 전투 규칙 (v4 서울): 도로 밖 자유 배치 → 작전 개시 → 웨이브가 자동으로 이어짐 (다음 웨이브 ≫ 로 앞당기기)
 import * as THREE from 'three';
 import { getTower, getEnemy, getGhost, mat, ghostMat, ghostBad } from './models.js';
-import { makeHero, HEROES, HERO_IDS, GACHA, rollHero } from './heroes.js';
+import { makeHero, HEROES, HERO_IDS, GACHA, rollHero, COMBOS, makeBuddha } from './heroes.js';
 import { VFX } from './vfx.js';
 
 const V = (x = 0, y = 0, z = 0) => new THREE.Vector3(x, y, z);
@@ -202,7 +202,7 @@ export class Game {
       tw.invested = s.invested; tw.dmgTotal = s.dmg || 0; tw.kills = s.kills || 0;
       if (tw.W.hero) {
         tw.level = s.level;
-        tw.model.root.scale.setScalar(HERO_SCALE * (1 + 0.06 * (tw.level - 1)));
+        tw.model.root.scale.setScalar(this.heroScale(tw));
         tw.label = { text: '★ ' + HEROES[tw.W.hero].short, pos: V(s.x, 2.5, s.z), kind: 'hero' };
         this.city.labels.push(tw.label);
       } else {
@@ -462,7 +462,7 @@ export class Game {
     const tw = this.addTower('hero_' + id, p.x, p.z);
     const bonus = this.heroBonus[id] || 0;
     tw.level = Math.min(this.maxLevel(tw), 1 + bonus); delete this.heroBonus[id];
-    tw.model.root.scale.setScalar(HERO_SCALE * (1 + 0.06 * (tw.level - 1)));
+    tw.model.root.scale.setScalar(this.heroScale(tw));
     this.heroBench.splice(this.heroBench.indexOf(id), 1);
     this.spawnRing(tw.pos, 2.2, 0xffd36a, 1.2); this.spawnRing(tw.pos, 1.2, 0xffffff, 0.8);
     tw.model.fire();
@@ -470,6 +470,46 @@ export class Game {
     this.city.labels.push(tw.label); this.ui().resetLabels();
     this.ui().toast(HEROES[id].legend ? `레전더리 영웅 ${HEROES[id].name} 출전! 비숑도 함께!` : `전설의 영웅 ${HEROES[id].name} 출전!`, '#FFD36A', 2600);
     this.cancelMode();
+    this.checkCombo(tw);
+  }
+  heroScale(tw) { return HERO_SCALE * (tw.W.big || 1) * (1 + 0.06 * (tw.level - 1)); }
+
+  // ---------- 영웅 조합 ----------
+  // 조합표(heroes.js COMBOS)의 두 영웅이 가까이 놓이면: 화면 연출(부처님 클로즈업 + 폭죽) 뒤 두 영웅이 사라지고 합체 영웅 등장
+  checkCombo(tw) {
+    const id = tw.W.hero;
+    for (const C of COMBOS) {
+      if (id !== C.a && id !== C.b) continue;
+      const other = id === C.a ? C.b : C.a;
+      const mate = this.towers.filter((t) => t.W.hero === other && !t.fusing).sort((p, q) => p.pos.distanceTo(tw.pos) - q.pos.distanceTo(tw.pos))[0];
+      if (mate && mate.pos.distanceTo(tw.pos) <= C.dist) { this.fuse(tw, mate, C); return true; }
+    }
+    return false;
+  }
+  fuse(a, b, C) {
+    a.fusing = b.fusing = true;
+    const mid = a.pos.clone().add(b.pos).multiplyScalar(0.5), app = this.app;
+    const wasPaused = app.paused; app.paused = true;
+    this.snd('fanfare');
+    this.ui().playCombo(C.name, () => {
+      for (const t of [a, b]) {
+        if (t.label) { const i = this.city.labels.indexOf(t.label); if (i >= 0) this.city.labels.splice(i, 1); }
+        this.unitGroup.remove(t.model.root);
+        const i = this.towers.indexOf(t); if (i >= 0) this.towers.splice(i, 1);
+        if (this.selected === t) this.select(null);
+      }
+      const nt = this.addTower('hero_' + C.into, mid.x, mid.z);
+      nt.level = Math.min(this.maxLevel(nt), Math.max(a.level, b.level));
+      nt.invested = a.invested + b.invested; nt.dmgTotal = a.dmgTotal + b.dmgTotal; nt.kills = a.kills + b.kills;
+      nt.model.root.scale.setScalar(this.heroScale(nt));
+      nt.label = { text: '★ ' + HEROES[C.into].short, pos: V(mid.x, 3.2, mid.z), kind: 'hero' };
+      this.city.labels.push(nt.label); this.ui().resetLabels();
+      this.spawnRing(mid, 3.2, 0xffd36a, 1.6); this.spawnRing(mid, 2.0, 0xffffff, 1.2); this.spawnRing(mid, 1.0, 0xffb0e8, 1.0);
+      this.explodeFx(mid.clone().setY(1.2), 0.8);
+      nt.model.fire(); this.snd('moktak');
+      this.ui().toast(`${C.name}! ${HEROES[C.into].name} 출현`, '#FFD36A', 3600);
+      app.paused = wasPaused;
+    });
   }
 
   stats(tw) {
@@ -874,6 +914,24 @@ export class Game {
           this.ui().floatText(c.clone().setY(1.6), b ? '찰싹!' : '짝!', '#FFE2B0');
         } });
       }
+    } else if (W.shot === 'moktak') {
+      // 목탁을 똑! 똑! 두 번: 두드릴 때마다 금빛 부처님이 날아가 목표 주변 적들에게 피해 + 잠깐 멈춤
+      for (let b = 0; b < 2; b++) {
+        this.timers.push({ t: 0.18 + b * 0.3, fn: () => {
+          this.snd('moktak');
+          const from = m.muzzle.getWorldPosition(V()), to = e.dead ? g0.clone() : this.targetPoint(e);
+          this.spawnRing(from, 0.6, 0xffe08a, 0.35);
+          const bud = makeBuddha(); bud.scale.setScalar(2.2);
+          this.addShot('shell', from.clone().setY(from.y + 0.4), { to, speed: 9, arc: 1.4 + from.distanceTo(to) * 0.12, dmg: 0, splash: 0, tw, mesh: bud, onHit: (p) => {
+            const r2 = W.splash * W.splash;
+            const list = this.enemies.filter((x) => !x.dead && (x.pos.x - p.x) ** 2 + (x.pos.z - p.z) ** 2 <= r2).sort((a2, b2) => a2.rem - b2.rem).slice(0, W.salvo);
+            for (const x of list) { this.hurt(x, st.dmg / 2, tw, { pierce: true }); if (!x.E.boss) x.stun = Math.max(x.stun, 0.4); this.vfx.impact(this.targetPoint(x), x.air); }
+            this.spawnRing(p.clone().setY(0.2), W.splash, 0xffd36a, 0.5); this.spawnRing(p.clone().setY(0.2), W.splash * 0.5, 0xffffff, 0.4);
+            this.explodeFx(p.clone().setY(0.4), 0.5);
+            if (b === 0) this.ui().floatText(p.clone().setY(1.8), '나무아미타불', '#FFE08A');
+          } });
+        } });
+      }
     } else if (W.shot === 'glasses') {
       // 뿔테안경 번쩍: 두 줄기 광선이 목표로 → 주변 적 8명을 두 번 태우고 잠깐 멈춤 (임배근과 같은 공격력)
       for (let b = 0; b < 2; b++) {
@@ -921,7 +979,7 @@ export class Game {
 
   addShot(kind, from, o) {
     const s = Object.assign({ kind, done: false, t: 0, from: from.clone(), pos: from.clone() }, o);
-    s.mesh = kind === 'arrow' ? new THREE.Mesh(G.arrow, this.arrowM || (this.arrowM = mat(0x8a6a3a, { emissive: 0xff6a00, emissiveIntensity: 0.6 })))
+    s.mesh = o.mesh ? o.mesh : kind === 'arrow' ? new THREE.Mesh(G.arrow, this.arrowM || (this.arrowM = mat(0x8a6a3a, { emissive: 0xff6a00, emissiveIntensity: 0.6 })))
       : new THREE.Mesh(kind === 'shell' ? G.shell : G.rocket, kind === 'shell' ? (this.shellM || (this.shellM = mat(0xffe08a, { emissive: 0xff9a00 }))) : (this.rocketM || (this.rocketM = mat(0xdfe3e6))));
     if (kind === 'arrow') s.kind = 'missile';
     if (o.small) s.mesh.scale.setScalar(0.7);
@@ -954,6 +1012,8 @@ export class Game {
       const k = Math.min(1, s.t / s.dur);
       s.pos.copy(s.from).lerp(s.to, k);
       s.pos.y = s.from.y * (1 - k) + s.to.y * k + s.arc * 4 * k * (1 - k);
+      if (k >= 1 && s.onHit) { s.done = true; this.fxGroup.remove(s.mesh); s.onHit(s.to); return; }
+      if (s.mesh.userData.spinY !== false && s.onHit) s.mesh.rotation.y += dt * 6;   // 날아가는 부처님은 빙글
       if (k >= 1) { s.done = true; this.fxGroup.remove(s.mesh); this.explode(s.to, s.splash, s.dmg, s.tw); if (s.big) { this.snd('bigboom', 1); this.app.shake(0.3); this.explodeFx(s.to.clone().setY(0.3), 2); } return; }
     }
     s.mesh.position.copy(s.pos);

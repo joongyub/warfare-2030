@@ -14,6 +14,32 @@ function put(o, k, v) {
 const won = (n) => '₩' + n.toLocaleString('ko-KR');
 const h = (tag, cls, html, parent) => { const e = document.createElement(tag); if (cls) e.className = cls; if (html != null) e.innerHTML = html; if (parent) parent.appendChild(e); return e; };
 
+// 조합 연출용 금빛 부처님 좌상 (SVG): 광배·빛살·연꽃 받침
+const BUDDHA_SVG = `<svg class="cb-buddha" viewBox="0 0 400 400" aria-hidden="true">
+  <defs>
+    <radialGradient id="cbHalo" cx="50%" cy="42%" r="50%"><stop offset="0" stop-color="#fff7c8" stop-opacity="1"/><stop offset=".45" stop-color="#ffd25a" stop-opacity=".75"/><stop offset="1" stop-color="#ff9a1a" stop-opacity="0"/></radialGradient>
+    <linearGradient id="cbGold" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#fff0a8"/><stop offset=".45" stop-color="#f6c443"/><stop offset="1" stop-color="#b9781a"/></linearGradient>
+  </defs>
+  <circle cx="200" cy="175" r="190" fill="url(#cbHalo)"/>
+  <g class="cb-rays" stroke="#fff3b0" stroke-width="5" stroke-linecap="round" opacity=".7">${Array.from({ length: 24 }, (_, i) => { const a = i * Math.PI / 12; return `<line x1="${200 + Math.cos(a) * 120}" y1="${165 + Math.sin(a) * 120}" x2="${200 + Math.cos(a) * 185}" y2="${165 + Math.sin(a) * 185}"/>`; }).join('')}</g>
+  <circle cx="200" cy="150" r="78" fill="none" stroke="#fff3b0" stroke-width="6" opacity=".85"/>
+  <g fill="url(#cbGold)" stroke="#8a5410" stroke-width="2.5">
+    <path d="M70 352 Q200 300 330 352 Q300 382 200 384 Q100 382 70 352Z" fill="#f2b84a"/>
+    ${[-120, -80, -40, 0, 40, 80, 120].map((x) => `<path d="M${200 + x} 360 q-22 -34 0 -58 q22 24 0 58Z" fill="#ffd9e6" stroke="#c96a8a"/>`).join('')}
+    <ellipse cx="200" cy="322" rx="128" ry="36"/>
+    <path d="M128 214 Q200 192 272 214 L300 318 Q200 340 100 318Z"/>
+    <path d="M150 214 Q200 270 250 214" fill="none" stroke="#8a5410" stroke-width="3"/>
+    <ellipse cx="200" cy="300" rx="42" ry="17"/>
+    <rect x="186" y="182" width="28" height="26" rx="10"/>
+    <ellipse cx="200" cy="150" rx="46" ry="52"/>
+    <ellipse cx="151" cy="160" rx="9" ry="28"/><ellipse cx="249" cy="160" rx="9" ry="28"/>
+    <ellipse cx="200" cy="106" rx="42" ry="22" fill="#6b4a1a"/>
+    <circle cx="200" cy="86" r="17" fill="#6b4a1a"/>
+  </g>
+  <g fill="none" stroke="#7a4a10" stroke-width="3" stroke-linecap="round"><path d="M176 150 q8 5 16 0"/><path d="M208 150 q8 5 16 0"/><path d="M190 178 q10 6 20 0"/><path d="M200 156 v10"/></g>
+  <circle cx="200" cy="134" r="3.5" fill="#c0392b"/>
+</svg>`;
+
 export class UI {
   constructor(app) {
     this.app = app;
@@ -100,6 +126,30 @@ export class UI {
       box.querySelector('b').textContent = C.user.name;
       box.querySelector('.cl-out').onclick = () => C.signOut();
     }
+  }
+  // 영웅 조합 연출: 화면 정중앙에서 부처님이 점 크기에서 전체 화면으로 클로즈업 + 조합 이름 + 빛나는 폭죽 (약 3.6초) → done()
+  playCombo(title, done) {
+    const o = h('div', 'combo-fx', `<canvas></canvas>${BUDDHA_SVG}<div class="cb-title">${title}</div>`, document.body);
+    const cv = o.querySelector('canvas'), c = cv.getContext('2d');
+    const W = cv.width = window.innerWidth, H = cv.height = window.innerHeight, parts = [];
+    const burst = (x, y) => { const hue = Math.random() * 360; for (let i = 0; i < 70; i++) { const a = Math.random() * Math.PI * 2, v = 2 + Math.random() * 6; parts.push({ x, y, vx: Math.cos(a) * v, vy: Math.sin(a) * v, life: 1, hue: hue + Math.random() * 40 }); } };
+    let t0 = performance.now(), last = t0, nextB = 0, raf = 0;
+    const step = (now) => {
+      const t = now - t0, dt = Math.min(0.05, (now - last) / 1000) * 60; last = now;
+      if (t > 900 && t > nextB && t < 3200) { burst(W * (0.15 + Math.random() * 0.7), H * (0.12 + Math.random() * 0.45)); nextB = t + 260; if (this.app.sound) this.app.sound.play('boom', 0.25); }
+      c.globalCompositeOperation = 'source-over'; c.clearRect(0, 0, W, H); c.globalCompositeOperation = 'lighter';
+      for (const p of parts) {
+        if (p.life <= 0) continue;
+        p.x += p.vx * dt; p.y += p.vy * dt; p.vy += 0.08 * dt; p.vx *= 0.985; p.vy *= 0.985; p.life -= 0.012 * dt;
+        c.fillStyle = `hsla(${p.hue},100%,${60 + p.life * 30}%,${Math.max(0, p.life)})`;
+        c.beginPath(); c.arc(p.x, p.y, 1.5 + p.life * 3, 0, 7); c.fill();
+      }
+      if (t < 4200) raf = requestAnimationFrame(step);
+    };
+    raf = requestAnimationFrame(step);
+    requestAnimationFrame(() => o.classList.add('cb-go'));
+    setTimeout(() => o.classList.add('cb-out'), 3600);
+    setTimeout(() => { cancelAnimationFrame(raf); o.remove(); if (done) done(); }, 4300);
   }
   // 홈 나가기: 한 번 더 누르면 전체 화면을 끄고 창 닫기 시도. 브라우저가 닫기를 막으면 종료 화면
   exitGame(btn) {
@@ -590,10 +640,10 @@ export class UI {
     if (t === 'hero') {
       const dps = (H) => Math.round(H.dmg * H.rate * (H.salvo || 1));
       body.innerHTML = `<div class="hr-wrap">
-        <div class="hr-grid">${HERO_IDS.map((id) => { const H = HEROES[id]; return `<div class="hr${H.legend ? ' lg' : ''}" data-id="${id}">${H.legend ? '<i class="lg-tag">LEGENDARY</i>' : ''}<img src="${this.icons['hero_' + id]}"><b>${H.name}</b><em>${H.title}</em><span>${H.role} · DPS ${dps(H)} · 확률 ${(heroChance(id) * 100).toFixed(1)}%</span><small>몸짓: ${H.gesture}</small></div>`; }).join('')}</div>
+        <div class="hr-grid">${Object.keys(HEROES).map((id) => { const H = HEROES[id]; return `<div class="hr${H.legend ? ' lg' : ''}" data-id="${id}">${H.legend ? '<i class="lg-tag">LEGENDARY</i>' : ''}<img src="${this.icons['hero_' + id]}"><b>${H.name}</b><em>${H.title}</em><span>${H.role} · DPS ${dps(H)} · ${H.combo ? '조합 전용' : '확률 ' + (heroChance(id) * 100).toFixed(1) + '%'}</span><small>몸짓: ${H.gesture}</small></div>`; }).join('')}</div>
         <div class="hr-side">
           <div class="hr-stage"><div class="hr-q">?</div></div>
-          <div class="hr-res">${HERO_IDS.length}명 중 1명 무작위 · 일반 ${(heroChance(HERO_IDS.find((x) => !HEROES[x].legend)) * 100).toFixed(1)}% · 전설 ${(heroChance(HERO_IDS.find((x) => HEROES[x].legend)) * 100).toFixed(1)}% (절반)</div>
+          <div class="hr-res">${HERO_IDS.length}명 중 1명 무작위 (모두 ${(heroChance(HERO_IDS[0]) * 100).toFixed(1)}%) · 임배근+김덕훈을 가까이 두면 능인고 조합</div>
           <button class="hr-pull" ${inBattle ? '' : 'disabled'}>${inBattle ? `영웅 모집 <small>보급 ${GACHA.heroCost}</small>` : '전투 중에 모집할 수 있어요'}</button>
           <button class="hr-place" style="display:none"></button>
           <div class="hr-note">뽑을 때마다 영웅이 한 명씩 늘어납니다 (같은 영웅도 여러 명 배치 가능). 배치한 영웅은 보급으로 Lv.10까지 강화. 일반 무기 최고 DPS는 약 80</div>

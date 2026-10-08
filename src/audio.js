@@ -104,6 +104,12 @@ export class Sound {
       case 'whip': // 벨트 채찍 짝! (휙 바람 소리 + 날카로운 터짐)
         this.noiseHit(t, { dur: 0.12, f: 900, fEnd: 3200, type: 'bandpass', q: 0.8, vol: 0.12 * v });
         this.noiseHit(t + 0.1, { dur: 0.05, f: 4200, type: 'highpass', q: 0.7, vol: 0.4 * v }); this.tone(t + 0.1, { f: 2400, fEnd: 900, dur: 0.04, type: 'square', vol: 0.06 * v }); break;
+      case 'moktak': // 목탁 똑! (속이 빈 나무를 두드리는 짧고 맑은 소리)
+        this.tone(t, { f: 560, fEnd: 500, dur: 0.16, type: 'sine', vol: 0.5 * v, a: 0.002 }); this.tone(t, { f: 1120, fEnd: 1000, dur: 0.06, type: 'triangle', vol: 0.18 * v, a: 0.001 });
+        this.noiseHit(t, { dur: 0.03, f: 1800, type: 'bandpass', q: 3, vol: 0.35 * v }); break;
+      case 'fanfare': // 조합 완성: 범종 + 밝은 화음
+        this.tone(t, { f: 98, fEnd: 96, dur: 2.6, type: 'sine', vol: 0.45 * v, a: 0.01 }); this.tone(t, { f: 196, dur: 2.0, type: 'sine', vol: 0.2 * v, a: 0.01 }); this.tone(t, { f: 293, dur: 1.6, type: 'sine', vol: 0.12 * v, a: 0.01 });
+        [523, 659, 784, 1047].forEach((f, i) => this.tone(t + 1.0 + i * 0.12, { f, dur: 0.7, type: 'triangle', vol: 0.09 * v, a: 0.01 })); break;
       case 'glint': // 안경 번쩍 (반짝 소리 + 짧은 광선 지잉)
         this.tone(t, { f: 2600, fEnd: 3600, dur: 0.08, type: 'sine', vol: 0.08 * v }); this.tone(t + 0.05, { f: 3800, dur: 0.06, type: 'sine', vol: 0.06 * v });
         this.tone(t + 0.08, { f: 900, fEnd: 300, dur: 0.18, type: 'sawtooth', vol: 0.06 * v }); break;
