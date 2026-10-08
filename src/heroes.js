@@ -14,8 +14,11 @@ export const HEROES = {
     shot: 'belt', range: 9.5, dmg: 300, rate: 1.2, salvo: 8, splash: 3.0, hits: ['ground', 'air'],
     role: '바지 벨트 채찍', desc: '흰 티셔츠에 청바지를 입은 키 큰 동양 남자. 바지 벨트를 풀어 머리 위로 휘두르면 짝! 찰싹! 두 번 내리쳐 목표 주변 적 8명에게 큰 피해를 주고 잠깐 멈춰 세움(공중 포함). 공격력은 임배근과 같음', gesture: '한 손으로 흘러내리는 바지를 붙잡고, 다른 손으로 벨트를 머리 위로 돌렸다가 내리침' },
   kimdeokhun: { name: '김덕훈', short: '김덕훈', nation: '대한민국', title: '길리슈트 속에 숨은 특수부대 저격수', color: '#5b6b2e', legend: true,
-    shot: 'snipe', range: 16, dmg: 900, rate: 0.6, salvo: 5, hits: ['ground', 'air'],
-    role: 'Kar98 관통 저격', desc: '풀잎 가닥이 덮인 길리슈트와 두건, 조준경 달린 Kar98 볼트액션 소총. 아주 먼 거리에서 한 발을 쏘면 총알이 일직선으로 날아가 줄 선 적 5명까지 관통(공중 포함)', gesture: '소총을 어깨에 견착해 조준경을 들여다보다 쏘고, 반동 뒤 노리쇠를 당겨 장전' },
+    shot: 'snipe', range: 16, dmg: 300, rate: 1.2, salvo: 8, hits: ['ground', 'air'],
+    role: 'Kar98 관통 저격', desc: '풀잎 가닥이 덮인 길리슈트와 두건, 조준경 달린 Kar98 볼트액션 소총. 아주 먼 거리에서 한 발을 쏘면 총알이 일직선으로 날아가 줄 선 적 8명까지 관통(공중 포함). 공격력은 임배근·이준학과 같음', gesture: '소총을 어깨에 견착해 조준경을 들여다보다 쏘고, 반동 뒤 노리쇠를 당겨 장전' },
+  simjaegwan: { name: '심재관', short: '심재관', nation: '대한민국', title: '뿔테 너머로 모든 걸 꿰뚫어 보는 키다리', color: '#222222', legend: true,
+    shot: 'glasses', range: 10.5, dmg: 300, rate: 1.2, salvo: 8, splash: 3.0, hits: ['ground', 'air'],
+    role: '뿔테안경 섬광 광선', desc: '검정 뿔테안경을 쓴 키 큰 동양 남자. 검지로 안경을 쓱 올리면 렌즈가 번쩍이며 두 줄기 광선이 날아가 목표 주변 적 8명을 두 번 태우고 잠깐 눈부시게 해 멈춰 세움(공중 포함). 공격력은 임배근·이준학과 같음', gesture: '검지로 뿔테안경을 밀어 올리면 렌즈가 번쩍임' },
   macarthur: { name: '더글러스 맥아더', short: '맥아더', nation: '미국', title: '인천상륙작전의 지휘관', color: '#c9a24a',
     shot: 'bombrun', range: 10, dmg: 120, rate: 0.55, salvo: 5, splash: 1.9, hits: ['ground'],
     role: '폭격기 융단 폭격', desc: '선글라스와 옥수수 파이프. 손끝으로 가리킨 곳에 폭격기 편대가 폭탄 5발을 줄지어 떨어뜨림', gesture: '파이프를 물다가 손을 뻗어 목표를 가리킴' },
@@ -38,7 +41,7 @@ export const HEROES = {
 export const HERO_IDS = Object.keys(HEROES);
 // 뽑기 규칙. lucky = [받는 보급, 확률 %]
 export const GACHA = {
-  heroCost: 600,                // 영웅 모집 1회 (9명 중 무작위 1명, 각 1/9. 이미 있는 영웅이면 강화)
+  heroCost: 600,                // 영웅 모집 1회 (10명 중 무작위 1명, 각 1/10. 이미 있는 영웅이면 강화)
   heroMaxRefund: 250,           // 이미 최대 강화된 영웅이 또 나오면 돌려주는 보급
   luckyCost: 100, luckyPerWave: 3,
   lucky: [[30, 20], [60, 25], [100, 25], [150, 18], [300, 10], [600, 2]]
@@ -107,6 +110,7 @@ const FLAGS = {
   limbaegeun: (g, w, h) => { const gr = g.createLinearGradient(0, 0, w, h); gr.addColorStop(0, '#fff6d8'); gr.addColorStop(0.5, '#ffd36a'); gr.addColorStop(1, '#ffb0e0'); g.fillStyle = gr; g.fillRect(0, 0, w, h); g.fillStyle = '#fff'; const paw = (x, y) => { g.beginPath(); g.ellipse(x, y + 6, 11, 9, 0, 0, 7); g.fill(); for (const [dx, dy] of [[-11, -6], [-4, -12], [4, -12], [11, -6]]) { g.beginPath(); g.arc(x + dx, y + dy, 4.5, 0, 7); g.fill(); } }; g.strokeStyle = '#c99a2e'; g.lineWidth = 3; paw(w / 2, h / 2 + 2); g.strokeRect(2, 2, w - 4, h - 4); },
   leejunhak: (g, w, h) => { g.fillStyle = '#2f5d8f'; g.fillRect(0, 0, w, h); g.fillStyle = '#8fb6dc'; for (let x = 0; x < w; x += 6) g.fillRect(x, 0, 2, h); g.fillStyle = '#5a3418'; g.fillRect(0, h * 0.42, w, h * 0.18); g.fillStyle = '#e8c14a'; g.fillRect(w * 0.4, h * 0.36, w * 0.2, h * 0.3); g.fillStyle = '#5a3418'; g.fillRect(w * 0.45, h * 0.44, w * 0.1, h * 0.14); },
   kimdeokhun: (g, w, h) => { g.fillStyle = '#3e4a22'; g.fillRect(0, 0, w, h); for (let i = 0; i < 40; i++) { g.fillStyle = ['#5f6b34', '#2c3618', '#76713f', '#4a5a2a'][i % 4]; g.fillRect((i * 37) % w, (i * 23) % h, 10, 6); } g.strokeStyle = '#f2f2e8'; g.lineWidth = 3; g.beginPath(); g.arc(w / 2, h / 2, h * 0.3, 0, 7); g.moveTo(w / 2 - h * 0.42, h / 2); g.lineTo(w / 2 + h * 0.42, h / 2); g.moveTo(w / 2, h * 0.08); g.lineTo(w / 2, h * 0.92); g.stroke(); },
+  simjaegwan: (g, w, h) => { g.fillStyle = '#f4f1e8'; g.fillRect(0, 0, w, h); g.strokeStyle = '#111'; g.lineWidth = 7; for (const cx of [w * 0.3, w * 0.7]) { g.beginPath(); g.ellipse(cx, h / 2, w * 0.16, h * 0.24, 0, 0, 7); g.stroke(); } g.beginPath(); g.moveTo(w * 0.46, h / 2 - 3); g.lineTo(w * 0.54, h / 2 - 3); g.stroke(); g.fillStyle = 'rgba(120,200,255,.55)'; for (const cx of [w * 0.3, w * 0.7]) { g.beginPath(); g.ellipse(cx, h / 2, w * 0.13, h * 0.2, 0, 0, 7); g.fill(); } },
   macarthur: (g, w, h) => { for (let i = 0; i < 7; i++) { g.fillStyle = i % 2 ? '#f4f4f4' : '#b8262e'; g.fillRect(0, i * h / 7, w, h / 7 + 1); } g.fillStyle = '#2b3a78'; g.fillRect(0, 0, w * 0.45, h * 4 / 7); g.fillStyle = '#fff'; for (let y = 0; y < 3; y++) for (let x = 0; x < 4; x++) g.fillRect(6 + x * 13, 6 + y * 12, 3, 3); },
   yisunsin: (g, w, h) => { g.fillStyle = '#efe6cf'; g.fillRect(0, 0, w, h); g.strokeStyle = '#7a1c1c'; g.lineWidth = 8; g.strokeRect(4, 4, w - 8, h - 8); g.fillStyle = '#111'; g.font = `bold ${h * 0.62}px serif`; g.textAlign = 'center'; g.textBaseline = 'middle'; g.fillText('帥', w / 2, h / 2 + 3); },
   hideyoshi: (g, w, h) => { g.fillStyle = '#7a1a1a'; g.fillRect(0, 0, w, h); g.fillStyle = '#e8b830'; const gourd = (cx, cy, s) => { g.beginPath(); g.arc(cx, cy, s, 0, 7); g.fill(); g.beginPath(); g.arc(cx, cy - s * 1.3, s * 0.65, 0, 7); g.fill(); }; gourd(w / 2, h * 0.62, h * 0.2); },
@@ -280,6 +284,43 @@ export function makeHero(id) {
       set(h.L, 1.5 + kick * 0.25, 0.3 - cyc * 0.4, 0.15 + cyc * 0.9);   // 왼손: 앞 덮개 받침 → 장전할 때 노리쇠로
       h.head.rotation.z = -0.12 + kick * 0.1; h.head.position.x = 0.02;
       body.rotation.z = -0.05 + kick * 0.04;
+    };
+  } else if (id === 'simjaegwan') {
+    // 키 큰 동양 남자: 남색 니트 가디건 + 흰 셔츠 + 베이지 바지 + 검정 뿔테안경. 오른손 검지로 안경을 밀어 올림
+    const h = humanoid({ coat: 0x1f2c4a, pants: 0xb9a888, boots: 0x2a2018, belt: 0x3a2a1a, wide: 0.25 });
+    body.add(h.fig);
+    h.fig.scale.set(1, 1.2, 1);   // 키다리
+    const skin = M(0xe6bc96);
+    h.fig.traverse((o) => { if (o.isMesh && o.material === M(0xe3b48f)) o.material = skin; });
+    mesh(h.torso, new THREE.BoxGeometry(0.02, 0.2, 0.07), M(0xf4f4f0), 0.068, 0.02, 0);   // 셔츠 앞섶
+    mesh(h.torso, new THREE.BoxGeometry(0.04, 0.03, 0.1), M(0xf4f4f0), 0.05, 0.125, 0);   // 셔츠 깃
+    for (let i = 0; i < 4; i++) mesh(h.torso, new THREE.SphereGeometry(0.007, 6, 4), M(0xd8d0b0), 0.077, 0.08 - i * 0.05, 0.04);   // 가디건 단추
+    // 단정한 검은 머리 (가르마 + 앞머리 살짝)
+    mesh(h.head, new THREE.SphereGeometry(0.073, 14, 8, 0, Math.PI * 2, 0, Math.PI / 2.1), M(0x121212, { roughness: 0.8 }), -0.004, 0.012, 0);
+    mesh(h.head, new THREE.BoxGeometry(0.03, 0.025, 0.09), M(0x121212, { roughness: 0.8 }), 0.05, 0.05, 0.012).rotation.x = 0.2;
+    mesh(h.head, new THREE.BoxGeometry(0.006, 0.006, 0.03), M(0x8a4a3a), 0.067, -0.035, 0);   // 입
+    // 검정 뿔테안경: 두꺼운 테 두 개 + 코다리 + 다리, 렌즈는 공격할 때 번쩍임
+    const frame = M(0x0a0a0a, { roughness: 0.35 }), glasses = new THREE.Group(); glasses.position.set(0.07, 0.015, 0); h.head.add(glasses);
+    const lensM = new THREE.MeshStandardMaterial({ color: 0x9fc8e8, emissive: 0xbfe8ff, emissiveIntensity: 0, transparent: true, opacity: 0.55, roughness: 0.1 });
+    for (const s of [-1, 1]) {
+      const rim = mesh(glasses, new THREE.TorusGeometry(0.022, 0.0055, 6, 16), frame, 0, 0, s * 0.027); rim.rotation.y = Math.PI / 2; rim.scale.set(1, 0.82, 1);
+      const lens = mesh(glasses, new THREE.CircleGeometry(0.021, 14), lensM, 0.001, 0, s * 0.027); lens.rotation.y = Math.PI / 2; lens.scale.set(1, 0.82, 1);
+      mesh(glasses, new THREE.BoxGeometry(0.075, 0.006, 0.006), frame, -0.04, 0.006, s * 0.05);   // 다리
+    }
+    mesh(glasses, new THREE.BoxGeometry(0.006, 0.006, 0.014), frame, 0, 0.006, 0);   // 코다리
+    for (const s of [-1, 1]) mesh(h.head, new THREE.BoxGeometry(0.005, 0.005, 0.02), M(0x111111), 0.069, 0.016, s * 0.026);   // 렌즈 너머 눈
+    pose = (t, a) => {
+      // a: 1 → 0. 1~0.7 검지를 안경으로 / 0.7~0.3 안경 밀어 올리고 렌즈 번쩍 / 이후 팔 내림
+      const up = a > 0.7 ? ease((1 - a) / 0.3) : a > 0.3 ? 1 : ease(a / 0.3);
+      const flash = a <= 0.7 && a > 0.3 ? Math.sin((0.7 - a) / 0.4 * Math.PI) : 0;
+      // 오른팔: 굽혀서 손이 얼굴 앞(안경)으로
+      h.R.sh.rotation.set(lerp(0.05, -0.55, up), lerp(0, -0.25, up), lerp(0.15, 1.75, up)); h.R.el.rotation.set(0, 0, lerp(0.2, 2.35, up));
+      set(h.L, 0.12, -0.05, 0.15);
+      h.L.sh.rotation.x = 0.1;
+      glasses.position.y = 0.015 + flash * 0.008;
+      lensM.emissiveIntensity = flash * 3; lensM.opacity = 0.55 + flash * 0.4;
+      h.head.rotation.z = lerp(0.02, 0.1, up) + Math.sin(t * 0.7) * 0.02; h.head.rotation.y = Math.sin(t * 0.5) * 0.15 * (1 - up);
+      body.rotation.z = lerp(0, -0.03, up);
     };
   } else if (id === 'macarthur') {
     const h = humanoid({ coat: 0xb59a6a, pants: 0xa98f62, belt: 0x5a3c22, wide: 0.24 });
@@ -460,7 +501,7 @@ export function makeHero(id) {
   }
 
   // 공격 순간 몸짓이 크게 보이도록 act 1 → 0 으로 줄어듦 (game.js 가 fire 때 act = 1)
-  const muzzle = new THREE.Object3D(); muzzle.position.set(...({ limbaegeun: [0.45, 0.75], leejunhak: [0.35, 1.1], kimdeokhun: [0.66, 0.68] }[id] || [0.3, 0.9]), 0); yaw.add(muzzle);
+  const muzzle = new THREE.Object3D(); muzzle.position.set(...({ limbaegeun: [0.45, 0.75], leejunhak: [0.35, 1.1], simjaegwan: [0.12, 0.95], kimdeokhun: [0.66, 0.68] }[id] || [0.3, 0.9]), 0); yaw.add(muzzle);
   const animate = (dt, t) => {
     P.act = Math.max(0, P.act - dt * 0.9);
     pose(t + P.idle, P.act);
