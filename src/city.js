@@ -18,6 +18,7 @@ import { makeBase, mat, compactNode } from './models.js';
 import { buildNYCity, buildParisCity } from './world_city.js';
 import { EDGE, FIELD, ashlarMat, sbox } from './landmarks_world.js';
 import { nyShopHD, haussmannHD } from './textures_world.js';
+import { CITY_KITS } from './cities/index.js';
 
 const V = (x = 0, y = 0, z = 0) => new THREE.Vector3(x, y, z);
 const ROAD_W = 1.9;          // 도로 폭
@@ -549,7 +550,7 @@ export class City {
     const R = this.S.river; if (!R) return;
     const z0 = R.z - R.w / 2, z1 = R.z + R.w / 2;
     const wt = waterTex().clone(); wt.needsUpdate = true; wt.wrapS = wt.wrapT = THREE.RepeatWrapping; wt.repeat.set(60, 2);
-    const water = new THREE.Mesh(new THREE.PlaneGeometry(520, R.w), new THREE.MeshStandardMaterial({ map: wt, color: { paris: 0x9cc4b4, newyork: 0x86aec8 }[R.kind] || 0x9ed0f0, roughness: 0.25, metalness: 0.2 }));
+    const water = new THREE.Mesh(new THREE.PlaneGeometry(520, R.w), new THREE.MeshStandardMaterial({ map: wt, color: (CITY_KITS[R.kind] || {}).water || { paris: 0x9cc4b4, newyork: 0x86aec8 }[R.kind] || 0x9ed0f0, roughness: 0.25, metalness: 0.2 }));
     water.rotation.x = -Math.PI / 2; water.position.set(0, 0.003, R.z); water.receiveShadow = true;
     this.group.add(water);
     this.anim.push((dt) => { wt.offset.x += dt * 0.01; wt.offset.y += dt * 0.004; });
@@ -567,17 +568,18 @@ export class City {
       const path = new THREE.Mesh(new THREE.PlaneGeometry(520, 0.35), mat(0xb5715a)); path.rotation.x = -Math.PI / 2; path.position.set(0, 0.008, z0 - 0.9); this.group.add(path);
     } else {
       // 돌·콘크리트 강둑 벽 (파리 센강 둑길 / 뉴욕 부두) + 강변 산책로
-      const wallM = mat(kind === 'paris' ? 0xd6c9a8 : 0x8f9295, { roughness: 0.95 }), walkM2 = mat(kind === 'paris' ? 0xcbbd98 : 0x77797c);
+      const K = CITY_KITS[kind] || {};
+      const wallM = mat(K.riverWall ?? (kind === 'paris' ? 0xd6c9a8 : 0x8f9295), { roughness: 0.95 }), walkM2 = mat(K.riverWalk ?? (kind === 'paris' ? 0xcbbd98 : 0x77797c));
       for (const [zc, s] of [[z0, -1], [z1, 1]]) {
         const w = new THREE.Mesh(new THREE.BoxGeometry(520, 0.9, 0.3), wallM); w.position.set(0, -0.15, zc); this.group.add(w);
         const q = new THREE.Mesh(new THREE.PlaneGeometry(520, 2.2), walkM2); q.rotation.x = -Math.PI / 2; q.position.set(0, 0.004, zc + s * 1.1); q.receiveShadow = true; this.group.add(q);
-        if (kind === 'paris') for (let x = -120; x < 120; x += 3) (this.cityTrees = this.cityTrees || []).push([x, zc + s * 1.6, 0.8]);
+        if (kind === 'paris' || K.riverTrees) for (let x = -120; x < 120; x += 3) (this.cityTrees = this.cityTrees || []).push([x, zc + s * 1.6, 0.8]);
       }
     }
     // 다리 3개 (각각 모양이 다름)
     const B = new Buckets();
     const deckM = mat(0x8c8f93), pierM = mat(0xb4b2aa), redM = mat(0xc8463a), blueM = mat(0x3a6fb5), railM = mat(0xe8e8e8);
-    const bridges = { seoul: [[-22, 'arch', blueM], [4, 'plain', null], [30, 'truss', redM]], newyork: [[-18, 'suspension', mat(0xb59a78)], [18, 'truss', blueM], [52, 'plain', null]], paris: [[-14, 'stone', mat(0xd9cba8)], [10, 'stone', mat(0xd9cba8)], [34, 'stone', mat(0xd9cba8)]] }[kind];
+    const bridges = { seoul: [[-22, 'arch', blueM], [4, 'plain', null], [30, 'truss', redM]], newyork: [[-18, 'suspension', mat(0xb59a78)], [18, 'truss', blueM], [52, 'plain', null]], paris: [[-14, 'stone', mat(0xd9cba8)], [10, 'stone', mat(0xd9cba8)], [34, 'stone', mat(0xd9cba8)]] }[kind] || ((CITY_KITS[kind] || {}).bridges || [[-18, 'plain', 0x8c8f93], [14, 'truss', 0x3a6fb5], [46, 'arch', 0xc8463a]]).map(([x, k, c]) => [x, k, c == null ? null : mat(c)]);
     for (const [bx, bk, accent] of bridges) {
       const kind = bk;
       const len = R.w + 2.8, zc = R.z;
@@ -655,6 +657,7 @@ export class City {
       return true;
     };
     const theme = (S.theme || {}).city;
+    if (CITY_KITS[theme]) { CITY_KITS[theme].build(this, { free, B, rnd, boxWalls, roofKit, mat }); B.build(this.group); return; }
     if (theme === 'newyork' || theme === 'paris') {
       (theme === 'newyork' ? buildNYCity : buildParisCity)(this, { free, B, rnd, boxWalls, roofKit, mat });
       B.build(this.group);
@@ -833,7 +836,7 @@ export class City {
     const gates = [{ pts: this.steps[0].opts[0].pts, label: '적 진입' + (S.route[0].name ? ' · ' + S.route[0].name : '') }].concat(this.branches.map((b) => ({ pts: b.pts, label: '적 진입 · ' + b.name, br: b })));
     const conc = mat(0x8d8a83), dark = new THREE.MeshBasicMaterial({ color: 0x0b0b0c }), hillM = mat(0x557a3c, { roughness: 1 });
     const neonM = new THREE.MeshBasicMaterial({ color: 0xff3030 });
-    const city = (S.theme || {}).city, wallM = city && ashlarMat('gate' + city, city === 'paris' ? 0xcbbd9e : 0x8a7a6a), capM = mat(city === 'paris' ? 0xe0d4b8 : 0x9c958a), railM = mat(0x2a2c2e, { metalness: 0.5 });
+    const city = (S.theme || {}).city, GK = (CITY_KITS[city] || {}).gate || {}, wallM = city && ashlarMat('gate' + city, GK.wall ?? (city === 'paris' ? 0xcbbd9e : 0x8a7a6a)), capM = mat(GK.cap ?? (city === 'paris' ? 0xe0d4b8 : 0x9c958a)), railM = mat(0x2a2c2e, { metalness: 0.5 });
     this.anim.push((dt, t) => { neonM.color.setHSL(0, 1, 0.45 + Math.sin(t * 4) * 0.12); });
     for (const G of gates) {
       const [gx, gz] = G.pts[0], [nx, nz] = G.pts[1], dir = Math.atan2(nz - gz, nx - gx);
@@ -898,9 +901,11 @@ export class City {
     const city = (this.S.theme || {}).city;
     if (city === 'newyork') { this.shopFacade = nyShopHD; this.shopVariants = [0, 1, 2, 3, 4, 5]; }
     if (city === 'paris') { this.shopFacade = (v) => haussmannHD(v, true); this.shopVariants = [0, 1, 2, 3, 5, 7]; this.shopTV = 1.8; }
+    const SK = CITY_KITS[city];
+    if (SK && SK.shop) { this.shopFacade = SK.shop; this.shopVariants = SK.shopVariants || [0, 1, 2, 3, 4, 5]; this.shopTV = SK.shopTV; }
     const S = this.S, b = S.bounds, rnd = makeRng(S.seed + 'street'), B = new Buckets();
     const shopM = (this.shopVariants || [0, 1, 2, 3, 4, 5]).map((v) => { const T = (this.shopFacade || shopFacadeHD)(v); return new THREE.MeshStandardMaterial({ map: T.map, emissiveMap: T.emissiveMap, emissive: 0xffffff, emissiveIntensity: 0.45, roughness: 0.8 }); });
-    const offM = city === 'paris' ? shopM : this.M.glass;   // 파리는 높은 건물도 오스만 석조
+    const offM = city === 'paris' || (SK && SK.stoneTall) ? shopM : this.M.glass;   // 파리는 높은 건물도 오스만 석조
     const roofM = new THREE.MeshStandardMaterial({ map: roofHD(0), roughness: 0.95 }), tankM = mat(0x3f8fc9, { roughness: 0.6 }), acM = mat(0xc9cbcc);
     const rimM = mat(0xcfccc4, { roughness: 0.9 }), awnM = [0xc0392b, 0x2a6fb0, 0x2e8b57, 0xd98a1c, 0x5d6066].map((c) => mat(c, { roughness: 0.7 }));
     const off0 = (ROAD_W + 0.9) / 2 + 0.03, dep = F.depth;

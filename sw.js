@@ -3,7 +3,7 @@
 const VERSION = 'w2030-v0.24.0';
 const FILES = [
   './', './index.html', './manifest.webmanifest', './dist/game.js',
-  './data/settings.js', './data/weapons.js', './data/enemies.js', './data/cards.js', './data/shop.js', './data/stages/seoul.js', './data/stages/newyork.js', './data/stages/paris.js',
+  './data/settings.js', './data/weapons.js', './data/enemies.js', './data/cards.js', './data/shop.js', './data/stages/seoul.js', './data/stages/newyork.js', './data/stages/paris.js', './data/stages/tokyo.js', './data/stages/london.js', './data/stages/berlin.js', './data/stages/cairo.js', './data/stages/rio.js', './data/stages/beijing.js', './data/stages/moscow.js',
   './icons/icon-192.png', './icons/icon-512.png', './icons/icon-180.png'
 ];
 self.addEventListener('install', (e) => { e.waitUntil(caches.open(VERSION).then((c) => c.addAll(FILES)).then(() => self.skipWaiting())); });

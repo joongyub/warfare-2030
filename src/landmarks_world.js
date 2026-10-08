@@ -510,7 +510,7 @@ function eiffelField(G, k) {
   trees(G, [[-k.w * 0.46, -k.d * 0.46], [k.w * 0.46, -k.d * 0.46], [-k.w * 0.46, k.d * 0.46], [k.w * 0.46, k.d * 0.46], [-k.w * 0.46, 0], [k.w * 0.46, 0]], 1.1);
 }
 
-export { ashlarMat, sbox };
+export { ashlarMat, sbox, std, adder, canvasTex, uvMul, emisMat, winTex, facadeMat, fluteMat, roofMat, gold, bronze, pediment, cornice, columns, trees, lamps, shade, hex, reliefMat };
 export const FIELD = { timesq, flatiron, grandcentral, nyse, rockefeller, msg, arc, louvre, notredame, opera, pantheon, moulinrouge, eiffel: eiffelField };
 
 // =================== 가장자리 큰 랜드마크 ===================

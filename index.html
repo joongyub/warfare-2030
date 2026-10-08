@@ -109,11 +109,11 @@
   .brand span { font-weight: 700; letter-spacing: 8px; color: var(--gold); font-size: 26px; }
   .brand h1 { margin: 6px 0 8px; font-size: 92px; letter-spacing: -2px; text-shadow: 0 6px 24px rgba(0,0,0,.4); }
   .brand p { margin: 0; font-size: 24px; color: #b9c9d4; }
-  .brief { position: absolute; left: 90px; top: 330px; width: 980px; }
+  .brief { position: absolute; left: 90px; top: 392px; width: 980px; }
   .stage-no { color: var(--gold); font-weight: 700; font-size: 22px; letter-spacing: 3px; }
-  .stages { position: absolute; top: -66px; left: 0; display: flex; gap: 10px; }
-  .stages .st { height: 54px; padding: 0 18px; border-radius: 14px; border: 2px solid rgba(255,255,255,.18); background: rgba(255,255,255,.07); color: #d4e0e8; font-size: 22px; font-weight: 800; display: flex; align-items: center; gap: 10px; }
-  .stages .st small { font-size: 12px; letter-spacing: 2px; color: #8fb1c2; font-weight: 700; }
+  .stages { position: absolute; top: -128px; left: 0; display: grid; grid-template-columns: repeat(5, 186px); gap: 8px; }
+  .stages .st { height: 52px; padding: 0 12px; justify-content: space-between; white-space: nowrap; border-radius: 14px; border: 2px solid rgba(255,255,255,.18); background: rgba(255,255,255,.07); color: #d4e0e8; font-size: 22px; font-weight: 800; display: flex; align-items: center; gap: 10px; }
+  .stages .st small { font-size: 13px; letter-spacing: 1px; min-width: 22px; height: 22px; line-height: 22px; text-align: center; border-radius: 6px; background: rgba(255,255,255,.1); color: #8fb1c2; font-weight: 700; }
   .stages .st i { font-style: normal; font-size: 14px; color: var(--gold); letter-spacing: 1px; }
   .stages .st.on { border-color: var(--gold); background: rgba(242,193,78,.18); color: #fff; box-shadow: 0 0 18px rgba(242,193,78,.3); }
   .stages .st:hover { filter: brightness(1.15); }
@@ -288,7 +288,7 @@
   .mobile .pc-title { font-size: 14px; margin-bottom: 8px; } .mobile .pc-row { margin-bottom: 8px; } .mobile .pc-name { height: 44px; font-size: 20px; } .mobile .pc-save { width: 80px; font-size: 18px; }
   .mobile .pc-stat { font-size: 16px; padding: 4px 2px; } .mobile .pc-shop { height: 48px; font-size: 19px; margin-top: 8px; }
   .mobile .pc-fs { margin-top: 8px; width: 100%; height: 44px; border: 0; border-radius: 12px; font-size: 17px; font-weight: 800; color: #fff; background: #2a4a66; }
-  .mobile .brief { left: 36px; top: 214px; width: 780px; } .mobile .stages { top: -48px; } .mobile .stages .st { height: 42px; font-size: 17px; padding: 0 12px; } .mobile .stage-no { font-size: 13px; } .mobile .city { font-size: 44px; } .mobile .city small { font-size: 18px; } .mobile .city em { font-size: 20px; }
+  .mobile .brief { left: 36px; top: 222px; width: 780px; } .mobile .stages { top: -86px; grid-template-columns: repeat(5, 148px); gap: 6px; } .mobile .stages .st { height: 37px; font-size: 15px; padding: 0 8px; border-radius: 10px; gap: 4px; } .mobile .stages .st small { font-size: 11px; min-width: 18px; height: 18px; line-height: 18px; } .mobile .stages .st i { font-size: 10px; } .mobile .stage-no { font-size: 13px; } .mobile .city { font-size: 44px; } .mobile .city small { font-size: 18px; } .mobile .city em { font-size: 20px; }
   .mobile .brief p { font-size: 14px; line-height: 1.5; margin: 4px 0 6px; max-width: 760px; } .mobile .meta { font-size: 14px; } .mobile .label { font-size: 13px; margin: 8px 0 6px; }
   .mobile .loadout { grid-template-columns: repeat(9, 78px); gap: 5px; } .mobile .lo img { width: 56px; height: 56px; } .mobile .lo b { font-size: 11px; } .mobile .lo span { display: none; }
   .mobile .go { width: 360px; height: 66px; font-size: 32px; margin-top: 12px; border-radius: 16px; }
@@ -317,6 +317,13 @@
 <script src="data/stages/seoul.js"></script>
 <script src="data/stages/newyork.js"></script>
 <script src="data/stages/paris.js"></script>
+<script src="data/stages/tokyo.js"></script>
+<script src="data/stages/london.js"></script>
+<script src="data/stages/berlin.js"></script>
+<script src="data/stages/cairo.js"></script>
+<script src="data/stages/rio.js"></script>
+<script src="data/stages/beijing.js"></script>
+<script src="data/stages/moscow.js"></script>
 
 <!-- 게임 코드 (src 폴더를 묶은 파일, Three.js 3D 엔진 포함) -->
 <script src="dist/game.js"></script>

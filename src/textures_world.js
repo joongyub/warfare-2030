@@ -207,3 +207,6 @@ export function zincRoofHD() {
     return mk(c);
   });
 }
+
+// 다른 도시 키트(src/cities)에서 쓰는 그림 도구
+export { pane, grime, bricks, signBoard, cv, mk, once };

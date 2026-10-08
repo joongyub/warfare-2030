@@ -53,7 +53,7 @@ export class UI {
         <div class="pc-saves"></div>
       </div>
       <div class="brief">
-        <div class="stages">${this.stageList().map((X) => `<button class="st${X === S ? ' on' : ''}" data-id="${X.id}"><small>STAGE ${X.no}</small>${X.name}<i>${'★'.repeat(this.best(X.id))}${'☆'.repeat(3 - this.best(X.id))}</i></button>`).join('')}</div>
+        <div class="stages">${this.stageList().map((X) => `<button class="st${X === S ? ' on' : ''}" data-id="${X.id}"><small>${X.no}</small><span>${X.name}</span><i>${'★'.repeat(this.best(X.id))}${'☆'.repeat(3 - this.best(X.id))}</i></button>`).join('')}</div>
         <div class="stage-no">STAGE ${S.no} · 2030 연합방위전선</div>
         <div class="city">${this.cityName()}${GF.SETTINGS.useCityAlias ? '' : `<small>${S.nameEn}</small>`}<em>${S.title}</em></div>
         <p>${S.briefing}</p>
