@@ -8,7 +8,7 @@ import { City } from './city.js';
 import { Game } from './game.js';
 import { UI } from './ui.js';
 import { Sound } from './audio.js';
-import { layout, isTouch } from './layout.js';
+import { layout, isTouch, looksFolded } from './layout.js';
 import { getTower } from './models.js';
 import { makeHero, HERO_IDS, registerHeroes } from './heroes.js';
 import { Look } from './look.js';
@@ -17,6 +17,7 @@ import { TitleScene } from './titlescene.js';
 
 class App {
   constructor() {
+    if (GF.SETTINGS.foldScreen == null) GF.SETTINGS.foldScreen = looksFolded();   // 처음 열 때 펼친 폴드면 꽉 채우기
     // 스테이지: 주소의 ?stage=newyork 또는 마지막으로 고른 스테이지, 없으면 서울
     let want = new URLSearchParams(location.search).get('stage');
     if (!want) try { want = localStorage.getItem('gf_stage'); } catch (e) { /* 저장 불가 환경 */ }
@@ -68,6 +69,13 @@ class App {
     Cloud.init();
     this.setupInput();
     window.addEventListener('resize', () => this.resize());
+    // 휴대폰: 주소창이 숨거나 화면을 돌리거나 폴드를 펼치면 보이는 크기가 늦게 바뀜 → 조금 뒤에 한 번 더 맞춤
+    const later = () => { this.resize(); this.ui.fit(); setTimeout(() => { this.resize(); this.ui.fit(); }, 350); };
+    if (window.visualViewport) window.visualViewport.addEventListener('resize', later);
+    window.addEventListener('orientationchange', later);
+    document.addEventListener('fullscreenchange', later); document.addEventListener('webkitfullscreenchange', later);
+    // 휴대폰은 처음 화면을 터치하면 자동으로 전체 화면 + 가로 고정 (브라우저 규칙상 터치가 있어야 켤 수 있음)
+    if (isTouch()) window.addEventListener('pointerdown', () => this.ui.autoFullscreen(), true);
     this.resize();
     this.last = performance.now();
     this.time = 0;
@@ -172,6 +180,9 @@ class App {
     this.renderer.setSize(w, h);
     this.look.resize();
     this.W = w; this.H = h;
+    // 폴드 펼친 넓적한 화면은 더 위에서 내려다봐서 맵이 세로로도 크게 보이게
+    const el = L.fold ? 0.92 : 0.6;
+    if (el !== this.EL) { this.EL = el; if (this.cam) { this.cam.el = el; } }
     this.camera.aspect = w / h; this.camera.updateProjectionMatrix();
     if (this.title) this.title.resize(w, h);
     this.fitView();
@@ -271,6 +282,8 @@ class App {
     return p;
   }
 
+  // 설치할 것을 고른 상태 (무기 카드·영웅·작전 카드·전략 무기·우회로)
+  placing() { const g = this.game; return !!g.mode && !g.isOver() && g.state !== 'title'; }
   setupInput() {
     const el = this.renderer.domElement;
     let drag = null;
@@ -279,6 +292,14 @@ class App {
       this.sound.unlock();
       if (e.button === 2) { drag = { rot: true, x: e.clientX, y: e.clientY, moved: false }; el.setPointerCapture(e.pointerId); return; }   // 오른쪽 드래그 = 시점 회전, 그냥 클릭 = 취소
       pts.set(e.pointerId, { x: e.clientX, y: e.clientY });
+      // 휴대폰에서 무기·영웅·카드를 고른 상태면 지도를 고정: 손가락으로 끌면 지도 대신 설치 미리보기가 따라오고, 떼는 곳에 설치
+      if (e.pointerType === 'touch' && this.placing()) {
+        if (pts.size > 1) return;
+        drag = { aim: true, x: e.clientX, y: e.clientY, moved: false, touch: true };
+        this.mouse = { x: e.clientX, y: e.clientY };
+        const p = this.pick(e.clientX, e.clientY); if (p) this.game.hoverAt(p);
+        el.setPointerCapture(e.pointerId); return;
+      }
       if (pts.size === 2) { const [a, b] = [...pts.values()]; drag = { pinch: Math.hypot(a.x - b.x, a.y - b.y), z0: this.cam.zoomGoal, ang: Math.atan2(b.y - a.y, b.x - a.x), my: (a.y + b.y) / 2, moved: true }; return; }
       drag = { x: e.clientX, y: e.clientY, moved: false, touch: e.pointerType === 'touch' };
       if (e.pointerType === 'touch') this.mouse = { x: e.clientX, y: e.clientY };
@@ -289,7 +310,7 @@ class App {
       if (pts.has(e.pointerId)) pts.set(e.pointerId, { x: e.clientX, y: e.clientY });
       const p = this.pick(e.clientX, e.clientY);
       if (p && this.game.state !== 'title') this.game.hoverAt(p);
-      if (!drag) return;
+      if (!drag || drag.aim) return;
       if (drag.rot) {
         const dx = e.clientX - drag.x, dy = e.clientY - drag.y;
         if (!drag.moved && Math.abs(dx) + Math.abs(dy) > 5) drag.moved = true;
@@ -323,6 +344,16 @@ class App {
       pts.delete(e.pointerId);
       const d = drag; if (!pts.size) drag = null;
       if (d && d.rot) { if (!d.moved) this.game.cancelMode(); return; }
+      if (d && d.aim) {
+        if (pts.size) return;
+        const p = this.pick(e.clientX, e.clientY);
+        if (p && this.placing()) {
+          const g = this.game, n = g.towers.length;
+          this.mouse = { x: e.clientX, y: e.clientY }; g.hoverAt(p); g.click(p);
+          if (g.towers.length > n && g.mode) g.cancelMode();   // 설치가 끝나면 지도 고정 풀림
+        }
+        return;
+      }
       if (!d || d.moved || e.button !== 0) return;
       const p = this.pick(e.clientX, e.clientY);
       if (p && this.game.state !== 'title') {

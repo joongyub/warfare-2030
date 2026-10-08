@@ -2,7 +2,7 @@
 window.GF = window.GF || {};
 
 GF.SETTINGS = {
-  version: '0.29.0 (베타 · 10개 도시)',
+  version: '0.30.0 (베타 · 10개 도시)',
   // true: 실제 무기 이름 (K9 썬더, 재블린 …) / false: 살짝 바꾼 이름 (K9-X 썬더, 재블런스 …)
   // 출시 직전 상표 검토 후 결정 (문서 10번 2장 참고)
   useRealWeaponNames: true,
@@ -26,6 +26,7 @@ GF.SETTINGS = {
   musicVolume: 0.35,        // 배경 음악 크기 (0~1)
   shadows: true,            // 그림자 (느린 컴퓨터는 false)
   graphics: 'ultra',        // 그래픽 품질 기본 = 최고 (2026-10-08 사용자 요청). 'auto'(느리면 자동으로 낮춤) / 'ultra' / 'high' / 'medium' / 'low'. 사용자가 바꾸면 gf_prefs 에 기억
+  foldScreen: null,         // 폴드7·폴드8 울트라 펼친 화면 꽉 채우기 (null = 처음 열 때 펼친 폴드처럼 보이면 자동으로 켬). 설정에서 체크
   difficulty: 'easy',       // 난이도 기본값 (전투지역 화면에서 고름, gf_prefs 에 기억)
   comboWindow: 2.5,         // 이 시간(초) 안에 연속으로 처치하면 연쇄 격파 보너스
   homeBg: 'img/home_bg.jpg',
@@ -50,6 +51,6 @@ GF.DIFF = {
   hard:   { name: '어려움', hp: 2,   cnt: 2 }
 };
 // 사용자가 바꾼 설정(그래픽·난이도·효과음 등)은 이 기기에 기억
-GF.PREF_KEYS = ['graphics', 'difficulty', 'sound', 'shadows', 'showLandmarkLabels', 'useRealWeaponNames'];
+GF.PREF_KEYS = ['graphics', 'difficulty', 'foldScreen', 'sound', 'shadows', 'showLandmarkLabels', 'useRealWeaponNames'];
 try { Object.assign(GF.SETTINGS, JSON.parse(localStorage.getItem('gf_prefs') || '{}')); } catch (e) { /* 저장 불가 환경 */ }
 GF.savePrefs = () => { try { const o = {}; GF.PREF_KEYS.forEach((k) => { o[k] = GF.SETTINGS[k]; }); localStorage.setItem('gf_prefs', JSON.stringify(o)); } catch (e) { /* 저장 불가 환경 */ } };

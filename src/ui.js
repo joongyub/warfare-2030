@@ -2,7 +2,7 @@
 // 배치는 서울 시안 그대로: 왼쪽 위 제목, 오른쪽 위 기지·보급·웨이브·배속·일시정지·설정, 아래 카드 줄 + 다음 웨이브
 import { Profile } from './profile.js';
 import { Cloud } from './cloud.js';
-import { layout } from './layout.js';
+import { layout, isTouch } from './layout.js';
 import { HEROES, HERO_IDS, GACHA } from './heroes.js';
 import { Saves } from './save.js';
 // 화면 글자·위치가 바뀔 때만 실제로 씀 (매 프레임 다시 쓰면 휴대폰에서 끊김)
@@ -55,6 +55,7 @@ export class UI {
         <button class="pc-fs">⛶ 전체 화면으로 하기</button>
         <button class="pc-install">📲 앱으로 설치하기</button>
         <label class="pc-gq"><span>그래픽</span>${this.gqSelect()}</label>
+        ${this.foldBox()}
         <div class="pc-saves"></div>
       </div>
       <div class="brief home">
@@ -64,6 +65,7 @@ export class UI {
         <div class="disc">이 게임은 가상의 이야기입니다. 실제 국가·단체·사건과 관계없습니다. · v${GF.SETTINGS.version}</div>
       </div>`;
     t.querySelector('.go').onclick = () => this.openZone();
+    this.bindFold(t);
     t.querySelector('.pc-gq select').onchange = (e) => { GF.SETTINGS.graphics = e.target.value; this.app.applySettings(); this.toastAny('그래픽: ' + e.target.selectedOptions[0].textContent); };
     this.renderSaves();
     const inp = t.querySelector('.pc-name'); inp.value = Profile.data.name || '';
@@ -323,6 +325,16 @@ export class UI {
     const SET = GF.SETTINGS, cur = SET.graphics === 'auto' ? 'auto' : this.app.look.q;
     return `<select class="gq">${[['ultra', '최고 (기본)'], ['high', '높음'], ['medium', '보통'], ['low', '낮음 (느린 기기)'], ['auto', '자동 (느리면 낮춤)']].map(([v, n]) => `<option value="${v}" ${cur === v ? 'selected' : ''}>${n}</option>`).join('')}</select>`;
   }
+  // 폴드7·폴드8 울트라 펼친 화면 꽉 채우기 체크 (홈 프로필 칸·게임 설정 둘 다)
+  foldBox() { return `<label class="fold-opt"><input type="checkbox" class="fold-chk" ${GF.SETTINGS.foldScreen ? 'checked' : ''}> 폴드7·폴드8 울트라 펼친 화면 꽉 채우기</label>`; }
+  bindFold(el) {
+    const c = el.querySelector('.fold-chk'); if (!c) return;
+    c.onchange = () => {
+      GF.SETTINGS.foldScreen = c.checked; GF.savePrefs();
+      this.app.resize(); this.fit();
+      this.toastAny(c.checked ? (isTouch() ? '폴드 화면 꽉 채우기 켬 (펼쳤을 때 적용)' : '폴드 화면 설정을 켰어요. 폴드폰 펼친 화면에서 적용돼요') : '16:9 화면으로 돌아갔어요');
+    };
+  }
   renderSettings() {
     const SET = GF.SETTINGS, s = this.settings;
     s.innerHTML = `<b>설정</b>
@@ -331,9 +343,11 @@ export class UI {
       <label><input type="checkbox" data-k="sound" ${SET.sound ? 'checked' : ''}> 효과음</label>
       <label><input type="checkbox" data-k="shadows" ${SET.shadows ? 'checked' : ''}> 그림자 <small>(느리면 끄기)</small></label>
       <label>그래픽 ${this.gqSelect()}</label>
+      ${this.foldBox()}
       <div class="row"><button class="save">💾 저장하기</button><button class="savex">저장하고 나가기</button></div>
       <div class="row"><button class="home">저장 안 하고 나가기</button><button class="close">닫기</button></div>`;
     s.querySelectorAll('input').forEach((inp) => { inp.onchange = () => { SET[inp.dataset.k] = inp.checked; this.app.applySettings(); }; });
+    this.bindFold(s);
     s.querySelector('.gq').onchange = (e) => { SET.graphics = e.target.value; this.app.applySettings(); };
     s.querySelector('.save').onclick = () => { if (this.app.saveGame(false)) this.toggleSettings(false); };
     s.querySelector('.savex').onclick = () => { this.toggleSettings(false); this.app.saveGame(true); };
@@ -403,7 +417,7 @@ export class UI {
     for (const { L, e } of this.labelEls) {
       const vis = inGame && (L.kind !== 'landmark' || GF.SETTINGS.showLandmarkLabels);
       const p = vis ? this.project(L.pos) : null;
-      if (!p || p.x < -100 || p.x > 2020 || p.y < -50 || p.y > 1130 || (L.kind === 'landmark' && p.y < this.L.base.top + 34)) { put(e.style, 'display', 'none'); continue; }   // 위쪽 정보줄 밑에 깔리는 이름표는 숨김
+      if (!p || p.x < -100 || p.x > 2020 || p.y < -50 || p.y > this.BH + 50 || (L.kind === 'landmark' && p.y < this.L.base.top + 34)) { put(e.style, 'display', 'none'); continue; }   // 위쪽 정보줄 밑에 깔리는 이름표는 숨김
       put(e.style, 'display', 'block');
       put(e.style, 'left', Math.max(70, Math.min(this.BW - 70, p.x)) + 'px'); put(e.style, 'top', Math.max(40, p.y) + 'px');
     }
@@ -508,6 +522,7 @@ export class UI {
     else if (g.mode === 'card') hint = GF.CARDS[g.hand[g.cardSel]].name + `: 지도에서 위치 ${tap} · ${esc}`;
     else if (g.mode === 'hero') hint = HEROES[g.heroSel].name + ` 배치: 회색 공간 아무 곳이나 ${tap} · ${M ? '영웅 버튼 다시 누르면 취소' : '오른쪽 클릭/ESC 취소'}`;
     else if (g.mode) hint = GF.wname(g.mode) + ` 설치: 회색 공간 아무 곳이나 ${tap} · ${M ? '카드 다시 누르면 취소' : '오른쪽 클릭/ESC 취소'}`;
+    if (g.mode && isTouch() && g.mode !== 'detour') hint = '📌 지도 고정됨 · 손가락을 대고 끌어 위치를 맞춘 뒤 떼면 설치 · ' + hint;
     else if (g.state === 'ready') hint = this.L.mobile ? '무기 카드를 누르고 회색 공간을 터치해 배치 · 두 손가락 벌리기 확대·비틀기 회전 · 한 손가락 끌기로 이동' : '적이 오는 도심 거리·건물·랜드마크만 빼고 회색 공간 어디든 무기를 놓으세요. 거리 사이 회색 공간에 놓으면 위아래 거리를 동시에 공격합니다 · 휠: 확대 · 오른쪽 버튼 끌기: 시점 회전 · R: 기본 시점';
     put(this.eHint, 'textContent', hint);
   }
@@ -531,7 +546,7 @@ export class UI {
     r.querySelectorAll('.pb-cred').forEach((e) => { e.textContent = '보급창 ' + Profile.credits.toLocaleString('ko-KR'); });
     if (this.shopEl) this.shopEl.querySelector('.sh-cred').textContent = Profile.credits.toLocaleString('ko-KR');
   }
-  toastAny(msg, color) { if (this.hud && this.eToast) this.toast(msg, color); else { const t = h('div', 'toast lobby', msg, this.root); t.style.opacity = 1; setTimeout(() => t.remove(), 1800); } }
+  toastAny(msg, color, ms) { if (typeof color === 'number') { ms = color; color = undefined; } if (this.hud && this.eToast) this.toast(msg, color, ms); else { const t = h('div', 'toast lobby', msg, this.root); t.style.opacity = 1; setTimeout(() => t.remove(), ms || 1800); } }
   // 작전 본부 창: 영웅 모집 · 보급 뽑기 · 보급 충전(상점) 탭
   openShop(tab = 'hero') {
     if (this.shopEl) { this.shopTab(tab); return; }
@@ -647,10 +662,25 @@ export class UI {
     this.shopEl.remove(); this.shopEl = null;
     if (this.shopPaused) { this.shopPaused = false; if (this.app.paused) this.app.togglePause(); }
   }
+  // 휴대폰: 터치할 때마다 전체 화면이 아니면 자동으로 켬 (사용자가 ⛶ 로 끈 뒤에는 다시 켜지 않음)
+  // 아이폰 사파리는 웹페이지 전체 화면 기능이 없어서 한 번만 '홈 화면에 추가' 안내 (추가한 앱은 manifest 로 전체 화면)
+  autoFullscreen() {
+    if (this.fsOff) return;
+    const d = document.documentElement, fs = document.fullscreenElement || document.webkitFullscreenElement;
+    if (fs) return;
+    const req = d.requestFullscreen || d.webkitRequestFullscreen;
+    const app = matchMedia('(display-mode: fullscreen), (display-mode: standalone)').matches || navigator.standalone;
+    if (!req) {
+      if (!app && !this.iosHinted) { this.iosHinted = true; setTimeout(() => this.toastAny('아이폰은 사파리 아래 공유(⬆) → "홈 화면에 추가"로 열면 주소창 없이 전체 화면으로 할 수 있어요', 6500), 600); }
+      return;
+    }
+    Promise.resolve(req.call(d, { navigationUI: 'hide' })).then(() => { try { screen.orientation.lock('landscape').catch(() => {}); } catch (e) { /* 미지원 */ } }).catch(() => {});
+  }
   // 전체 화면 + 가로 고정 (안드로이드 크롬. 아이폰은 '홈 화면에 추가'로 전체 화면)
   fullscreen() {
     const d = document.documentElement, fs = document.fullscreenElement || document.webkitFullscreenElement;
-    if (fs) { (document.exitFullscreen || document.webkitExitFullscreen).call(document); return; }
+    if (fs) { this.fsOff = true; (document.exitFullscreen || document.webkitExitFullscreen).call(document); return; }
+    this.fsOff = false;
     const req = d.requestFullscreen || d.webkitRequestFullscreen;
     if (!req) { this.toastAny('이 브라우저는 전체 화면을 지원하지 않아요. 공유 → 홈 화면에 추가로 열어 주세요'); return; }
     Promise.resolve(req.call(d, { navigationUI: 'hide' })).then(() => { try { screen.orientation.lock('landscape').catch(() => {}); } catch (e) { /* 미지원 */ } }).catch(() => {});

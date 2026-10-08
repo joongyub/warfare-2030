@@ -874,6 +874,20 @@ export class Game {
           this.ui().floatText(c.clone().setY(1.6), b ? '찰싹!' : '짝!', '#FFE2B0');
         } });
       }
+    } else if (W.shot === 'glasses') {
+      // 뿔테안경 번쩍: 두 줄기 광선이 목표로 → 주변 적 8명을 두 번 태우고 잠깐 멈춤 (임배근과 같은 공격력)
+      for (let b = 0; b < 2; b++) {
+        this.timers.push({ t: 0.4 + b * 0.22, fn: () => {
+          this.snd('glint');
+          const from = m.muzzle.getWorldPosition(V()), c = e.dead ? g0 : this.targetPoint(e), r2 = W.splash * W.splash;
+          for (const dz of [-0.06, 0.06]) this.tracer(from.clone().add(V(0, 0, dz)), c, 0x9fe8ff);
+          this.spawnSpark(from, 0xffffff, 0.3, 0.15);
+          const list = this.enemies.filter((x) => !x.dead && (x.pos.x - c.x) ** 2 + (x.pos.z - c.z) ** 2 <= r2).sort((a2, b2) => a2.rem - b2.rem).slice(0, W.salvo);
+          for (const x of list) { this.hurt(x, st.dmg / 2, tw, { pierce: true }); if (!x.E.boss) x.stun = Math.max(x.stun, 0.35); this.vfx.impact(this.targetPoint(x), x.air); }
+          this.spawnRing(c, W.splash, 0x9fe8ff, 0.4); this.spawnRing(c, W.splash * 0.5, 0xffffff, 0.3);
+          if (b === 0) this.ui().floatText(c.clone().setY(1.6), '번쩍!', '#BFF0FF');
+        } });
+      }
     } else if (W.shot === 'snipe') {
       // Kar98 저격: 한 발이 영웅 → 목표 방향 일직선으로 사거리 끝까지 날아가며 줄 선 적들을 모두 관통
       this.timers.push({ t: 0.28, fn: () => {
@@ -890,7 +904,7 @@ export class Game {
         }
         hit.sort((p, q) => p[0] - q[0]);
         if (!hit.some(([, x]) => x === e) && !e.dead) hit.unshift([0, e]);
-        hit.slice(0, W.salvo).forEach(([, x], i) => { this.hurt(x, st.dmg * (1 - i * 0.08), tw, { pierce: true }); this.vfx.impact(this.targetPoint(x), x.air); });
+        hit.slice(0, W.salvo).forEach(([, x]) => { this.hurt(x, st.dmg, tw, { pierce: true }); this.vfx.impact(this.targetPoint(x), x.air); });
         this.tracer(from, end, 0xfff6c8); this.tracer(from.clone().setY(from.y + 0.02), end, 0xffffff);
         this.vfx.muzzle(from, dir.clone(), true); this.spawnPuff(from, 0xcfd2c4, 2, 0.16);
         if (hit.length >= 3) this.ui().floatText(c.clone().setY(1.6), `${Math.min(hit.length, W.salvo)}명 관통!`, '#FFF6C8');

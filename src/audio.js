@@ -104,6 +104,9 @@ export class Sound {
       case 'whip': // 벨트 채찍 짝! (휙 바람 소리 + 날카로운 터짐)
         this.noiseHit(t, { dur: 0.12, f: 900, fEnd: 3200, type: 'bandpass', q: 0.8, vol: 0.12 * v });
         this.noiseHit(t + 0.1, { dur: 0.05, f: 4200, type: 'highpass', q: 0.7, vol: 0.4 * v }); this.tone(t + 0.1, { f: 2400, fEnd: 900, dur: 0.04, type: 'square', vol: 0.06 * v }); break;
+      case 'glint': // 안경 번쩍 (반짝 소리 + 짧은 광선 지잉)
+        this.tone(t, { f: 2600, fEnd: 3600, dur: 0.08, type: 'sine', vol: 0.08 * v }); this.tone(t + 0.05, { f: 3800, dur: 0.06, type: 'sine', vol: 0.06 * v });
+        this.tone(t + 0.08, { f: 900, fEnd: 300, dur: 0.18, type: 'sawtooth', vol: 0.06 * v }); break;
       case 'snipe': // Kar98 한 발 (날카로운 총성 + 긴 울림) 뒤 노리쇠 철컥
         this.noiseHit(t, { dur: 0.06, f: 2600, type: 'highpass', q: 0.7, vol: 0.5 * v }); this.noiseHit(t, { dur: 0.7, f: 260, fEnd: 90, type: 'lowpass', q: 0.8, vol: 0.38 * v });
         this.tone(t + 0.55, { f: 1900, dur: 0.03, type: 'square', vol: 0.05 * v }); this.tone(t + 0.68, { f: 1500, dur: 0.035, type: 'square', vol: 0.05 * v }); break;
