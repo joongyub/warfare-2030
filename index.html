@@ -325,9 +325,21 @@
   .sv-d { font-style: normal; font-size: 12px; font-weight: 800; padding: 1px 6px; border-radius: 6px; vertical-align: 2px; } .sv-d.d-easy { background: rgba(60,160,100,.45); } .sv-d.d-normal { background: rgba(190,140,30,.45); } .sv-d.d-hard { background: rgba(190,40,50,.5); }
 
   /* 웨이브 절반 방송 (7초): 홈 그림의 여자 캐릭터만 + 하단 자막 */
-  .invasion { position: absolute; inset: 0; z-index: 90; background: #000; cursor: pointer; }
-  .invasion canvas { width: 100%; height: 100%; object-fit: cover; display: block; }
-  .invasion .iv-skip { position: absolute; left: 24px; bottom: 18px; color: rgba(255,255,255,.75); font-size: 18px; font-weight: 700; text-shadow: 0 2px 4px #000; }
+  .loading { position: absolute; inset: 0; z-index: 95; background: #05080c; pointer-events: auto; animation: ld-in .35s ease-out; }
+  .loading.out { opacity: 0; transition: opacity .45s; }
+  .loading .ld-img { position: absolute; inset: 0; background-size: cover; background-position: center; opacity: 0; transform: scale(1.04); transition: opacity .5s; animation: ld-zoom 7.5s linear forwards; }
+  .loading.ok .ld-img { opacity: 1; }
+  .loading .ld-shade { position: absolute; inset: 0; background: linear-gradient(180deg, rgba(0,0,0,0) 55%, rgba(0,0,0,.82) 100%); }
+  .loading .ld-info { position: absolute; left: 60px; right: 60px; bottom: 44px; color: #fff; text-shadow: 0 3px 10px rgba(0,0,0,.8); }
+  .loading .ld-info small { display: block; font-size: 20px; font-weight: 800; letter-spacing: 4px; color: #ffd36a; }
+  .loading .ld-info b { font-size: 76px; font-weight: 900; line-height: 1.1; margin-right: 18px; }
+  .loading .ld-info em { font-style: normal; font-size: 30px; font-weight: 700; color: #e8eef2; }
+  .loading .ld-bar { margin-top: 18px; height: 10px; border-radius: 6px; background: rgba(255,255,255,.18); overflow: hidden; }
+  .loading .ld-bar i { display: block; height: 100%; width: 0; background: linear-gradient(90deg, #f2c14e, #ffe9a0); box-shadow: 0 0 12px #f2c14e; }
+  .loading .ld-tip { display: block; margin-top: 10px; font-size: 18px; font-weight: 700; color: #d4e0e8; }
+  @keyframes ld-in { from { opacity: 0; } to { opacity: 1; } }
+  @keyframes ld-zoom { from { transform: scale(1.04); } to { transform: scale(1.12); } }
+  .mobile .loading .ld-info { left: 30px; right: 30px; bottom: 26px; } .mobile .loading .ld-info b { font-size: 52px; } .mobile .loading .ld-info em { font-size: 22px; } .mobile .loading .ld-info small { font-size: 14px; }
   .roar { position: absolute; inset: 0; z-index: 54; pointer-events: none; background: radial-gradient(ellipse at 30% 70%, rgba(255,210,110,.28), rgba(0,0,0,0) 60%); animation: rr-in .5s ease-out; }
   .roar.out { opacity: 0; transition: opacity .4s; }
   .roar .rr-fw { position: absolute; inset: 0; width: 100%; height: 100%; }
