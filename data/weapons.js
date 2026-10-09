@@ -84,5 +84,7 @@ GF.COMBO_RULES = {
   heroRate: 0.3,       // 영웅 조합 성공률 30%
   dist: 3.6,           // 이 거리 안에 가까이 놓여 있어야 조합 가능
   weaponFee: 0.25,     // 무기 조합 수수료 = 두 무기 값의 25% (실패해도 사라짐)
-  heroFee: 300         // 영웅 조합 수수료
+  heroFee: 300,        // 영웅 조합 수수료
+  goatRate: 0.3,       // 신화 영웅 + 조합 무기 → GOAT 성공률
+  goatFee: 800         // GOAT 조합 수수료
 };

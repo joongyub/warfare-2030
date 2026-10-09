@@ -4,6 +4,7 @@ import { getTower, getEnemy, getGhost, mat, ghostMat, ghostBad } from './models.
 import { makeHero, HEROES, HERO_IDS, GACHA, rollHero, makeBuddha, makeElephant } from './heroes.js';
 import { RECIPES, Codex, comboRate, comboFee } from './codex.js';
 import { VFX } from './vfx.js';
+import { Clears } from './save.js';
 
 const V = (x = 0, y = 0, z = 0) => new THREE.Vector3(x, y, z);
 const TOWER_SCALE = 1.6, TOWER_GAP = 1.4, HERO_SCALE = 2.1;
@@ -58,7 +59,7 @@ export class Game {
     this.speed = 1;
     this.waveNo = 0; this.kills = 0;
     this.queue = []; this.clock = 0; this.nextT = 0;
-    this.combo = 0; this.comboT = 0; this.bestCombo = 0; this.autoWave = 0;
+    this.combo = 0; this.comboT = 0; this.bestCombo = 0; this.autoWave = 0; this.fused = 0; this.halfDone = false;
     this.enemies = []; this.towers = []; this.shots = []; this.fx = []; this.zones = []; this.timers = []; this.fires = [];
     this.mode = null; this.cardSel = -1; this.selected = null;
     this.deck = GF.CARD_DECK.slice().sort(() => Math.random() - 0.5);
@@ -169,10 +170,19 @@ export class Game {
       const r = this.lives / this.S.lives;
       stars = r >= 0.9 ? 3 : r >= 0.5 ? 2 : 1;
       try { const p = JSON.parse(localStorage.getItem('gf_progress') || '{}'); p[this.S.id] = Math.max(p[this.S.id] || 0, stars); localStorage.setItem('gf_progress', JSON.stringify(p)); } catch (e) { /* 저장 불가 환경 */ }
-      if (GF.cloudPush) GF.cloudPush();
     }
-    this.ui().showResult(won, stars);
+    // 성과 기록: 결과 화면에 보여 주고, 이기면 도시·난이도별 완료 기록으로 남김 (전투지역 화면 표시)
+    const mvp = this.towers.filter((t) => t.dmgTotal > 0).sort((a, b) => b.dmgTotal - a.dmgTotal)[0];
+    const rec = {
+      stars, kills: this.kills, lives: this.lives, time: Math.round(this.clock), combo: Math.max(this.bestCombo, this.combo),
+      towers: this.towers.filter((t) => !t.W.hero).length, heroes: this.towers.filter((t) => t.W.hero).length, fused: this.fused || 0,
+      mvp: mvp ? { name: mvp.W.hero ? HEROES[mvp.W.hero].name : GF.wname(mvp.type), dmg: Math.round(mvp.dmgTotal) } : null, at: Date.now()
+    };
+    const saved = won ? Clears.add(this.S.id, this.diffId, rec) : null;
+    if (won && GF.cloudPush) GF.cloudPush();
+    this.ui().showResult(won, stars, rec, saved);
     this.snd(won ? 'win' : 'lose');
+    if (won) { this.snd('applause'); setTimeout(() => this.snd('applause', 0.8), 1500); }
   }
 
   // ---------- 저장 · 불러오기 ----------
@@ -191,7 +201,7 @@ export class Game {
     if (mid && this.waveNo > 1) money -= 40 + this.waveNo * 8;
     return {
       v: 1, stage: this.S.id, time: Date.now(), diff: this.diffId,
-      wave, money: Math.max(0, Math.floor(money)), lives: this.lives, kills: this.kills, cp: this.cp, bestCombo: this.bestCombo,
+      wave, money: Math.max(0, Math.floor(money)), lives: this.lives, kills: this.kills, cp: this.cp, bestCombo: this.bestCombo, fused: this.fused || 0, halfDone: !!this.halfDone,
       towers: this.towers.map((t) => ({ type: t.type, x: +t.pos.x.toFixed(2), z: +t.pos.z.toFixed(2), level: t.level, invested: t.invested, dmg: Math.round(t.dmgTotal), kills: t.kills })),
       detours: this.city.steps.map((st, i) => (st.open ? i : -1)).filter((i) => i >= 0),
       deck: this.deck.slice(), hand: this.hand.slice(), strat,
@@ -219,7 +229,7 @@ export class Game {
       }
     }
     this.ui().resetLabels();
-    this.money = d.money; this.lives = d.lives; this.kills = d.kills || 0; this.cp = d.cp ?? this.cp; this.bestCombo = d.bestCombo || 0;
+    this.money = d.money; this.lives = d.lives; this.kills = d.kills || 0; this.cp = d.cp ?? this.cp; this.bestCombo = d.bestCombo || 0; this.fused = d.fused || 0; this.halfDone = !!d.halfDone;
     this.waveNo = Math.min(d.wave || 0, this.S.waves.length - 1);
     const known = (id) => GF.CARDS[id];
     if (Array.isArray(d.hand) && d.hand.length === this.hand.length && d.hand.every(known)) { this.hand = d.hand.slice(); this.deck = (d.deck || []).filter(known); }
@@ -232,17 +242,56 @@ export class Game {
     this.ui().toast(`저장한 게임을 불러왔습니다 · 웨이브 ${this.waveNo + 1}부터`, '#8FF3FF', 4200);
   }
 
-  // 자동 저장: 한 웨이브의 적을 모두 물리치면 저장 (구글 로그인한 사람만, 마지막 웨이브는 승리 화면이 대신함)
+  // 웨이브 하나를 다 물리칠 때마다: 절반 지점 연출(한 번) + 자동 저장(구글 로그인한 사람만, 마지막 웨이브는 승리 화면이 대신함)
   checkAutoSave() {
-    if (!GF.SETTINGS.autoSave || !GF.Cloud || !GF.Cloud.user) return;
     let low = Infinity;
     for (const q of this.queue) if (q.wave < low) low = q.wave;
     for (const e of this.enemies) if (!e.dead && e.wave < low) low = e.wave;
-    const done = low === Infinity ? this.waveNo : low - 1;
+    const done = low === Infinity ? this.waveNo : low - 1, N = this.S.waves.length;
     if (done <= this.autoWave) return;
     this.autoWave = done;
-    if (done >= this.S.waves.length || this.lives <= 0) return;
-    this.app.saveGame(false, true);
+    const save = () => { if (GF.SETTINGS.autoSave && GF.Cloud && GF.Cloud.user && done < N && this.lives > 0 && !this.isOver()) this.app.saveGame(false, true); };
+    if (!this.halfDone && done >= Math.floor(N / 2) && done < N && this.lives > 0) { this.halfDone = true; this.halfStrike(save); return; }
+    save();
+  }
+  // 웨이브 절반: 7초 방송 연출 → 부카니스탄 대포동·로동 미사일이 내 무기 하나에 떨어져 파괴
+  halfStrike(after) {
+    const app = this.app, was = app.paused;
+    app.paused = true; this.cancelMode();
+    this.snd('siren');
+    this.ui().playHalfTaunt(() => { app.paused = was; this.missileStrike(after); });
+  }
+  missileStrike(after) {
+    const ok = (t) => !t.fusing, weapons = this.towers.filter((t) => ok(t) && !t.W.hero), pool = weapons.length ? weapons : this.towers.filter(ok);
+    if (!pool.length || this.isOver()) { if (after) after(); return; }
+    const tw = pool[Math.floor(Math.random() * pool.length)], p = tw.pos.clone(), name = tw.W.hero ? HEROES[tw.W.hero].short : GF.wname(tw.type);
+    this.ui().toast(`⚠ 대포동·로동 미사일 발사! ${name} 쪽으로 떨어진다!`, '#FF5A5A', 3000);
+    this.spawnRing(p, 1.8, 0xff2a2a, 1.6); this.spawnRing(p, 1.0, 0xffffff, 1.2);
+    // 미사일: 흰 몸통 + 붉은 탄두 + 꼬리 불꽃. 하늘에서 비스듬히 내리꽂힘
+    const m = new THREE.Group();
+    const body = new THREE.Mesh(new THREE.CylinderGeometry(0.22, 0.26, 2.6, 12), mat(0xe8e6de)); m.add(body);
+    const tip = new THREE.Mesh(new THREE.ConeGeometry(0.22, 0.7, 12), mat(0xc0262e)); tip.position.y = -1.65; tip.rotation.x = Math.PI; m.add(tip);
+    for (let i = 0; i < 4; i++) { const f = new THREE.Mesh(new THREE.BoxGeometry(0.04, 0.5, 0.5), mat(0x4a4f44)); f.position.y = 1.1; f.rotation.y = i * Math.PI / 4; m.add(f); }
+    const fire = new THREE.Mesh(new THREE.ConeGeometry(0.2, 1.2, 10), new THREE.MeshBasicMaterial({ color: 0xffa040, transparent: true, opacity: 0.85 })); fire.position.y = 1.9; m.add(fire);
+    m.traverse((o) => { if (o.material) o.material.shared = true; });
+    const from = p.clone().add(V(-12, 26, -8)), dir = p.clone().sub(from).normalize();
+    m.quaternion.setFromUnitVectors(V(0, -1, 0), dir); m.scale.setScalar(1.4);
+    this.pushFx(m, 1.5, (o, k) => { o.position.copy(from).lerp(p, k * k); fire.scale.setScalar(0.8 + Math.random() * 0.5); });
+    this.snd('missile', 1.2);
+    this.timers.push({ t: 1.5, fn: () => {
+      if (this.towers.includes(tw)) {
+        if (tw.label) { const i = this.city.labels.indexOf(tw.label); if (i >= 0) this.city.labels.splice(i, 1); this.ui().resetLabels(); }
+        this.unitGroup.remove(tw.model.root);
+        this.towers.splice(this.towers.indexOf(tw), 1);
+        if (this.selected === tw) this.select(null);
+      }
+      this.explodeFx(p.clone().setY(0.8), 2.2); this.explodeFx(p.clone().add(V(0.8, 0.6, -0.5)), 1.4); this.explodeFx(p.clone().add(V(-0.7, 0.5, 0.6)), 1.4);
+      this.spawnRing(p, 3.4, 0xff6a2a, 1.2); this.spawnPuff(p.clone().setY(0.6), 0x3a3430, 10, 0.6, 2.2);
+      this.app.shake(0.6); this.snd('nuke', 1.2);
+      this.ui().toast(`💥 미사일 피격! ${name} 파괴됨`, '#FF5A5A', 3600);
+      this.refreshCombos(true);
+      if (after) after();
+    } });
   }
 
   isOver() { return this.state === 'won' || this.state === 'lost' || this.state === 'title'; }
@@ -564,6 +613,7 @@ export class Game {
       if (nt.model.fire) nt.model.fire();
       if (monk) this.snd('moktak');
       this.ui().toast(`조합 성공! ${R.name} 출현`, '#FFD36A', 3600);
+      this.fused = (this.fused || 0) + 1;
       app.paused = wasPaused;
       this.refreshCombos(true);
     }, monk ? null : img);
@@ -767,7 +817,7 @@ export class Game {
       }
     }
 
-    if (this.state === 'battle') this.checkAutoSave();
+    if (this.state === 'battle') this.checkAutoSave();   // 웨이브 처리(절반 연출·자동 저장)
 
     for (const tm of this.timers) { tm.t -= dt; if (tm.t <= 0) { tm.fn(); tm.done = true; } }
     this.timers = this.timers.filter((tm) => !tm.done);
@@ -990,6 +1040,22 @@ export class Game {
           this.timers.push({ t: i * 0.1, fn: () => this.addShot('missile', mz, { target: x, speed: x.air ? 11 : 8, dmg: st.dmg, tw, pierce: true, splash: x.air ? 0 : W.splash }) });
         }
       } });
+    } else if (W.shot === 'fighters') {
+      // 손짓 한 번에 F-15K 편대: 서로 다른 적(공중·지상) 3곳으로 날아가 미사일을 꽂음
+      const list = near(W.salvo, true); if (!list.length) return;
+      this.timers.push({ t: 0.25, fn: () => this.snd('airstrike') });
+      list.forEach((x, i) => {
+        this.timers.push({ t: 0.3 + i * 0.16, fn: () => {
+          if (x.dead) return;
+          const p = x.pos.clone().setY(0);
+          this.flyJet(p, { color: 0x5d6670, from: tw.pos, scale: 1.25 });
+          this.timers.push({ t: 0.55, fn: () => {
+            if (x.dead) return;
+            const from = x.pos.clone().add(V(-3.5, 6.5, 2.5));
+            this.addShot('missile', from, { target: x, speed: 18, dmg: st.dmg, tw, pierce: true, splash: x.air ? 0 : W.splash });
+          } });
+        } });
+      });
     } else if (W.shot === 'bark') {
       // 비숑이 왈왈 두 번 짖음: 음파 고리가 목표까지 날아가 주변 적들에게 피해 + 잠깐 멈춤
       for (let b = 0; b < 2; b++) {
@@ -1446,12 +1512,17 @@ export class Game {
       if (k >= 0.99 && !landed) { landed = true; this.vfx.explosion(o.position.clone().setY(0.15), e.type === 'heli' ? 0.9 : 0.5, {}); }
     });
   }
-  flyJet(target) {
+  // o: { color, from(출발 쪽 지점: 그쪽에서 목표 위를 지나감), scale }
+  flyJet(target, o = {}) {
     const jet = new THREE.Group();
-    const b = new THREE.Mesh(new THREE.ConeGeometry(0.22, 1.5, 6), mat(0x8a9097)); b.rotation.z = -Math.PI / 2; jet.add(b);
+    const c = o.color || 0x8a9097;
+    const b = new THREE.Mesh(new THREE.ConeGeometry(0.22, 1.5, 6), mat(c)); b.rotation.z = -Math.PI / 2; jet.add(b);
     const w = new THREE.Mesh(new THREE.BoxGeometry(0.55, 0.04, 1.5), mat(0x7a8087)); w.position.x = -0.15; jet.add(w);
     const t = new THREE.Mesh(new THREE.BoxGeometry(0.28, 0.34, 0.04), mat(0x7a8087)); t.position.set(-0.6, 0.16, 0); jet.add(t);
-    const from = target.clone().add(V(-18, 6, 9)), to = target.clone().add(V(18, 6, -9));
+    if (o.color) for (const s of [-1, 1]) { const t2 = new THREE.Mesh(new THREE.BoxGeometry(0.26, 0.3, 0.04), mat(c)); t2.position.set(-0.6, 0.16, s * 0.14); jet.add(t2); }   // F-15 쌍수직꼬리
+    if (o.scale) jet.scale.setScalar(o.scale);
+    const dir = o.from ? target.clone().sub(o.from).setY(0).normalize() : V(1, 0, -0.5).normalize();
+    const from = target.clone().addScaledVector(dir, -20).setY(6), to = target.clone().addScaledVector(dir, 20).setY(6);
     jet.position.copy(from); jet.lookAt(to); jet.rotateY(-Math.PI / 2);
     jet.traverse((o) => { if (o.material) o.material.shared = true; });
     this.pushFx(jet, 1.8, (o, k) => { o.position.copy(from).lerp(to, k); });

@@ -13,3 +13,19 @@ export const Saves = {
   remove(stage) { const o = all(); delete o[stage]; write(o); const x = del(); x[stage] = Date.now(); try { localStorage.setItem(DEL, JSON.stringify(x)); } catch (e) { /* 저장 불가 환경 */ } push(); },
   when(t) { const d = new Date(t), p = (n) => String(n).padStart(2, '0'); return `${d.getMonth() + 1}/${d.getDate()} ${p(d.getHours())}:${p(d.getMinutes())}`; }
 };
+
+// 도시별·난이도별 방어 완료 기록 (localStorage 'gf_clears' = { stage: { easy|normal|hard: { stars, kills, lives, time, at } } })
+const CKEY = 'gf_clears';
+function clears() { try { return JSON.parse(localStorage.getItem(CKEY) || '{}') || {}; } catch (e) { return {}; } }
+export const Clears = {
+  all: clears,
+  get(stage) { return clears()[stage] || {}; },
+  // 더 좋은 기록(별이 많거나 같으면 남은 기지가 많은 쪽)만 남김. 처음 완료면 true
+  add(stage, diff, rec) {
+    const o = clears(), s = o[stage] || (o[stage] = {}), old = s[diff];
+    if (!old || rec.stars > old.stars || (rec.stars === old.stars && rec.lives > old.lives)) s[diff] = rec;
+    try { localStorage.setItem(CKEY, JSON.stringify(o)); } catch (e) { /* 저장 불가 환경 */ }
+    push();
+    return { first: !old, best: !old || s[diff] === rec };
+  }
+};

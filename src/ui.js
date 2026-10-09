@@ -7,9 +7,9 @@ import { layout, isTouch } from './layout.js';
 const APK_URL = 'https://github.com/joongyub/warfare-2030/releases/download/apk/warfare-2030.apk';
 const isApk = () => /W2030App/.test(navigator.userAgent);
 const isIOS = () => /iPhone|iPad|iPod/.test(navigator.userAgent) || (navigator.platform === 'MacIntel' && navigator.maxTouchPoints > 1);
-import { HEROES, HERO_IDS, GACHA, heroChance } from './heroes.js';
-import { Saves } from './save.js';
-import { RECIPES, Codex, comboRate, comboFee } from './codex.js';
+import { HEROES, HERO_IDS, GACHA, heroChance, heroTier } from './heroes.js';
+import { Saves, Clears } from './save.js';
+import { RECIPES, RECIPE_CATS, Codex, comboRate, comboFee } from './codex.js';
 import { HomeAnim } from './homeanim.js';
 // 화면 글자·위치가 바뀔 때만 실제로 씀 (매 프레임 다시 쓰면 휴대폰에서 끊김)
 const putCache = new WeakMap();
@@ -21,6 +21,18 @@ const won = (n) => '₩' + n.toLocaleString('ko-KR');
 const h = (tag, cls, html, parent) => { const e = document.createElement(tag); if (cls) e.className = cls; if (html != null) e.innerHTML = html; if (parent) parent.appendChild(e); return e; };
 
 // 무기도감 제작자 '이중엽': 키 큰 평범한 남자 (회색 티셔츠 + 청바지). 팔은 CSS로 움직임 (.work 망치질 · .win 만세 · .lose 머리 긁기)
+// 주식 그래프 모니터 (x, y 왼쪽 위, 62×46). up: 오르는 초록 그래프 / 아니면 떨어지는 빨간 그래프
+function monitorSVG(x, y, up, big) {
+  const W = 62, H = 46, pts = up ? [[6, 36], [14, 30], [20, 33], [28, 24], [34, 27], [42, 16], [48, 18], [56, 7]] : [[6, 8], [14, 14], [20, 11], [28, 22], [34, 19], [42, 30], [48, 28], [56, 39]];
+  const c = up ? '#3ef08a' : '#ff4a4a', line = pts.map(([px, py]) => `${x + px},${y + py}`).join(' ');
+  const tip = pts[pts.length - 1], ar = up ? `M${x + tip[0] - 5} ${y + tip[1] + 1} L${x + tip[0] + 2} ${y + tip[1] - 3} L${x + tip[0]} ${y + tip[1] + 5}Z` : `M${x + tip[0] - 5} ${y + tip[1] - 1} L${x + tip[0] + 2} ${y + tip[1] + 3} L${x + tip[0]} ${y + tip[1] - 5}Z`;
+  return `<rect x="${x}" y="${y}" width="${W}" height="${H}" rx="4" fill="#20262e" stroke="#9aa4b0" stroke-width="2"/>
+    <rect x="${x + 3}" y="${y + 3}" width="${W - 6}" height="${H - 8}" fill="#071018"/>
+    ${[1, 2, 3].map((i) => `<line x1="${x + 3}" y1="${y + 3 + i * (H - 8) / 4}" x2="${x + W - 3}" y2="${y + 3 + i * (H - 8) / 4}" stroke="#16303a" stroke-width="1"/>`).join('')}
+    <polyline points="${line}" fill="none" stroke="${c}" stroke-width="${big ? 2.6 : 2.2}" stroke-linejoin="round" stroke-linecap="round"/><path d="${ar}" fill="${c}"/>
+    <text x="${x + 6}" y="${y + 11}" font-size="6" font-weight="900" fill="${c}">${up ? '▲ +29.9%' : '▼ -29.9%'}</text>
+    <rect x="${x + W / 2 - 4}" y="${y + H - 1}" width="8" height="4" fill="#9aa4b0"/>`;
+}
 const MAKER_SVG = `<svg class="mk" viewBox="0 0 200 330" aria-hidden="true">
   <ellipse cx="100" cy="322" rx="48" ry="7" fill="rgba(0,0,0,.35)"/>
   <g class="mk-body">
@@ -40,9 +52,10 @@ const MAKER_SVG = `<svg class="mk" viewBox="0 0 200 330" aria-hidden="true">
       <path class="mk-mouth" d="M93 60 Q100 65 107 60" fill="none" stroke="#9a4a3a" stroke-width="2.4" stroke-linecap="round"/>
       <ellipse cx="78" cy="49" rx="3" ry="6" fill="#e8bf9a"/><ellipse cx="122" cy="49" rx="3" ry="6" fill="#e8bf9a"/>
     </g>
-    <g class="mk-arm mk-l"><path d="M70 90 L60 150 L66 176" fill="none" stroke="#8a96a6" stroke-width="15" stroke-linecap="round" stroke-linejoin="round"/><path d="M62 150 L66 176" stroke="#f0c8a2" stroke-width="12" stroke-linecap="round"/><circle cx="66" cy="180" r="8" fill="#f0c8a2"/></g>
-    <g class="mk-arm mk-r"><path d="M130 90 L140 150 L134 176" fill="none" stroke="#8a96a6" stroke-width="15" stroke-linecap="round" stroke-linejoin="round"/><path d="M138 150 L134 176" stroke="#f0c8a2" stroke-width="12" stroke-linecap="round"/><circle cx="134" cy="180" r="8" fill="#f0c8a2"/>
-      <g class="mk-hammer"><rect x="131" y="150" width="6" height="40" rx="2" fill="#7a4a24"/><rect x="122" y="142" width="24" height="13" rx="3" fill="#5a6470"/></g></g>
+    <g class="mk-arm mk-l"><path d="M70 90 L56 138 L64 160" fill="none" stroke="#8a96a6" stroke-width="15" stroke-linecap="round" stroke-linejoin="round"/><path d="M58 138 L64 160" stroke="#f0c8a2" stroke-width="12" stroke-linecap="round"/>
+      <g class="mk-mon mk-ml">${monitorSVG(4, 134, false)}</g><circle cx="64" cy="162" r="8" fill="#f0c8a2"/></g>
+    <g class="mk-arm mk-r"><path d="M130 90 L144 138 L136 160" fill="none" stroke="#8a96a6" stroke-width="15" stroke-linecap="round" stroke-linejoin="round"/><path d="M142 138 L136 160" stroke="#f0c8a2" stroke-width="12" stroke-linecap="round"/>
+      <g class="mk-mon mk-mr">${monitorSVG(134, 134, true)}</g><circle cx="136" cy="162" r="8" fill="#f0c8a2"/></g>
   </g>
 </svg>`;
 // 조합 연출용 금빛 부처님 좌상 (SVG): 광배·빛살·연꽃 받침
@@ -242,11 +255,17 @@ export class UI {
   closeZone() { if (!this.zone) return; this.zone.remove(); this.zone = null; if (this.title) this.title.style.display = ''; }
   stars(n) { return '★'.repeat(n) + '☆'.repeat(3 - n); }
   // 도시 카드 아래 진행 상황: 저장된 전투 / 방어 성공(별) / 미출격
+  // 도시 카드 아래: 난이도별 완료 / 진행중 / 미완료 (5스테이지부터는 보통·어려움만)
   zoneStatus(X, d) {
-    const best = this.best(X.id);
-    if (d) { const p = Math.round(100 * d.wave / X.waves.length); return `<div class="zn-st run"><span>교전 중 · 웨이브 ${d.wave + 1}/${X.waves.length}</span><div class="zn-bar"><i style="width:${p}%"></i></div></div>`; }
-    if (best) return `<div class="zn-st win"><span>방어 성공 · 최고 ${this.stars(best)}</span><div class="zn-bar"><i style="width:100%"></i></div></div>`;
-    return `<div class="zn-st new"><span>미출격 · 적 점령 위기</span><div class="zn-bar"><i style="width:0"></i></div></div>`;
+    const C = Clears.get(X.id), dd = d ? GF.diffFor(X, d.diff || GF.SETTINGS.difficulty) : null, legacy = this.best(X.id) && !Object.keys(C).length;
+    const chip = (k) => {
+      const D = GF.DIFF[k];
+      if (C[k]) return `<i class="dc done" title="${D.name} 완료 ${this.stars(C[k].stars)}">${D.name} 완료</i>`;
+      if (dd === k) return `<i class="dc run" title="웨이브 ${d.wave + 1}/${X.waves.length}">${D.name} 진행중</i>`;
+      return `<i class="dc">${D.name} 미완료</i>`;
+    };
+    const p = d ? Math.round(100 * d.wave / X.waves.length) : GF.diffsFor(X).every((k) => C[k]) ? 100 : 0;
+    return `<div class="zn-st${d ? ' run' : Object.keys(C).length || legacy ? ' win' : ' new'}"><div class="zn-dcs">${GF.diffsFor(X).map(chip).join('')}</div><div class="zn-bar"><i style="width:${p}%"></i></div></div>`;
   }
   zonePick(id) {
     const z = this.zone; if (!z) return;
@@ -260,7 +279,7 @@ export class UI {
       <p>${X.briefing}</p>
       <div class="zn-meta">웨이브 ${X.waves.length} · 기지 체력 ${X.lives} · 적 진입로 ${1 + (X.branches || []).length}곳 · 최고 기록 <b>${this.stars(this.best(id))}</b></div>
       <div class="zn-legend"><span class="lg-r"></span>본 도로 <span class="lg-b"></span>갈래 길 <span class="lg-g"></span>적 입구 <span class="lg-h"></span>연합 지휘부</div>
-      <div class="zn-diff"><span>난이도</span>${GF.diffsFor(X).map((k) => { const D = GF.DIFF[k]; return `<button data-d="${k}" class="${GF.diffFor(X, GF.SETTINGS.difficulty) === k ? 'on' : ''}">${D.name}<small>체력 ×${D.hp} · 수 ×${D.cnt}</small></button>`; }).join('')}</div>
+      <div class="zn-diff"><span>난이도</span>${GF.diffsFor(X).map((k) => { const D = GF.DIFF[k]; return `<button data-d="${k}" class="${GF.diffFor(X, GF.SETTINGS.difficulty) === k ? 'on' : ''}${Clears.get(X.id)[k] ? ' done' : ''}">${D.name}${Clears.get(X.id)[k] ? ' ✓' : ''}<small>${Clears.get(X.id)[k] ? `완료 ${this.stars(Clears.get(X.id)[k].stars)}` : `체력 ×${D.hp} · 수 ×${D.cnt}`}</small></button>`; }).join('')}</div>
       <div class="zn-go">${d ? `<button class="zn-cont">▶ 이어하기<small>웨이브 ${d.wave + 1}부터${GF.DIFF[d.diff] ? ' · ' + GF.DIFF[d.diff].name : ''}</small></button>` : ''}<button class="zn-start">${d ? '새로 전투시작' : '⚔ 전투시작'}</button></div>`;
     this.drawMap(side.querySelector('.zn-big'), X);
     side.querySelector('.zn-start').onclick = () => this.zoneStart(false);
@@ -306,6 +325,19 @@ export class UI {
   }
 
   // ---------- 출격 자막: 홈 화면 캐릭터가 아래로 작아지며 3초 동안 지휘관에게 보고 ----------
+  // 웨이브 절반 연출 (7초): 화면이 어두워지고 홈 그림의 여자 캐릭터만 떠올라 방송 자막 → 끝나면 done (미사일 공격)
+  playHalfTaunt(done) {
+    this.halfEl?.remove();
+    const line = GF.SETTINGS.halfLine || '미제앞잡이들은 우리 아바이를 괴롭히디 말라!';
+    const o = this.halfEl = h('div', 'taunt', `<div class="tn-girl"></div><div class="in-box tn-box"><small>부카니스탄 조선중앙방송 · 긴급 성명</small><p></p></div>`, this.root);
+    const girl = o.querySelector('.tn-girl');
+    if (GF.SETTINGS.homeBg) girl.style.backgroundImage = `url("${GF.SETTINGS.homeBg}")`; else girl.remove();
+    const p = o.querySelector('p');
+    if (this.app.sound) this.app.sound.play('wave');
+    let i = 0;
+    const tick = setTimeout(() => { const iv = setInterval(() => { p.textContent = line.slice(0, ++i); if (i >= line.length) clearInterval(iv); }, 2200 / line.length); o.iv = iv; }, 1200);
+    setTimeout(() => { clearTimeout(tick); clearInterval(o.iv); o.classList.add('out'); setTimeout(() => { o.remove(); if (this.halfEl === o) this.halfEl = null; if (done) done(); }, 400); }, 7000);
+  }
   playIntro() {
     this.intro?.remove(); clearTimeout(this.introT);
     const S = this.app.stage, city = GF.SETTINGS.useCityAlias ? S.alias : S.name;
@@ -678,14 +710,21 @@ export class UI {
     if (t === 'hero') {
       const dps = (H) => Math.round(H.dmg * H.rate * (H.salvo || 1));
       // 일반 / 레전더리 구분해서 작은 카드로 (필터는 기억)
-      const legend = HERO_IDS.filter((id) => HEROES[id].legend), normal = HERO_IDS.filter((id) => !HEROES[id].legend);
+      // 등급별: 일반·레전더리는 모집, 신화·GOAT 는 📖 무기도감 조합으로만 (발견 전에는 실루엣 + ???)
+      const legend = HERO_IDS.filter((id) => heroTier(id) === 'legend'), normal = HERO_IDS.filter((id) => heroTier(id) === 'normal');
+      const ofTier = (t) => Object.keys(HEROES).filter((id) => heroTier(id) === t), myth = ofTier('myth'), goat = ofTier('goat');
+      const found = (id) => RECIPES.some((R) => R.into === 'hero_' + id && Codex.has(R.key));
       if (!this.heroFilter) this.heroFilter = 'all';
-      const card = (id) => { const H = HEROES[id]; return `<div class="hr${H.legend ? ' lg' : ''}" data-id="${id}" title="몸짓: ${H.gesture}"><img src="${this.icons['hero_' + id]}"><b>${H.name}</b><em>${H.title}</em><span>${H.role} · DPS ${dps(H)}</span></div>`; };
-      const sec = (f, label, ids) => `<div class="hr-sec" data-f="${f}"><div class="hr-sec-t${f === 'legend' ? ' lgt' : ''}">${label} <small>${ids.length}명</small></div><div class="hr-cards">${ids.map(card).join('')}</div></div>`;
+      const card = (id) => {
+        const H = HEROES[id], t = heroTier(id), cmb = t === 'myth' || t === 'goat', seen = !cmb || found(id);
+        const how = t === 'goat' ? '신화 영웅 + 조합 무기' : '레전더리 영웅 2명';
+        return `<div class="hr${H.legend ? ' lg' : ''}${cmb ? ' cmb ' + t : ''}${seen ? '' : ' hid'}" data-id="${id}" title="${seen ? '몸짓: ' + H.gesture : ''}"><img src="${this.icons['hero_' + id]}">${cmb ? `<i class="hr-only">조합 전용</i>` : ''}<b>${seen ? H.name : '???'}</b><em>${seen ? H.title : how + ' 조합으로 탄생'}</em><span>${seen ? `${H.role} · DPS ${dps(H)}` : '📖 무기도감에서 발견'}</span></div>`;
+      };
+      const sec = (f, label, ids) => `<div class="hr-sec" data-f="${f}"><div class="hr-sec-t${f === 'normal' ? '' : ' lgt ' + f}">${label} <small>${ids.length}명</small></div><div class="hr-cards">${ids.map(card).join('')}</div></div>`;
       body.innerHTML = `<div class="hr-wrap">
         <div class="hr-main">
-          <div class="hr-filter">${[['all', '전체', HERO_IDS.length], ['normal', '일반 영웅', normal.length], ['legend', '레전더리 영웅', legend.length]].map(([f, n, c]) => `<button data-f="${f}" class="${f === this.heroFilter ? 'on' : ''}${f === 'legend' ? ' lgf' : ''}">${n} <small>${c}</small></button>`).join('')}</div>
-          <div class="hr-grid">${sec('legend', '★ 레전더리 영웅', legend)}${sec('normal', '일반 영웅', normal)}</div>
+          <div class="hr-filter">${[['all', '전체', HERO_IDS.length + myth.length + goat.length], ['normal', '일반 영웅', normal.length], ['legend', '레전더리 영웅', legend.length], ['myth', '신화 영웅', myth.length], ['goat', 'GOAT', goat.length]].map(([f, n, c]) => `<button data-f="${f}" class="${f === this.heroFilter ? 'on' : ''}${f === 'normal' || f === 'all' ? '' : ' lgf ' + f}">${n} <small>${c}</small></button>`).join('')}</div>
+          <div class="hr-grid">${sec('goat', '🐐 GOAT', goat)}${sec('myth', '✦ 신화 영웅', myth)}${sec('legend', '★ 레전더리 영웅', legend)}${sec('normal', '일반 영웅', normal)}</div>
         </div>
         <div class="hr-side">
           <div class="hr-stage"><div class="hr-q">?</div></div>
@@ -792,11 +831,11 @@ export class UI {
       <div class="sh-head"><b>📖 무기도감</b><span>발견 <b class="cdx-cnt"></b></span>${inBattle ? '<span>전투 보급 <b class="sh-money"></b></span>' : ''}<button class="sh-x">✕</button></div>
       <div class="cdx-wrap"><div class="cdx-list"></div>
         <div class="cdx-side">
-          <div class="cdx-maker">${MAKER_SVG}<img class="cdx-orb l"><img class="cdx-orb r"><div class="cdx-flash"></div><div class="cdx-say">무엇을 합쳐 볼까요?</div><div class="cdx-tag">제작자 <b>이중엽</b></div></div>
+          <div class="cdx-maker">${MAKER_SVG}<img class="cdx-orb l"><img class="cdx-orb r"><div class="cdx-flash"></div><div class="cdx-zoom"></div><div class="cdx-say">무엇을 합쳐 볼까요?</div><div class="cdx-tag">제작자 <b>이중엽</b></div></div>
           <div class="cdx-meter"><div class="cdx-num">성공 확률 <b>—</b></div><div class="cdx-bar"><i class="ok"></i><em></em></div></div>
           <div class="cdx-sel">왼쪽에서 조합을 고르세요</div>
           <button class="cdx-go" disabled>조합하기</button>
-          <div class="hr-note">일반 무기는 <b>둘 다 Lv.4</b>, 영웅은 <b>Lv.1</b>부터 서로 <b>가까이</b> 놓으면 조합할 수 있어요. 성공률 무기 ${Math.round(GF.COMBO_RULES.weaponRate * 100)}% · 영웅 ${Math.round(GF.COMBO_RULES.heroRate * 100)}%. 실패하면 수수료만 사라지고 재료는 남아요. 처음 성공한 조합은 도감에 영원히 기록돼요.</div>
+          <div class="hr-note">일반 무기는 <b>둘 다 Lv.4</b>, 영웅은 <b>Lv.1</b>부터 서로 <b>가까이</b> 놓으면 조합할 수 있어요. 신화 영웅은 조합 무기와 합치면 <b>GOAT</b>가 돼요. 성공률 무기 ${Math.round(GF.COMBO_RULES.weaponRate * 100)}% · 영웅 ${Math.round(GF.COMBO_RULES.heroRate * 100)}% · GOAT ${Math.round(GF.COMBO_RULES.goatRate * 100)}%. 실패하면 수수료만 사라지고 재료는 남아요. 처음 성공한 조합은 도감에 영원히 기록돼요.</div>
         </div></div></div>`;
     el.querySelector('.sh-x').onclick = () => this.closeCodex();
     el.onclick = (e) => { if (e.target === el && !this.codexBusy) this.closeCodex(); };
@@ -818,11 +857,11 @@ export class UI {
       return `<div class="cdx-c${known ? ' known' : ''}${rd ? ' rd' : ''}${this.codexSel === R.key ? ' sel' : ''}${R.hero ? ' hero' : ''}" data-k="${R.key}">
         ${rd ? '<i class="cdx-badge">조합 가능!</i>' : ''}
         <div class="cdx-row">${mat(R.ta)}<s>+</s>${mat(R.tb)}<s>→</s>${known ? `<img class="res" src="${ico(R.into)}">` : '<i class="q res">?</i>'}</div>
-        <b>${known ? R.name : '???'}</b><small>${names}</small><span>성공 ${rate}%</span></div>`;
+        <div class="cdx-t"><b>${known ? R.name : '???'}</b><small>${names}</small></div><span>${rate}%</span></div>`;
     };
-    const W = RECIPES.filter((R) => !R.hero), Hs = RECIPES.filter((R) => R.hero);
-    el.querySelector('.cdx-list').innerHTML = `<div class="cdx-h">⚙ 무기 조합 <small>둘 다 Lv.4 · 성공 ${Math.round(GF.COMBO_RULES.weaponRate * 100)}%</small></div><div class="cdx-grid">${W.map(card).join('')}</div>
-      <div class="cdx-h">🎖 영웅 조합 <small>Lv.1부터 · 성공 ${Math.round(GF.COMBO_RULES.heroRate * 100)}%</small></div><div class="cdx-grid">${Hs.map(card).join('')}</div>`;
+    // 세 갈래: 일반무기 조합 / 레전더리 영웅 조합(영웅 + 영웅) / 신화 영웅 조합(신화 영웅 + 조합 무기 → GOAT)
+    const rule = { weapon: `둘 다 Lv.4 · 성공 ${Math.round(GF.COMBO_RULES.weaponRate * 100)}%`, legend: `영웅 Lv.1부터 · 성공 ${Math.round(GF.COMBO_RULES.heroRate * 100)}%`, myth: `신화 영웅 + 조합 무기 → GOAT · 성공 ${Math.round(GF.COMBO_RULES.goatRate * 100)}%` };
+    el.querySelector('.cdx-list').innerHTML = RECIPE_CATS.map(([c, label]) => { const L = RECIPES.filter((R) => R.cat === c); return L.length ? `<div class="cdx-h ${c}">${label} <small>${rule[c]} · 발견 ${L.filter((R) => Codex.has(R.key)).length}/${L.length}</small></div><div class="cdx-grid">${L.map(card).join('')}</div>` : ''; }).join('');
     el.querySelectorAll('.cdx-c').forEach((c) => { c.onclick = () => { if (this.codexBusy) return; this.codexSel = c.dataset.k; this.renderCodex(); }; });
     this.codexSide();
   }
@@ -837,7 +876,7 @@ export class UI {
     if (known || rd) { orbL.src = this.icons[R.ta]; orbR.src = this.icons[R.tb]; orbL.style.opacity = orbR.style.opacity = 1; } else { orbL.style.opacity = orbR.style.opacity = 0; }
     sel.innerHTML = known || rd ? `<b>${GF.wname(R.ta)}</b> + <b>${GF.wname(R.tb)}</b> → <b>${known ? R.name : '???'}</b>` : '아직 발견하지 못한 조합이에요';
     if (!inBattle) { go.disabled = true; go.innerHTML = '전투 중에 조합할 수 있어요'; return; }
-    if (!rd) { go.disabled = true; go.innerHTML = known || rd ? (R.hero ? '두 영웅을 가까이 배치하세요' : '두 무기를 Lv.4로 만들어 가까이 두세요') : '재료를 찾아 가까이 놓아 보세요'; return; }
+    if (!rd) { go.disabled = true; go.innerHTML = known || rd ? (R.goat ? '신화 영웅 옆에 조합 무기를 두세요' : R.hero ? '두 영웅을 가까이 배치하세요' : '두 무기를 Lv.4로 만들어 가까이 두세요') : '재료를 찾아 가까이 놓아 보세요'; return; }
     go.disabled = false; go.innerHTML = `이중엽에게 조합 맡기기 <small>수수료 보급 ${fee} · 성공 ${Math.round(rate * 100)}%</small>`;
     go.onclick = () => this.codexRun(R);
   }
@@ -851,7 +890,7 @@ export class UI {
     const maker = el.querySelector('.cdx-maker'), say = el.querySelector('.cdx-say'), go = el.querySelector('.cdx-go');
     const mark = el.querySelector('.cdx-bar em'), num = el.querySelector('.cdx-num');
     el.querySelector('.sh-money').textContent = Math.floor(g.money).toLocaleString('ko-KR');
-    go.disabled = true; maker.className = 'cdx-maker work'; say.textContent = '자, 합쳐 봅시다!';
+    go.disabled = true; maker.className = 'cdx-maker work'; say.textContent = '자, 합쳐 봅시다!'; maker.querySelector('.cdx-zoom').className = 'cdx-zoom';
     let i = 0;
     const T = 26, spin = setInterval(() => {
       i++;
@@ -863,7 +902,11 @@ export class UI {
       if (i >= T) {
         clearInterval(spin);
         maker.className = 'cdx-maker ' + (r.ok ? 'win' : 'lose');
-        say.textContent = r.ok ? '성공! 완벽하게 합쳐졌어요!' : '앗… 이번엔 실패했어요';
+        say.textContent = r.ok ? '떡상! 완벽하게 합쳐졌어요!' : '앗… 떡락했어요';
+        // 성공 = 오른손의 오르는 그래프 모니터, 실패 = 왼손의 떨어지는 그래프 모니터를 크게 확대
+        const zm = maker.querySelector('.cdx-zoom');
+        zm.className = 'cdx-zoom ' + (r.ok ? 'up' : 'down');
+        zm.innerHTML = `<svg viewBox="0 0 62 50">${monitorSVG(0, 0, r.ok, true)}</svg><b>${r.ok ? '성공!' : '실패!'}</b>`;
         num.innerHTML = r.ok ? '<b class="good">조합 성공!</b>' : '<b class="bad">조합 실패</b> <small>재료는 그대로예요</small>';
         snd(r.ok ? 'win' : 'deny');
         setTimeout(() => {
@@ -882,7 +925,7 @@ export class UI {
               this.codexEl.querySelector('.cdx-maker').className = 'cdx-maker lose';
             }
           }
-        }, r.ok ? 1100 : 900);
+        }, r.ok ? 1700 : 1300);
       }
     }, 90);
   }
@@ -950,20 +993,50 @@ export class UI {
     setTimeout(() => f.classList.add('go'), 30); setTimeout(() => f.remove(), 2600);
   }
 
-  showResult(won, stars) {
-    const g = this.g;
+  showResult(won, stars, rec = {}, saved = null) {
+    const g = this.g, D = g.diff || GF.DIFF.normal, N = this.app.stage.waves.length;
+    const mmss = (sec) => `${Math.floor(sec / 60)}분 ${String(sec % 60).padStart(2, '0')}초`;
+    // 성과 기록 (승리·패배 모두)
+    const stat = [
+      ['난이도', D.name], ['웨이브', `${g.waveNo} / ${N}`], ['격파', (rec.kills ?? g.kills).toLocaleString('ko-KR')], ['남은 기지', `${g.lives} / ${this.app.stage.lives}`],
+      ['최대 연쇄', rec.combo ?? Math.max(g.bestCombo, g.combo)], ['전투 시간', mmss(rec.time || 0)], ['배치 무기 · 영웅', `${rec.towers ?? 0} · ${rec.heroes ?? 0}`], ['조합 성공', `${rec.fused || 0}회`]
+    ];
     const r = this.result = h('div', 'result', `
+      ${won ? '<canvas class="rs-fw"></canvas>' : ''}
       <div class="box ${won ? 'win' : 'lose'}">
-        <h2>${won ? this.cityName() + ' 방어 성공' : '방어선 붕괴'}</h2>
-        <div class="stars">${won ? '★'.repeat(stars) + '☆'.repeat(3 - stars) : ''}</div>
-        <p>격파 ${g.kills} · 최대 연쇄 ${Math.max(g.bestCombo, g.combo)} · 웨이브 ${g.waveNo}/${this.app.stage.waves.length} · 남은 기지 ${g.lives}</p>
-        <p class="s">${won ? '보급 상자 획득! (상자 열기는 다음 단계에서 추가됩니다)' : '굽이 사이 공원에 무기를 모으고, 우회로를 열어 적을 더 오래 붙잡아 보세요'}</p>
+        <h2>${won ? this.cityName() + ' 방어 성공!' : '방어선 붕괴'}</h2>
+        ${won ? `<div class="stars">${'★'.repeat(stars) + '☆'.repeat(3 - stars)}</div><div class="rs-badge">${D.name} 완료${saved && saved.first ? ' · 첫 완료!' : saved && saved.best ? ' · 최고 기록 갱신!' : ''}</div>` : ''}
+        <div class="rs-grid">${stat.map(([k, v]) => `<div><small>${k}</small><b>${v}</b></div>`).join('')}</div>
+        ${rec.mvp ? `<p class="rs-mvp">최고 활약 <b>${rec.mvp.name}</b> · 누적 피해 ${rec.mvp.dmg.toLocaleString('ko-KR')}</p>` : ''}
+        <p class="s">${won ? '전투지역 화면의 도시 카드에 난이도별 완료가 기록됐어요' : '굽이 사이 공원에 무기를 모으고, 우회로를 열어 적을 더 오래 붙잡아 보세요'}</p>
         <div class="row"><button class="again">다시 하기</button><button class="home">처음 화면</button></div>
       </div>`, this.root);
-    r.querySelector('.again').onclick = () => { r.remove(); this.result = null; this.app.startGame(); };
+    r.querySelector('.again').onclick = () => { this.clearResult(); this.app.startGame(); };
     const sv = !won && Saves.get(this.app.stage.id);
-    if (sv) { const b = h('button', 'load', `저장한 곳부터 (웨이브 ${sv.wave + 1})`, r.querySelector('.row')); b.onclick = () => { r.remove(); this.result = null; this.app.loadGame(this.app.stage.id); }; }
-    r.querySelector('.home').onclick = () => { r.remove(); this.result = null; this.app.toTitle(); };
+    if (sv) { const b = h('button', 'load', `저장한 곳부터 (웨이브 ${sv.wave + 1})`, r.querySelector('.row')); b.onclick = () => { this.clearResult(); this.app.loadGame(this.app.stage.id); }; }
+    r.querySelector('.home').onclick = () => { this.clearResult(); this.app.toTitle(); };
+    if (won) this.fireworks(r.querySelector('.rs-fw'), 9000);
+  }
+  // 승리 폭죽: 캔버스에 불꽃이 여기저기 터짐 (ms 동안, 펑 소리 함께)
+  fireworks(cv, ms) {
+    const c = cv.getContext('2d'), W = cv.width = this.BW, H = cv.height = this.BH, parts = [], rockets = [];
+    const burst = (x, y) => { const hue = Math.random() * 360, n = 80 + Math.random() * 50; for (let i = 0; i < n; i++) { const a = Math.random() * Math.PI * 2, v = 2 + Math.random() * 7; parts.push({ x, y, vx: Math.cos(a) * v, vy: Math.sin(a) * v, life: 1, hue: hue + Math.random() * 50 }); } if (this.app.sound) this.app.sound.play('boom', 0.3); };
+    let t0 = performance.now(), last = t0, nextR = 0;
+    const step = (now) => {
+      if (!cv.isConnected) return;
+      const t = now - t0, dt = Math.min(0.05, (now - last) / 1000) * 60; last = now;
+      if (t < ms && t > nextR) { rockets.push({ x: W * (0.1 + Math.random() * 0.8), y: H, vy: -(13 + Math.random() * 5), top: H * (0.12 + Math.random() * 0.35) }); nextR = t + 220 + Math.random() * 260; }
+      c.globalCompositeOperation = 'source-over'; c.clearRect(0, 0, W, H); c.globalCompositeOperation = 'lighter';
+      for (const q of rockets) { if (q.done) continue; q.y += q.vy * dt; c.fillStyle = '#ffe9b0'; c.beginPath(); c.arc(q.x, q.y, 3, 0, 7); c.fill(); if (q.y <= q.top) { q.done = true; burst(q.x, q.y); } }
+      for (const p of parts) {
+        if (p.life <= 0) continue;
+        p.x += p.vx * dt; p.y += p.vy * dt; p.vy += 0.07 * dt; p.vx *= 0.985; p.vy *= 0.985; p.life -= 0.01 * dt;
+        c.fillStyle = `hsla(${p.hue},100%,${60 + p.life * 30}%,${Math.max(0, p.life)})`;
+        c.beginPath(); c.arc(p.x, p.y, 1.6 + p.life * 3.2, 0, 7); c.fill();
+      }
+      if (t < ms + 2500) requestAnimationFrame(step);
+    };
+    requestAnimationFrame(step);
   }
   clearResult() { if (this.result) { this.result.remove(); this.result = null; } }
   clearHud() { if (this.hud) { this.hud.remove(); this.hud = null; this.floats = []; } }
