@@ -1,5 +1,5 @@
 // 홈 화면 움직이는 배경: 홈 그림(settings.homeBg)을 조각내 열병식 장면으로 움직임
-// - 두 캐릭터: 숨쉬기·고개 끄덕임·눈 깜빡임, 왼쪽 캐릭터는 거수경례, 오른쪽 캐릭터는 손 흔들기
+// - 두 캐릭터: 숨쉬기·고개 끄덕임·눈 깜빡임 (팔은 그리지 않음: 사용자 요청으로 뺌)
 // - 깃발 펄럭임, 탐조등, 축포, 헬기 편대, 행진하는 병사 대열, 불씨
 // 좌표는 모두 원본 그림(1672x941) 기준. 그림은 CSS 'cover · 오른쪽 정렬'과 같은 방식으로 화면에 맞춤
 const IW = 1672, IH = 941;
@@ -26,8 +26,6 @@ function cut(img, pts, feather = 6, minus = []) {
   g.filter = 'none'; g.globalCompositeOperation = 'source-in'; g.drawImage(img, 0, 0);
   return c;
 }
-const lerp = (a, b, k) => a + (b - a) * k;
-const ease = (k) => k * k * (3 - 2 * k);
 const R = (a, b) => a + Math.random() * (b - a);
 
 export class HomeAnim {
@@ -87,31 +85,19 @@ export class HomeAnim {
     this.lights(g, t);
     this.fireworks(g, dt);
     this.helis(g, dt);
-    // 왼쪽 캐릭터 (경례): 몸 → 팔 → 머리 순서
+    // 왼쪽 캐릭터: 몸 → 머리
     const br1 = Math.sin(t * 1.6) * 0.006, br2 = Math.sin(t * 1.9 + 1) * 0.007;
-    const sal = this.cycle(t, 9, 0.6, 5.2);                 // 경례 올림 정도 0~1
     this.part(g, P.kimBody, PARTS.kimBody.pivot, 0, 1 + br1, 0, 0);
-    const nod1 = Math.sin(t * 0.7) * 0.012 + sal * 0.01;
+    const nod1 = Math.sin(t * 0.7) * 0.012;
     this.part(g, P.kimHead, PARTS.kimHead.pivot, nod1, 1, 0, -br1 * 120);
     this.blink(g, 'kim', PARTS.kimHead.pivot, nod1, -br1 * 120, dt);
-    this.kimArm(g, sal, t);
-    // 오른쪽 캐릭터 (손 흔들기)
-    const wave = this.cycle(t + 4.5, 9, 0.5, 4.4);
+    // 오른쪽 캐릭터
     this.part(g, P.girlBody, PARTS.girlBody.pivot, 0, 1 + br2, 0, 0);
-    const nod2 = Math.sin(t * 0.9 + 2) * 0.015 + wave * Math.sin(t * 9) * 0.006;
+    const nod2 = Math.sin(t * 0.9 + 2) * 0.015;
     this.part(g, P.girlHead, PARTS.girlHead.pivot, nod2, 1, 0, -br2 * 80);
     this.blink(g, 'girl', PARTS.girlHead.pivot, nod2, -br2 * 80, dt);
-    this.girlArm(g, wave, t);
     this.march(g, dt, t);
     this.embers(g, dt);
-  }
-  // 주기 T 동안 a초에 걸쳐 올렸다가 hold초 유지 후 내림 → 0~1
-  cycle(t, T, a, hold) {
-    const u = t % T;
-    if (u < a) return ease(u / a);
-    if (u < a + hold) return 1;
-    if (u < a * 2 + hold) return ease(1 - (u - a - hold) / a);
-    return 0;
   }
   part(g, c, [px, py], rot, sy, dx, dy) {
     g.save(); g.translate(px + dx, py + dy); g.rotate(rot); g.scale(1, sy); g.translate(-px, -py);
@@ -132,52 +118,6 @@ export class HomeAnim {
       g.restore();
     }
     g.restore();
-  }
-  // 소매(두 마디, 끝으로 갈수록 가늘어짐) + 손. 옆으로 밝기가 변하는 칠로 둥근 팔처럼
-  arm(g, S, E, H, sleeve, light, cuff, w0, w1, handFn) {
-    const seg = (A, B, wa, wb) => {
-      const d = [B[0] - A[0], B[1] - A[1]], L = Math.hypot(...d), n = [-d[1] / L, d[0] / L];
-      const gr = g.createLinearGradient(A[0] - n[0] * wa / 2, A[1] - n[1] * wa / 2, A[0] + n[0] * wa / 2, A[1] + n[1] * wa / 2);
-      gr.addColorStop(0, light); gr.addColorStop(0.45, sleeve); gr.addColorStop(1, 'rgba(10,8,8,1)');
-      g.fillStyle = gr; g.beginPath();
-      g.moveTo(A[0] + n[0] * wa / 2, A[1] + n[1] * wa / 2); g.lineTo(B[0] + n[0] * wb / 2, B[1] + n[1] * wb / 2);
-      g.lineTo(B[0] - n[0] * wb / 2, B[1] - n[1] * wb / 2); g.lineTo(A[0] - n[0] * wa / 2, A[1] - n[1] * wa / 2); g.closePath(); g.fill();
-      g.beginPath(); g.arc(B[0], B[1], wb / 2, 0, 7); g.fill();
-    };
-    seg(S, E, w0, w0 * 0.92); seg(E, H, w0 * 0.9, w1);
-    if (cuff) { const d = [H[0] - E[0], H[1] - E[1]], L = Math.hypot(...d); g.strokeStyle = cuff; g.lineCap = 'round'; g.lineWidth = w1 + 6; g.beginPath(); g.moveTo(H[0] - d[0] / L * 12, H[1] - d[1] / L * 12); g.lineTo(H[0] - d[0] / L * 2, H[1] - d[1] / L * 2); g.stroke(); }
-    handFn();
-  }
-  hand(g, x, y, ang, size, skin, open) {
-    g.save(); g.translate(x, y); g.rotate(ang); g.scale(size, size);
-    g.fillStyle = skin; g.strokeStyle = 'rgba(70,36,22,.85)'; g.lineWidth = 1.6 / size * 1.2;
-    // 손바닥
-    g.beginPath(); g.ellipse(0, 0, 13, 15, 0, 0, Math.PI * 2); g.fill(); g.stroke();
-    // 손가락 4개 (+ 엄지)
-    const fl = open ? [17, 20, 19, 15] : [14, 15, 15, 13];
-    for (let i = 0; i < 4; i++) {
-      const fx = -9 + i * 6, a = open ? (i - 1.5) * 0.12 : 0;
-      g.save(); g.translate(fx, -10); g.rotate(a);
-      g.beginPath(); g.roundRect(-3, -fl[i], 6, fl[i] + 4, 3); g.fill(); g.stroke(); g.restore();
-    }
-    g.save(); g.translate(12, 2); g.rotate(0.9); g.beginPath(); g.roundRect(-3, -14, 6.5, 16, 3); g.fill(); g.stroke(); g.restore();
-    g.fillStyle = 'rgba(255,255,255,.18)'; g.beginPath(); g.ellipse(-3, -2, 6, 8, 0, 0, Math.PI * 2); g.fill();
-    g.restore();
-  }
-  kimArm(g, k, t) {
-    if (k <= 0.01) return;
-    // 내린 자세(코트 안) → 이마 옆 거수경례
-    const S = [648, 404], E = [lerp(640, 576, k), lerp(560, 288, k)], Hh = [lerp(650, 690, k), lerp(680, 150, k)];
-    const tw = k > 0.98 ? Math.sin(t * 2) * 0.03 : 0;
-    this.arm(g, S, E, Hh, '#3a3230', 'rgba(150,110,85,1)', '#2a2422', 58, 44, () => this.hand(g, Hh[0] + 6, Hh[1] - 6, lerp(-2.6, -0.55, k) + tw, 1.35, this.col.kimSkin, true));
-  }
-  girlArm(g, k, t) {
-    if (k <= 0.01) return;
-    const S = [1214, 524], E = [lerp(1226, 1286, k), lerp(640, 474, k)];
-    const sw = k > 0.95 ? Math.sin(t * 7) * 0.42 : 0;           // 팔꿈치를 축으로 좌우로 흔듦
-    const L = 98, a = lerp(Math.PI * 0.5, -Math.PI * 0.5 + 0.12, k) + sw;
-    const Hh = [E[0] + Math.cos(a) * L, E[1] + Math.sin(a) * L];
-    this.arm(g, S, E, Hh, '#2e2422', 'rgba(140,100,80,1)', '#5a4536', 44, 34, () => this.hand(g, Hh[0], Hh[1], a + Math.PI / 2, 1.05, this.col.girlSkin, true));
   }
   // 탐조등: 도시에서 하늘로 흔들리는 빛기둥 (밝게 더함)
   lights(g, t) {
