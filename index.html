@@ -10,6 +10,8 @@
 <meta name="screen-orientation" content="landscape">
 <link rel="manifest" href="manifest.webmanifest">
 <link rel="icon" href="icons/icon-192.png">
+<link rel="preconnect" href="https://fonts.googleapis.com"><link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Black+Ops+One&display=swap" rel="stylesheet">
 <link rel="apple-touch-icon" href="icons/icon-180.png">
 <meta name="apple-mobile-web-app-title" content="2030 Warfare">
 <title>2030 Warfare 1</title>
@@ -609,6 +611,79 @@
   .combo-fx.cb-go .cb-title { opacity: 1; transform: scale(1); animation: cbglow 0.6s ease-in-out 1.7s infinite alternate; }
   @keyframes cbglow { to { text-shadow: 0 0 20px #fff, 0 0 50px #ffd25a, 0 0 100px #ff9a1a, 0 4px 0 #8a4a00; } }
   .combo-fx.cb-out { opacity: 0; }
+  /* ===== 전투 화면 밀리터리 HUD (v0.46.0): 각진 철판 패널 · 카키 선 · 앰버 경고색 · 스텐실 글꼴 · 해저드 줄무늬 ===== */
+  :root { --mil-font: "Black Ops One", "Malgun Gothic", "맑은 고딕", "Apple SD Gothic Neo", "Noto Sans KR", sans-serif; --mil-bg: linear-gradient(180deg, rgba(40,46,32,.94), rgba(20,24,17,.94)); --mil-line: rgba(200,182,122,.42); --mil-amber: #f2b53c; --mil-khaki: #cdbb85; --mil-red: #d9442f;
+    --mil-hazard: repeating-linear-gradient(-45deg, #f2b53c 0 9px, #16150f 9px 18px); }
+  .hud-layer .tl .logo { font-family: var(--mil-font); font-weight: 400; letter-spacing: 2px; color: #e9dfbf; text-shadow: 0 2px 0 #000, 0 0 12px rgba(0,0,0,.6); }
+  .hud-layer .tl .sub { font-weight: 800; letter-spacing: 3px; color: var(--mil-amber); opacity: 1; text-shadow: 0 0 3px #000, 0 0 6px #000, 0 1px 2px #000; }
+  .hud-layer .tl .sub::before { content: '▌'; color: var(--mil-red); margin-right: 4px; }
+  /* 위 정보판 (기지 · 보급 · 웨이브) */
+  .hud-layer .pill { position: relative; background: var(--mil-bg); border: 1px solid var(--mil-line); border-left: 5px solid var(--mil-amber); border-radius: 2px; box-shadow: inset 0 1px 0 rgba(255,255,255,.08), 0 4px 14px rgba(0,0,0,.45); font-family: var(--mil-font); font-weight: 400; color: #f1ead2; letter-spacing: 1px; }
+  .hud-layer .pill span { font-family: "Malgun Gothic", "Apple SD Gothic Neo", "Noto Sans KR", sans-serif; font-weight: 800; font-size: 14px; color: var(--mil-khaki); letter-spacing: 1px; }
+  .hud-layer .pill.lives { border-left-color: #6fbf4a; } .hud-layer .pill.wave { border-left-color: var(--mil-red); }
+  .hud-layer .shield { background: linear-gradient(#9ccf6e, #4f7a2e); } .hud-layer .box { background: linear-gradient(#b8a26a, #6e5d32); border-radius: 1px; box-shadow: inset 0 -7px 0 rgba(0,0,0,.25), inset 0 0 0 2px rgba(40,30,10,.6); }
+  /* 정사각 버튼 (배속 · 정지 · 저장 · 설정 · 시점) */
+  .hud-layer .sq { border: 1px solid var(--mil-line); border-radius: 3px; background: linear-gradient(180deg, #3a4130, #1d2117); color: #e9dfbf; box-shadow: inset 0 1px 0 rgba(255,255,255,.12), inset 0 -3px 0 rgba(0,0,0,.35), 0 4px 12px rgba(0,0,0,.4); display: inline-flex; align-items: center; justify-content: center; }
+  .hud-layer .sq:hover { background: linear-gradient(180deg, #4a5238, #262b1c); border-color: var(--mil-amber); color: #fff; }
+  .hud-layer .sq:active { transform: translateY(1px); box-shadow: inset 0 2px 6px rgba(0,0,0,.6); }
+  .hud-layer .sq svg { width: 26px; height: 26px; fill: none; stroke: currentColor; stroke-width: 2; stroke-linecap: square; stroke-linejoin: miter; flex: none; }
+  .hud-layer .sq.speed { font-family: var(--mil-font); font-weight: 400; color: var(--mil-amber); } .hud-layer .sq.speed small { color: #e9dfbf; }
+  #hud .hud-layer .sq.cdx-btn, #hud .hud-layer .sq.hq { border: 1px solid var(--mil-line); background: linear-gradient(180deg, #3a4130, #1d2117); color: #e9dfbf; font-size: 16px; letter-spacing: 1px; box-shadow: inset 0 1px 0 rgba(255,255,255,.12), inset 0 -3px 0 rgba(0,0,0,.35), 0 4px 12px rgba(0,0,0,.4); }
+  #hud .hud-layer .sq.cdx-btn svg { color: #9fd0ff; } #hud .hud-layer .sq.hq { border-color: rgba(242,181,60,.75); color: var(--mil-amber); } #hud .hud-layer .sq.hq b { color: #f3e3b3; }
+  #hud .hud-layer .sq.cdx-btn:hover, #hud .hud-layer .sq.hq:hover { border-color: var(--mil-amber); background: linear-gradient(180deg, #4a5238, #262b1c); }
+  #hud .hud-layer .sq.cdx-btn i { border-radius: 2px; background: var(--mil-red); }
+  #hud .hud-layer .sq.cdx-btn.ready { animation: milpulse 1.1s ease-in-out infinite; }
+  @keyframes milpulse { 50% { border-color: var(--mil-amber); box-shadow: 0 0 0 2px rgba(242,181,60,.5), 0 0 20px rgba(242,181,60,.7); } }
+  .hud-layer .rotv .sq { opacity: .92; color: var(--mil-khaki); }
+  /* 지휘관 띠 · 격파 수 */
+  .hud-layer .pbar { background: rgba(22,26,18,.86); border: 1px solid var(--mil-line); border-radius: 2px; padding-right: 4px; }
+  .hud-layer .pb-ava { border-radius: 2px; background: #4f6a2e; color: #e9dfbf; box-shadow: inset 0 0 0 1px rgba(255,255,255,.25); }
+  .hud-layer .pb-name { color: #e9dfbf; } .hud-layer .pb-cred { color: var(--mil-amber); }
+  .hud-layer .pb-shop { border-radius: 2px; background: var(--mil-amber); color: #1a1405; }
+  .hud-layer .kills { background: rgba(22,26,18,.86); border: 1px solid var(--mil-line); border-left: 4px solid var(--mil-red); border-radius: 2px; color: var(--mil-khaki); }
+  .hud-layer .kills b { font-family: var(--mil-font); font-weight: 400; color: #f1ead2; }
+  /* 아래 무기 칸 */
+  .hud-layer .bar { background: linear-gradient(180deg, rgba(34,39,27,.95), rgba(16,19,13,.95)); border: 1px solid var(--mil-line); border-radius: 3px; box-shadow: inset 0 1px 0 rgba(255,255,255,.07), 0 8px 30px rgba(0,0,0,.5); }
+  .hud-layer .bar::before { content: ''; position: absolute; left: -1px; right: -1px; top: -7px; height: 6px; background: var(--mil-hazard); opacity: .9; }
+  .hud-layer .card { border-radius: 2px; border: 1px solid rgba(200,182,122,.22); background: linear-gradient(180deg, rgba(70,78,56,.55), rgba(26,30,20,.7)); }
+  .hud-layer .card:hover { border-color: var(--mil-amber); }
+  .hud-layer .card .txt b { color: #efe6c8; } .hud-layer .card .txt span { color: #a9a283; }
+  .hud-layer .card .cost { border-radius: 1px; background: rgba(0,0,0,.65); color: var(--mil-amber); font-family: var(--mil-font); font-weight: 400; }
+  .hud-layer .card i { left: 0; top: 0; padding: 1px 5px; background: rgba(242,181,60,.9); color: #16150f; font-family: var(--mil-font); font-weight: 400; font-size: 12px; }
+  .hud-layer .card.sel { border-color: var(--mil-amber); background: linear-gradient(180deg, rgba(120,98,40,.55), rgba(40,34,16,.75)); box-shadow: inset 0 0 0 1px rgba(242,181,60,.6), 0 0 18px rgba(242,181,60,.45); }
+  @keyframes pulse { 50% { transform: scale(1.08); box-shadow: 0 0 30px rgba(242,181,60,.9); } }
+  /* 작전 카드 */
+  .hud-layer .ops { border-left: 1px dashed rgba(200,182,122,.3); }
+  .hud-layer .ops-title { color: var(--mil-amber); letter-spacing: 1px; } .hud-layer .ops-title small { color: #8f8a70; }
+  .hud-layer .op { border-radius: 2px; background: linear-gradient(90deg, rgba(64,72,48,.6), rgba(28,32,22,.6)); border: 1px solid rgba(200,182,122,.35); }
+  .hud-layer .op i { color: var(--mil-amber); font-family: var(--mil-font); font-weight: 400; } .hud-layer .op span { color: #b3ac8c; }
+  .hud-layer .op em { border-radius: 1px; background: var(--mil-amber); color: #16150f; }
+  .hud-layer .op.sel { border-color: var(--mil-amber); box-shadow: 0 0 14px rgba(242,181,60,.5); }
+  .hud-layer .seg { border-radius: 0; background: rgba(255,255,255,.07); } .hud-layer .seg div { background: linear-gradient(#ffd27a, #d08f1c); }
+  /* 작전 개시 (다음 웨이브) */
+  .hud-layer .nextwave { border: 2px solid #16150f; border-radius: 3px; color: #16150f; background: repeating-linear-gradient(-45deg, rgba(0,0,0,0) 0 16px, rgba(0,0,0,.09) 16px 32px), linear-gradient(180deg, #f6c75a, #c58716); box-shadow: 0 0 0 3px rgba(242,181,60,.55), 0 0 26px rgba(242,181,60,.45), 0 8px 24px rgba(0,0,0,.45); }
+  .hud-layer .nextwave b { font-family: var(--mil-font); font-weight: 400; letter-spacing: 2px; }
+  .hud-layer .nextwave::before, .hud-layer .nextwave::after { content: ''; position: absolute; left: 0; right: 0; height: 7px; background: var(--mil-hazard); }
+  .hud-layer .nextwave::before { top: 0; } .hud-layer .nextwave::after { bottom: 0; }
+  .hud-layer .nextwave.busy { background: linear-gradient(180deg, rgba(48,22,18,.95), rgba(22,12,10,.95)); color: #ff9a86; border-color: rgba(217,68,47,.7); box-shadow: 0 8px 24px rgba(0,0,0,.45); }
+  .hud-layer .nextwave.busy::before, .hud-layer .nextwave.busy::after { background: repeating-linear-gradient(-45deg, #d9442f 0 9px, #16150f 9px 18px); opacity: .7; }
+  /* 전략 무기 (ICBM · 전략핵) */
+  .hud-layer .sb { border-radius: 2px; background: linear-gradient(180deg, rgba(70,26,20,.92), rgba(30,12,10,.92)); border: 1px solid rgba(217,68,47,.5); }
+  .hud-layer .sb::before { content: ''; position: absolute; left: 0; right: 0; top: 0; height: 4px; background: repeating-linear-gradient(-45deg, #d9442f 0 7px, #16150f 7px 14px); }
+  .hud-layer .sb i { font-family: var(--mil-font); font-weight: 400; color: #ffb09e; }
+  .hud-layer .sb.ready { border-color: #ff6a4a; }
+  /* 무기 정보 창 */
+  .hud-layer .tpanel { border-radius: 3px; border: 1px solid var(--mil-amber); background: linear-gradient(180deg, rgba(36,41,29,.97), rgba(16,19,13,.97)); box-shadow: 0 0 0 1px rgba(0,0,0,.6), 0 10px 30px rgba(0,0,0,.55); }
+  .hud-layer .tpanel::before { content: ''; position: absolute; left: 0; right: 0; top: 0; height: 5px; background: var(--mil-hazard); }
+  .hud-layer .tpanel .pt { color: #f3e3b3; } .hud-layer .tpanel .pi b { color: var(--mil-amber); }
+  .hud-layer .tpanel button { border-radius: 2px; background: linear-gradient(180deg, #4a3e1c, #2a2210); border-color: var(--mil-amber); letter-spacing: .5px; }
+  .hud-layer .tpanel .all, .hud-layer .tpanel .move { background: linear-gradient(180deg, #34402a, #1c2416); border-color: #8fae5a; }
+  .hud-layer .tpanel .sell { background: linear-gradient(180deg, #4e1e18, #2a100c); border-color: var(--mil-red); } .hud-layer .tpanel .close { background: #24271e; border-color: #5c5a48; }
+  .hud-layer .hbench .hb { border-radius: 3px; }
+  .hud-layer .syn span { border-radius: 2px; }
+  .hud-layer .sq.fs-btn { display: none; } .mobile .hud-layer .sq.fs-btn { display: inline-flex; }
+  .mobile .hud-layer .sq svg { width: 20px; height: 20px; }
+  .mobile .hud-layer .tl .logo { font-size: 17px; letter-spacing: 0; }
 </style>
 </head>
 <body>

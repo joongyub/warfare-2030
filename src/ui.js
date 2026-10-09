@@ -84,6 +84,15 @@ const BUDDHA_SVG = `<svg class="cb-buddha" viewBox="0 0 400 400" aria-hidden="tr
   <circle cx="200" cy="134" r="3.5" fill="#c0392b"/>
 </svg>`;
 
+// 전투 화면 버튼 아이콘 (선 그림 SVG · 밀리터리 HUD)
+const ICO = {
+  codex: '<svg viewBox="0 0 24 24"><path d="M4 4h7v16H4z"/><path d="M13 4h7v16h-7z"/><path d="M6 8h3M6 11h3M15 8h3M15 11h3"/></svg>',
+  hero: '<svg viewBox="0 0 24 24"><path d="M12 2l2.4 4.9 5.4.8-3.9 3.8.9 5.4L12 14.4 7.2 16.9l.9-5.4L4.2 7.7l5.4-.8z"/><path d="M6 19l6 3 6-3"/></svg>',
+  save: '<svg viewBox="0 0 24 24"><path d="M4 4h13l3 3v13H4z"/><path d="M8 4v5h7V4"/><path d="M7 20v-6h10v6"/></svg>',
+  gear: '<svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="3.2"/><path d="M12 2v3M12 19v3M2 12h3M19 12h3M4.9 4.9l2.1 2.1M17 17l2.1 2.1M4.9 19.1L7 17M17 7l2.1-2.1"/><circle cx="12" cy="12" r="7"/></svg>',
+  full: '<svg viewBox="0 0 24 24"><path d="M3 9V3h6M15 3h6v6M21 15v6h-6M9 21H3v-6"/></svg>',
+};
+
 export class UI {
   constructor(app) {
     this.app = app;
@@ -462,18 +471,18 @@ export class UI {
     pb.querySelector('.pb-shop').onclick = () => this.openShop('charge');
     this.eKills = h('div', 'kills', '', hud);
     const tr = h('div', 'tr', null, hud);
-    this.bCodex = h('button', 'sq cdx-btn', '<span>📖</span><b>무기도감</b><i></i>', tr); this.bCodex.title = '무기도감 · 조합 (C 키)'; this.bCodex.onclick = () => this.openCodex();
+    this.bCodex = h('button', 'sq cdx-btn', ICO.codex + '<b>무기도감</b><i></i>', tr); this.bCodex.title = '무기도감 · 조합 (C 키)'; this.bCodex.onclick = () => this.openCodex();
     this.bCodexN = this.bCodex.querySelector('i');
-    const hq = h('button', 'sq hq', '<span>🎖</span><b>영웅 · 뽑기</b>', tr); hq.title = '영웅 모집 · 보급 뽑기 · 보급 충전 (H 키)'; hq.onclick = () => this.openShop('hero');
+    const hq = h('button', 'sq hq', ICO.hero + '<b>영웅 · 뽑기</b>', tr); hq.title = '영웅 모집 · 보급 뽑기 · 보급 충전 (H 키)'; hq.onclick = () => this.openShop('hero');
     this.bench = h('div', 'hbench', '', hud); this.benchKey = null;
     this.eLives = h('div', 'pill lives', '', tr);
     this.eMoney = h('div', 'pill money', '', tr);
     this.eWave = h('div', 'pill wave', '', tr);
     this.bSpeed = h('button', 'sq speed', '', tr); this.bSpeed.onclick = () => { g.speed = g.speed >= 3 ? 1 : g.speed + 1; };
     this.bPause = h('button', 'sq', '', tr); this.bPause.onclick = () => this.app.togglePause();
-    h('button', 'sq fs-btn', '⛶', tr).onclick = () => this.fullscreen();
-    const sv = h('button', 'sq save-btn', '💾', tr); sv.title = '저장하기 · 저장하고 나가기'; sv.onclick = () => this.toggleSaveBox();
-    h('button', 'sq gear', '⚙', tr).onclick = () => this.toggleSettings();
+    h('button', 'sq fs-btn', ICO.full, tr).onclick = () => this.fullscreen();
+    const sv = h('button', 'sq save-btn', ICO.save, tr); sv.title = '저장하기 · 저장하고 나가기'; sv.onclick = () => this.toggleSaveBox();
+    h('button', 'sq gear', ICO.gear, tr).onclick = () => this.toggleSettings();
     // 시점 각도 버튼 (누르고 있으면 계속 돌아감) · ⌂ 는 기본 시점
     const rv = h('div', 'rotv', null, hud);
     // 시점 각도는 이 버튼으로만 바뀜 (지도 끌기·두 손가락·마우스 오른쪽으로는 안 바뀜)
