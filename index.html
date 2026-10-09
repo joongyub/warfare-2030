@@ -663,6 +663,8 @@
   /* 작전 개시 (다음 웨이브) */
   .hud-layer .nextwave { border: 2px solid #16150f; border-radius: 3px; color: #16150f; background: repeating-linear-gradient(-45deg, rgba(0,0,0,0) 0 16px, rgba(0,0,0,.09) 16px 32px), linear-gradient(180deg, #f6c75a, #c58716); box-shadow: 0 0 0 3px rgba(242,181,60,.55), 0 0 26px rgba(242,181,60,.45), 0 8px 24px rgba(0,0,0,.45); }
   .hud-layer .nextwave b { font-family: var(--mil-font); font-weight: 400; letter-spacing: 2px; }
+  .hud-layer .nextwave b.go-op { font-family: "Malgun Gothic", "맑은 고딕", "Apple SD Gothic Neo", "Noto Sans KR", sans-serif; font-weight: 900; font-size: 40px; letter-spacing: 6px; text-shadow: 0 1px 0 rgba(255,255,255,.35); -webkit-text-stroke: 1px #16150f; }
+  .mobile .hud-layer .nextwave b.go-op { font-size: 26px; letter-spacing: 4px; }
   .hud-layer .nextwave::before, .hud-layer .nextwave::after { content: ''; position: absolute; left: 0; right: 0; height: 7px; background: var(--mil-hazard); }
   .hud-layer .nextwave::before { top: 0; } .hud-layer .nextwave::after { bottom: 0; }
   .hud-layer .nextwave.busy { background: linear-gradient(180deg, rgba(48,22,18,.95), rgba(22,12,10,.95)); color: #ff9a86; border-color: rgba(217,68,47,.7); box-shadow: 0 8px 24px rgba(0,0,0,.45); }

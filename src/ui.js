@@ -687,7 +687,7 @@ export class UI {
 
     // 다음 웨이브 버튼
     let nb = '', cls = 'nextwave';
-    if (g.state === 'ready') nb = `<b>작전 개시 ≫</b><small>${g.waveNo ? `웨이브 ${g.waveNo + 1} 출격` : '첫 웨이브 출격'}</small>`;
+    if (g.state === 'ready') nb = '<b class="go-op">작전 개시</b>';
     else if (g.waveNo >= S.waves.length) { nb = `<b>마지막 웨이브</b><small>남은 적 ${g.enemies.length + g.queue.length}</small>`; cls += ' busy'; }
     else if (g.queue.length) { nb = `<b>다음 웨이브 ≫</b><small>적 출현 중 · ${g.queue.length}</small>`; cls += ' busy'; }
     else nb = `<b>다음 웨이브 ≫</b><small>${Math.ceil(g.nextT)}초 후 자동 · 지금 누르면 +${Math.ceil(g.nextT) * 3}</small>`;
