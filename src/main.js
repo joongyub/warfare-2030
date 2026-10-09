@@ -37,9 +37,9 @@ class App {
     this.camera = new THREE.PerspectiveCamera(34, 16 / 9, 0.5, 900);
     // EL: 내려다보는 각도(고정) / zoom: 1 = 전투 구역 전체가 화면에 꽉 참, 최대 3배
     this.EL = 0.6;   // 약 34도: 시안처럼 비스듬히 내려다보며 멀리 한강·스카이라인이 보이는 각도 (고정)
-    // AZ: 옆으로 돌린 각도(기본 살짝 대각선). 사용자가 오른쪽 드래그·두 손가락 비틀기·회전 버튼으로 바꿀 수 있음
+    // AZ: 옆으로 돌린 각도(기본 살짝 대각선). 오른쪽 위 각도 버튼으로만 바꿀 수 있음 (v0.39.0 사용자 요청)
     this.AZ = GF.SETTINGS.camAzimuth ?? -0.32;
-    this.cam = { target: new THREE.Vector3(0, 0, 0), zoom: 1, zoomGoal: 1, shake: 0, anchor: null, az: this.AZ, el: this.EL, spin: 0 };
+    this.cam = { target: new THREE.Vector3(0, 0, 0), zoom: 1, zoomGoal: 1, shake: 0, anchor: null, az: this.AZ, el: this.EL, spin: 0, tilt: 0 };
 
     // 조명: 하늘빛 + 해 (그림자). 사방에서 오는 하늘 반사광은 look.js 환경광이 담당
     this.scene.add(new THREE.HemisphereLight(0xd6ebff, 0x6b6450, 0.4));
@@ -123,9 +123,11 @@ class App {
     this.ui.buildHud();
     this.ui.playIntro();
   }
-  // 저장한 게임 이어하기 (처음 화면에서)
-  loadGame(id) {
-    const d = Saves.get(id); if (!d) return;
+  // 저장한 게임 이어하기: 도시 × 난이도 칸 (diff 없으면 지금 고른 난이도)
+  loadGame(id, diff) {
+    const S = GF.STAGES[id]; if (!S) return;
+    const k = GF.diffFor(S, diff || GF.SETTINGS.difficulty), d = Saves.get(id, k); if (!d) return;
+    GF.SETTINGS.difficulty = k; GF.savePrefs();
     if (GF.STAGES[id] !== this.stage) this.selectStage(id);
     this.startGame();
     this.game.restore(d);
@@ -294,7 +296,7 @@ class App {
     const pts = new Map();
     el.addEventListener('pointerdown', (e) => {
       this.sound.unlock();
-      if (e.button === 2) { drag = { rot: true, x: e.clientX, y: e.clientY, moved: false }; el.setPointerCapture(e.pointerId); return; }   // 오른쪽 드래그 = 시점 회전, 그냥 클릭 = 취소
+      if (e.button === 2) { drag = { rot: true, x: e.clientX, y: e.clientY, moved: false }; el.setPointerCapture(e.pointerId); return; }   // 오른쪽 클릭 = 취소 (시점 각도는 화면 오른쪽 위 각도 버튼으로만 바꿈)
       pts.set(e.pointerId, { x: e.clientX, y: e.clientY });
       // 휴대폰에서 무기·영웅·카드를 고른 상태면 지도를 고정: 손가락으로 끌면 지도 대신 설치 미리보기가 따라오고, 떼는 곳에 설치
       if (e.pointerType === 'touch' && this.placing()) {
@@ -318,7 +320,6 @@ class App {
       if (drag.rot) {
         const dx = e.clientX - drag.x, dy = e.clientY - drag.y;
         if (!drag.moved && Math.abs(dx) + Math.abs(dy) > 5) drag.moved = true;
-        if (drag.moved) { this.rotateView(-(e.clientX - (drag.lx ?? drag.x)) * 0.006, (e.clientY - (drag.ly ?? drag.y)) * 0.004); drag.lx = e.clientX; drag.ly = e.clientY; }
         return;
       }
       if (drag.pinch) {
@@ -326,11 +327,7 @@ class App {
         if (a && b) {
           const want = drag.z0 * Math.hypot(a.x - b.x, a.y - b.y) / Math.max(20, drag.pinch);
           this.zoomAt((a.x + b.x) / 2, (a.y + b.y) / 2, want / this.cam.zoomGoal);
-          // 두 손가락 비틀기 = 옆으로 회전, 두 손가락 함께 위아래 = 기울기
-          let da = Math.atan2(b.y - a.y, b.x - a.x) - drag.ang; da = Math.atan2(Math.sin(da), Math.cos(da));
-          const my = (a.y + b.y) / 2;
-          this.rotateView(-da, (my - drag.my) * 0.004);
-          drag.ang += da; drag.my = my;
+          // 두 손가락은 확대·축소만 (각도는 각도 버튼으로만: 사용자 요청으로 고정)
         }
         return;
       }
@@ -380,7 +377,7 @@ class App {
       if (this.ui.codexEl) { if (e.code === 'Escape') this.ui.closeCodex(); return; }
       this.keys[e.code] = true;
       const g = this.game;
-      if (g.state === 'title') { if (e.code === 'Enter') { if (this.ui.zone) this.ui.zoneStart(false); else this.ui.openZone(); } if (e.code === 'Escape') this.ui.closeZone(); return; }
+      if (g.state === 'title') { if (e.code === 'Enter') { if (this.ui.zone) this.ui.zoneStart(); else this.ui.openZone(); } if (e.code === 'Escape') this.ui.closeZone(); return; }
       // 무기 단축키: 윗줄 1~9·0, 아랫줄 Shift + 1~9·0
       const dg = /^Digit(\d)$/.exec(e.code);
       if (dg) { const d = +dg[1], i = (d === 0 ? 9 : d - 1) + (e.shiftKey ? 10 : 0); if (GF.LOADOUT[i]) g.setMode(GF.LOADOUT[i]); }
@@ -432,8 +429,8 @@ class App {
     const mx = (k.ArrowRight ? 1 : 0) - (k.ArrowLeft ? 1 : 0), mz = (k.ArrowDown ? 1 : 0) - (k.ArrowUp ? 1 : 0);
     this.cam.target.x += (mx * Math.cos(az) + mz * Math.sin(az)) * sp;
     this.cam.target.z += (-mx * Math.sin(az) + mz * Math.cos(az)) * sp;
-    const spinK = (k.BracketRight || k.Period ? 1 : 0) - (k.BracketLeft || k.Comma ? 1 : 0) + this.cam.spin;   // [ ] 또는 , . 키, 화면 회전 버튼
-    if (spinK) this.rotateView(spinK * 1.4 * real);
+    // 시점 각도는 오른쪽 위 각도 버튼(누르고 있는 동안)으로만 바뀜: 좌우 spin, 위아래 tilt
+    if (this.cam.spin || this.cam.tilt) this.rotateView(this.cam.spin * 1.4 * real, this.cam.tilt * 0.7 * real);
     this.clampTarget();
 
     const dt = this.paused ? 0 : real * this.game.speed;

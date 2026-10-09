@@ -4,7 +4,7 @@ import { getTower, getEnemy, getGhost, mat, ghostMat, ghostBad } from './models.
 import { makeHero, HEROES, HERO_IDS, GACHA, rollHero, makeBuddha, makeElephant } from './heroes.js';
 import { RECIPES, Codex, comboRate, comboFee } from './codex.js';
 import { VFX } from './vfx.js';
-import { Clears } from './save.js';
+import { Clears, Saves } from './save.js';
 
 const V = (x = 0, y = 0, z = 0) => new THREE.Vector3(x, y, z);
 const TOWER_SCALE = 1.6, TOWER_GAP = 1.4, HERO_SCALE = 2.1;
@@ -179,6 +179,7 @@ export class Game {
       mvp: mvp ? { name: mvp.W.hero ? HEROES[mvp.W.hero].name : GF.wname(mvp.type), dmg: Math.round(mvp.dmgTotal) } : null, at: Date.now()
     };
     const saved = won ? Clears.add(this.S.id, this.diffId, rec) : null;
+    if (won && Saves.get(this.S.id, this.diffId)) Saves.remove(this.S.id, this.diffId);   // 그 난이도 작전 끝: 진행중 저장은 지움 (다른 난이도 저장은 그대로)
     if (won && GF.cloudPush) GF.cloudPush();
     this.ui().showResult(won, stars, rec, saved);
     this.snd(won ? 'win' : 'lose');
