@@ -1,7 +1,7 @@
 // 전투 규칙 (v4 서울): 도로 밖 자유 배치 → 작전 개시 → 웨이브가 자동으로 이어짐 (다음 웨이브 ≫ 로 앞당기기)
 import * as THREE from 'three';
 import { getTower, getEnemy, getGhost, mat, ghostMat, ghostBad } from './models.js';
-import { makeHero, HEROES, HERO_IDS, GACHA, rollHero, makeBuddha, makeElephant } from './heroes.js';
+import { makeHero, HEROES, HERO_IDS, GACHA, rollHero, makeBuddha, makeElephant, makeMoney, CMD_R, cmdHits } from './heroes.js';
 import { RECIPES, Codex, comboRate, comboFee } from './codex.js';
 import { VFX } from './vfx.js';
 import { Clears, Saves } from './save.js';
@@ -556,7 +556,7 @@ export class Game {
   canGacha() { return this.state === 'ready' || this.state === 'battle'; }
   // 무기별 최대 강화 단계 (영웅 10강, 일반 무기 4강)
   maxLevel(tw) { return tw.W.hero ? GF.SETTINGS.heroMaxLevel : GF.SETTINGS.maxTowerLevel; }
-  // 영웅 모집: 20명 중 1명 무작위. 같은 영웅이 또 나와도 한 명 더 배치 대기열에 추가 (여러 명 출전 가능)
+  // 영웅 모집: 21명 중 1명 무작위. 같은 영웅이 또 나와도 한 명 더 배치 대기열에 추가 (여러 명 출전 가능)
   pullHero() {
     if (!this.canGacha()) return null;
     if (this.money < GACHA.heroCost) { this.snd('deny'); return { fail: '보급이 부족합니다 (영웅 모집 ' + GACHA.heroCost + ')' }; }
@@ -601,13 +601,32 @@ export class Game {
     tw.model.root.scale.setScalar(this.heroScale(tw));
     this.heroBench.splice(this.heroBench.indexOf(id), 1);
     this.spawnRing(tw.pos, 2.2, 0xffd36a, 1.2); this.spawnRing(tw.pos, 1.2, 0xffffff, 0.8);
+    if (HEROES[id].roar) this.legendEntrance(tw);
     tw.model.fire();
     tw.label = { text: '★ ' + HEROES[id].short, pos: V(p.x, 2.5, p.z), kind: 'hero' };
     this.city.labels.push(tw.label); this.ui().resetLabels();
-    this.ui().toast(HEROES[id].legend ? `레전더리 영웅 ${HEROES[id].name} 출전! 비숑도 함께!` : `전설의 영웅 ${HEROES[id].name} 출전!`, '#FFD36A', 2600);
+    if (!HEROES[id].roar) this.ui().toast(HEROES[id].legend ? `레전더리 영웅 ${HEROES[id].name} 출전!` : `전설의 영웅 ${HEROES[id].name} 출전!`, '#FFD36A', 2600);
     this.cancelMode();
     this.refreshCombos();
   }
+  // 레전더리 등장: 하늘에서 빛기둥 + 금빛 고리 연속 + 불꽃 터짐, 영웅이 튀어 오르듯 커짐. 화면엔 7초 포효 자막·폭죽
+  legendEntrance(tw) {
+    const p = tw.pos, base = this.heroScale(tw), root = tw.model.root;
+    root.scale.setScalar(0.01);
+    const steps = 14;
+    for (let i = 1; i <= steps; i++) this.timers.push({ t: 0.25 + i * 0.04, fn: () => { if (!this.towers.includes(tw)) return; const k = i / steps; root.scale.setScalar(base * (k < 0.75 ? k / 0.75 * 1.35 : 1.35 - (k - 0.75) / 0.25 * 0.35)); } });
+    for (let i = 0; i < 6; i++) this.timers.push({ t: i * 0.18, fn: () => { this.spawnRing(p.clone().setY(0.1 + i * 0.35), 1.6 + i * 0.5, [0xffd36a, 0xffffff, 0xffb0e8][i % 3], 0.9); } });
+    for (let i = 0; i < 18; i++) this.timers.push({ t: i * 0.05, fn: () => this.spawnSpark(p.clone().setY(6 - i * 0.32), 0xfff2c8, 0.5, 0.25) });
+    for (let i = 0; i < 7; i++) this.timers.push({ t: 0.9 + i * 0.35, fn: () => {
+      const a = Math.random() * Math.PI * 2, q = p.clone().add(V(Math.cos(a) * 1.6, 2.4 + Math.random() * 1.6, Math.sin(a) * 1.6));
+      const c = [0xff5a5a, 0xffd36a, 0x7ff0a0, 0x7fc8ff, 0xff8ad8][i % 5];
+      for (let k = 0; k < 10; k++) { const b = (k / 10) * Math.PI * 2; this.spawnSpark(q.clone().add(V(Math.cos(b) * 0.6, Math.sin(b) * 0.6, Math.sin(b + a) * 0.4)), c, 0.18, 0.4); }
+      this.spawnSpark(q, 0xffffff, 0.45, 0.2);
+    } });
+    this.snd('fanfare');
+    this.ui().heroRoar(tw.W.hero);
+  }
+  cmdRange(tw) { return CMD_R * (1 + 0.04 * (tw.level - 1)); }
   heroScale(tw) { return HERO_SCALE * (tw.W.big || 1) * (1 + 0.06 * (tw.level - 1)); }
 
   // ---------- 조합 (📖 무기도감에서 이중엽이 조합) ----------
@@ -692,8 +711,9 @@ export class Game {
     let rate = tw.W.rate;
     if (this.syn.usSet && tw.W.nation.indexOf('미국') >= 0) rate *= 1.05;
     const bf = tw.buff || { range: 0, dmg: 0 };   // 레이더 기지 범위 안이면 사거리·피해 +
-    const dmg = tw.W.dmg * U.dmg[i] * (1 + bf.dmg), r = rate * U.rate[i];
-    return { dmg, range: tw.W.range * U.range[i] * (1 + bf.range), rate: r, dps: (dmg || 0) * r * (tw.W.salvo || 1), mul: U.dmg[i] };
+    const cm = tw.cmd || { dmg: 0, rate: 0, range: 0 };   // 영웅 지휘 버프
+    const dmg = tw.W.dmg * U.dmg[i] * (1 + bf.dmg) * (1 + cm.dmg), r = rate * U.rate[i] * (1 + cm.rate);
+    return { dmg, range: tw.W.range * U.range[i] * (1 + bf.range) * (1 + cm.range), rate: r, dps: (dmg || 0) * r * (tw.W.salvo || 1), mul: U.dmg[i] };
   }
   upgradeCost(tw) { return Math.round(tw.W.cost * 0.75 * tw.level); }
   upgradeTower(tw, quiet) {
@@ -933,6 +953,18 @@ export class Game {
         if (!tw.buff || b.range > tw.buff.range) tw.buff = b;
       }
     }
+    // 영웅 지휘 버프: 영웅 곁(CMD_R, 강화할수록 조금 넓어짐) 안의 해당 무기군 강화. 능력치마다 가장 센 영웅 하나만
+    const chiefs = this.towers.filter((t) => t.W.cmd);
+    for (const tw of this.towers) {
+      tw.cmd = null; tw.cmdBy = null;
+      for (const hq of chiefs) {
+        const c = hq.W.cmd, r = this.cmdRange(hq);
+        if (!cmdHits(c, tw.W) || hq.pos.distanceToSquared(tw.pos) > r * r) continue;
+        const k = 1 + 0.05 * (hq.level - 1), b = tw.cmd || (tw.cmd = { dmg: 0, rate: 0, range: 0 });
+        for (const s of ['dmg', 'rate', 'range']) if (c[s] && c[s] * k > b[s]) { b[s] = c[s] * k; (tw.cmdBy || (tw.cmdBy = new Set())).add(hq); }
+      }
+    }
+    for (const hq of chiefs) { hq.cmdPulse = (hq.cmdPulse || 0) - dt; if (hq.cmdPulse <= 0) { hq.cmdPulse = 3; if (this.towers.some((t) => t.cmdBy && t.cmdBy.has(hq))) this.spawnRing(hq.pos, this.cmdRange(hq), 0xffd36a, 1.1); } }
     for (const rd of radars) { rd.pulse -= dt; if (rd.pulse <= 0) { rd.pulse = 2.2; this.spawnRing(rd.pos, rd.W.buffR ? rd.W.buffR * (1 + 0.04 * (rd.level - 1)) : this.stats(rd).range, rd.W.hero ? 0xfff2b0 : 0x9cff8a, 1.2); } }
     // 화염 지대 (TOS-1A): 안에 있는 지상 적이 계속 탐
     for (const f of this.fires) {
@@ -1216,6 +1248,23 @@ export class Game {
           for (const x of list) { this.hurt(x, st.dmg / 2, tw, { pierce: true }); if (!x.E.boss) x.stun = Math.max(x.stun, 0.35); this.vfx.impact(this.targetPoint(x), x.air); }
           this.spawnRing(c, W.splash, 0x9fe8ff, 0.4); this.spawnRing(c, W.splash * 0.5, 0xffffff, 0.3);
           if (b === 0) this.ui().floatText(c.clone().setY(1.6), '번쩍!', '#BFF0FF');
+        } });
+      }
+    } else if (W.shot === 'money') {
+      // 돈다발을 머리 위로 휘둘러 휙! 두 번 던짐: 떨어진 자리 주변 적 8명에게 피해 + 잠깐 멈춤, 지폐가 흩날림 (다른 레전더리와 같은 공격력)
+      for (let b = 0; b < 2; b++) {
+        this.timers.push({ t: 0.4 + b * 0.26, fn: () => {
+          this.snd('coin');
+          const from = m.muzzle.getWorldPosition(V()), to = e.dead ? g0.clone() : this.targetPoint(e);
+          const cash = makeMoney(); cash.scale.setScalar(2);
+          this.addShot('shell', from, { to, speed: 10, arc: 1 + from.distanceTo(to) * 0.1, dmg: 0, splash: 0, tw, mesh: cash, onHit: (q) => {
+            const r2 = W.splash * W.splash;
+            const list = this.enemies.filter((x) => !x.dead && (x.pos.x - q.x) ** 2 + (x.pos.z - q.z) ** 2 <= r2).sort((a2, b2) => a2.rem - b2.rem).slice(0, W.salvo);
+            for (const x of list) { this.hurt(x, st.dmg / 2, tw, { pierce: true }); if (!x.E.boss) x.stun = Math.max(x.stun, 0.35); this.vfx.impact(this.targetPoint(x), x.air); }
+            this.spawnRing(q.clone().setY(0.2), W.splash, 0x7fd06a, 0.45); this.spawnRing(q.clone().setY(0.2), W.splash * 0.5, 0xffd34a, 0.35);
+            for (let k = 0; k < 8; k++) this.spawnSpark(q.clone().add(V((Math.random() - 0.5) * 2.4, 0.4 + Math.random() * 1.4, (Math.random() - 0.5) * 2.4)), k % 2 ? 0x7fd06a : 0xffd34a, 0.16, 0.5);
+            if (b === 0) this.ui().floatText(q.clone().setY(1.7), '돈벼락!', '#9CFF8A');
+          } });
         } });
       }
     } else if (W.shot === 'snipe') {

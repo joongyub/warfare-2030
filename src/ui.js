@@ -7,7 +7,7 @@ import { layout, isTouch } from './layout.js';
 const APK_URL = 'https://github.com/joongyub/warfare-2030/releases/download/apk/warfare-2030.apk';
 const isApk = () => /W2030App/.test(navigator.userAgent);
 const isIOS = () => /iPhone|iPad|iPod/.test(navigator.userAgent) || (navigator.platform === 'MacIntel' && navigator.maxTouchPoints > 1);
-import { HEROES, HERO_IDS, GACHA, heroChance, heroTier } from './heroes.js';
+import { HEROES, HERO_IDS, GACHA, heroChance, heroTier, TIERS, cmdText } from './heroes.js';
 import { Saves, Clears } from './save.js';
 import { RECIPES, RECIPE_CATS, Codex, comboRate, comboFee } from './codex.js';
 import { HomeAnim } from './homeanim.js';
@@ -373,6 +373,19 @@ export class UI {
     const tick = setTimeout(() => { const iv = setInterval(() => { p.textContent = line.slice(0, ++i); if (i >= line.length) clearInterval(iv); }, 2200 / line.length); o.iv = iv; }, 1200);
     setTimeout(() => { clearTimeout(tick); clearInterval(o.iv); o.classList.add('out'); setTimeout(() => { o.remove(); if (this.halfEl === o) this.halfEl = null; if (done) done(); }, 400); }, 7000);
   }
+  // 레전더리 영웅 배치: 7초 동안 영웅 그림 + 포효 자막 + 폭죽 (게임은 멈추지 않음, 눌러도 지나감)
+  heroRoar(id) {
+    const H = HEROES[id]; if (!H || !H.roar) return;
+    this.roarEl?.remove(); clearTimeout(this.roarT);
+    const o = this.roarEl = h('div', 'roar', `<canvas class="rr-fw"></canvas><div class="rr-hero"><img src="${this.icons['hero_' + id]}"></div><div class="in-box rr-box"><small>★★ 레전더리 영웅 출전 · ${H.name}</small><p></p></div>`, this.root);
+    const p = o.querySelector('p'), line = '“' + H.roar + '”';
+    if (this.app.sound) this.app.sound.play('applause', 0.5);
+    this.fireworks(o.querySelector('.rr-fw'), 4500);
+    let i = 0;
+    const iv = setInterval(() => { p.textContent = line.slice(0, ++i); if (i >= line.length) clearInterval(iv); }, Math.max(30, 1100 / line.length));
+    const end = () => { clearInterval(iv); clearTimeout(this.roarT); o.classList.add('out'); setTimeout(() => { o.remove(); if (this.roarEl === o) this.roarEl = null; }, 400); };
+    this.roarT = setTimeout(end, 7000);
+  }
   playIntro() {
     this.intro?.remove(); clearTimeout(this.introT);
     const S = this.app.stage, city = GF.SETTINGS.useCityAlias ? S.alias : S.name;
@@ -664,7 +677,11 @@ export class UI {
       const sp = this.project(tw.pos.clone().setY(0.6)) || { x: 900, y: 500 };
       put(this.panel.style, 'left', Math.max(20, Math.min(this.BW - 420, sp.x + 60)) + 'px');
       put(this.panel.querySelector('.pt'), 'textContent', GF.wname(tw.type) + '  Lv.' + tw.level);
-      put(this.panel.querySelector('.pi'), 'innerHTML', `${tw.W.hero ? '<span style="color:' + (tw.W.legend ? '#fff4c8' : '#ffd36a') + '">' + (tw.W.legend ? '★★ 레전더리 영웅 · ' : '★ 전설의 영웅 · ') + tw.W.title + '</span><br>' : ''}${tw.W.nation} · ${tw.W.role}<br>${this.upLine(g, tw, st, max)}누적 피해 <b>${fmt(tw.dmgTotal)}</b> · 격파 <b>${tw.kills}</b><br><small>${tw.W.desc}</small>`);
+      const tier = tw.W.hero && heroTier(tw.W.hero), tierName = tier && TIERS.find((x) => x[0] === tier)[1];
+      let cmd = '';
+      if (tw.W.cmd) { const n = g.towers.filter((t) => t.cmdBy && t.cmdBy.has(tw)).length; cmd = `<span style="color:#ffd36a">🎖 지휘: ${cmdText(tw.W.cmd)} (곁 ${g.cmdRange(tw).toFixed(1)}칸 · 지금 ${n}대)</span><br>`; }
+      else if (tw.cmd) cmd = `<span style="color:#ffd36a">🎖 영웅 지휘 받는 중: ${[['dmg', '피해'], ['rate', '연사'], ['range', '사거리']].filter(([k]) => tw.cmd[k]).map(([k, n]) => `${n} +${Math.round(tw.cmd[k] * 100)}%`).join(' · ')}</span><br>`;
+      put(this.panel.querySelector('.pi'), 'innerHTML', `${tw.W.hero ? '<span style="color:' + (tw.W.legend ? '#fff4c8' : '#ffd36a') + '">' + (tw.W.legend ? '★★ ' : '★ ') + tierName + ' · ' + tw.W.title + '</span><br>' : ''}${tw.W.nation} · ${tw.W.role}<br>${cmd}${this.upLine(g, tw, st, max)}누적 피해 <b>${fmt(tw.dmgTotal)}</b> · 격파 <b>${tw.kills}</b><br><small>${tw.W.desc}</small>`);
       const up = this.panel.querySelector('.up'), all = this.panel.querySelector('.all');
       put(up, 'textContent', max ? `최대 강화 (Lv.${top})` : `강화 Lv.${tw.level + 1}/${top}  (${g.upgradeCost(tw)})`);
       up.disabled = max || g.money < g.upgradeCost(tw);
@@ -762,7 +779,7 @@ export class UI {
       const card = (id) => {
         const H = HEROES[id], t = heroTier(id), cmb = t === 'myth' || t === 'goat', seen = !cmb || found(id);
         const how = t === 'goat' ? '신화 영웅 + 조합 무기' : '레전더리 영웅 2명';
-        return `<div class="hr${H.legend ? ' lg' : ''}${cmb ? ' cmb ' + t : ''}${seen ? '' : ' hid'}" data-id="${id}" title="${seen ? '몸짓: ' + H.gesture : ''}"><img src="${this.icons['hero_' + id]}">${cmb ? `<i class="hr-only">조합 전용</i>` : ''}<b>${seen ? H.name : '???'}</b><em>${seen ? H.title : how + ' 조합으로 탄생'}</em><span>${seen ? `${H.role} · DPS ${dps(H)}` : '📖 무기도감에서 발견'}</span></div>`;
+        return `<div class="hr${H.legend ? ' lg' : ''}${cmb ? ' cmb ' + t : ''}${seen ? '' : ' hid'}" data-id="${id}" title="${seen ? '몸짓: ' + H.gesture : ''}"><img src="${this.icons['hero_' + id]}">${cmb ? `<i class="hr-only">조합 전용</i>` : ''}<b>${seen ? H.name : '???'}</b><em>${seen ? H.title : how + ' 조합으로 탄생'}</em><span>${seen ? `${H.role} · DPS ${dps(H)}` : '📖 무기도감에서 발견'}</span>${seen && H.cmd ? `<u class="hr-cmd">🎖 지휘 ${cmdText(H.cmd)}</u>` : ''}</div>`;
       };
       const sec = (f, label, ids) => `<div class="hr-sec" data-f="${f}"><div class="hr-sec-t${f === 'normal' ? '' : ' lgt ' + f}">${label} <small>${ids.length}명</small></div><div class="hr-cards">${ids.map(card).join('')}</div></div>`;
       body.innerHTML = `<div class="hr-wrap">

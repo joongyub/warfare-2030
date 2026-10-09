@@ -8,20 +8,23 @@ import * as THREE from 'three';
 export const HEROES = {
   // legend: 최상위 등급(빛나는 테두리·무지개 받침 고리). DPS 가장 높음
   limbaegeun: { name: '임배근', short: '임배근', nation: '대한민국', title: '비숑을 품은 무적의 사나이', color: '#ffffff', legend: true,
-    shot: 'bark', range: 10.5, dmg: 300, rate: 1.2, salvo: 8, splash: 3.0, hits: ['ground', 'air'],
+    shot: 'bark', range: 10.5, dmg: 104.062, rate: 1.2, salvo: 8, splash: 3.0, hits: ['ground', 'air'],
     role: '비숑 음파 짖기', desc: '근육질 팔에 하얀 비숑을 안고 있음. 비숑을 적 쪽으로 내밀면 왈왈! 짖는 음파가 날아가 목표 주변 적 8명에게 큰 피해를 주고 잠깐 멈춰 세움(공중 포함)', gesture: '비숑을 품에 안고 있다가 두 팔로 번쩍 내밀면 비숑이 왈왈 짖음' },
   leejunhak: { name: '이준학', short: '이준학', nation: '대한민국', title: '벨트 하나로 전선을 지키는 키다리', color: '#3a6ea5', legend: true,
-    shot: 'belt', range: 9.5, dmg: 300, rate: 1.2, salvo: 8, splash: 3.0, hits: ['ground', 'air'],
+    shot: 'belt', range: 9.5, dmg: 104.062, rate: 1.2, salvo: 8, splash: 3.0, hits: ['ground', 'air'],
     role: '바지 벨트 채찍', desc: '흰 티셔츠에 청바지를 입은 키 큰 동양 남자. 바지 벨트를 풀어 머리 위로 휘두르면 짝! 찰싹! 두 번 내리쳐 목표 주변 적 8명에게 큰 피해를 주고 잠깐 멈춰 세움(공중 포함). 공격력은 임배근과 같음', gesture: '한 손으로 흘러내리는 바지를 붙잡고, 다른 손으로 벨트를 머리 위로 돌렸다가 내리침' },
   kimdeokhun: { name: '김덕훈', short: '김덕훈', nation: '대한민국', title: '길리슈트 속에 숨은 특수부대 저격수', color: '#5b6b2e', legend: true,
-    shot: 'snipe', range: 16, dmg: 300, rate: 1.2, salvo: 8, hits: ['ground', 'air'],
+    shot: 'snipe', range: 16, dmg: 104.062, rate: 1.2, salvo: 8, hits: ['ground', 'air'],
     role: 'Kar98 관통 저격', desc: '풀잎 가닥이 덮인 길리슈트와 두건, 조준경 달린 Kar98 볼트액션 소총. 아주 먼 거리에서 한 발을 쏘면 총알이 일직선으로 날아가 줄 선 적 8명까지 관통(공중 포함). 공격력은 임배근·이준학과 같음', gesture: '소총을 어깨에 견착해 조준경을 들여다보다 쏘고, 반동 뒤 노리쇠를 당겨 장전' },
   simjaegwan: { name: '심재관', short: '심재관', nation: '대한민국', title: '뿔테 너머로 모든 걸 꿰뚫어 보는 키다리', color: '#222222', legend: true,
-    shot: 'glasses', range: 10.5, dmg: 300, rate: 1.2, salvo: 8, splash: 3.0, hits: ['ground', 'air'],
+    shot: 'glasses', range: 10.5, dmg: 104.062, rate: 1.2, salvo: 8, splash: 3.0, hits: ['ground', 'air'],
     role: '뿔테안경 섬광 광선', desc: '검정 뿔테안경을 쓴 키 큰 동양 남자. 검지로 안경을 쓱 올리면 렌즈가 번쩍이며 두 줄기 광선이 날아가 목표 주변 적 8명을 두 번 태우고 잠깐 눈부시게 해 멈춰 세움(공중 포함). 공격력은 임배근·이준학과 같음', gesture: '검지로 뿔테안경을 밀어 올리면 렌즈가 번쩍임' },
+  gowonkyung: { name: '고원경', short: '고원경', nation: '대한민국', title: '슈퍼카 지붕 위의 작은 거인', color: '#f2c200', legend: true,
+    shot: 'money', range: 10.5, dmg: 104.062, rate: 1.2, salvo: 8, splash: 3.0, hits: ['ground', 'air'],
+    role: '돈다발 투척', desc: '노란 슈퍼카 지붕에 걸터앉은 키 작은 동양 남자. 돈다발을 머리 위로 휘둘러 던지면 지폐가 흩날리며 목표 주변 적 8명을 두 번 때리고 잠깐 멈춰 세움(공중 포함). 공격력은 다른 레전더리와 같음', gesture: '왼손에 돈다발을 쥐고 오른손으로 한 뭉치씩 집어 휙 던짐' },
   // 조합 영웅: 임배근 + 김덕훈을 가까이 놓으면 합체. 크기 1.45배, 두 영웅을 합친 것보다 조금 강함
   monk: { name: '능인 스님', short: '목탁 스님', nation: '능인고', title: '능인고 조합 영웅 (임배근 + 김덕훈)', color: '#d98a2b', legend: true, combo: true, tier: 'myth', big: 1.45,
-    shot: 'moktak', range: 13, dmg: 800, rate: 1.0, salvo: 8, splash: 3.2, hits: ['ground', 'air'],
+    shot: 'moktak', range: 13, dmg: 360, rate: 1.0, salvo: 8, splash: 3.2, hits: ['ground', 'air'],
     role: '목탁 부처님 공격', desc: '회색 승복에 주황 가사를 걸친 대형 스님. 목탁을 똑! 똑! 두드릴 때마다 금빛 부처님이 날아가 목표 주변 적 8명에게 큰 피해를 주고 잠깐 멈춰 세움(공중 포함)', gesture: '합장하듯 목탁을 들고 나무채로 똑똑 두드림' },
   macarthur: { name: '더글러스 맥아더', short: '맥아더', nation: '미국', title: '인천상륙작전의 지휘관', color: '#c9a24a',
     shot: 'bombrun', range: 10, dmg: 120, rate: 0.55, salvo: 5, splash: 1.9, hits: ['ground'],
@@ -58,7 +61,7 @@ export const HEROES = {
     shot: 'horsearrows', range: 11, dmg: 75, rate: 0.9, salvo: 6, hits: ['ground', 'air'],
     role: '기마 궁수 속사', desc: '털모자와 가죽 갑옷, 짧은 각궁. 활을 들면 기마 궁수들이 서로 다른 적 6명에게 화살을 날림(공중 포함)', gesture: '짧은 활을 옆으로 눕혀 들고 재빨리 시위를 당김' },
   alexander: { name: '알렉산드로스 대왕', short: '알렉산더', nation: '마케도니아', title: '한 번도 지지 않은 젊은 대왕', color: '#b8862e',
-    shot: 'phalanx', range: 8.5, dmg: 240, rate: 0.6, salvo: 10, hits: ['ground'],
+    shot: 'phalanx', range: 8.5, dmg: 100, rate: 0.6, salvo: 10, hits: ['ground'],
     role: '팔랑크스 장창 돌격', desc: '붉은 깃 장식 황금 투구와 붉은 망토, 긴 장창. 창을 내지르면 창끝 충격이 일직선으로 뻗어 줄 선 적 10명을 꿰뚫음', gesture: '긴 장창을 뒤로 당겼다가 앞으로 힘껏 내지름' },
   hannibal: { name: '한니발 바르카', short: '한니발', nation: '카르타고', title: '코끼리를 이끌고 알프스를 넘은 장군', color: '#5a2a6a',
     shot: 'elephant', range: 9, dmg: 360, rate: 0.4, splash: 2.4, hits: ['ground'],
@@ -70,29 +73,55 @@ export const HEROES = {
     shot: 'musket', range: 8.5, dmg: 42, rate: 1.3, salvo: 7, hits: ['ground', 'air'],
     role: '대륙군 머스킷 일제 사격', desc: '삼각모와 남색·담황색 군복, 흰 머리. 칼을 앞으로 겨누면 대륙군 머스킷 7정이 동시에 불을 뿜음(공중 포함)', gesture: '군도를 뽑아 앞으로 곧게 겨눔' },
   saladin: { name: '살라딘', short: '살라딘', nation: '아이유브', title: '예루살렘을 되찾은 관대한 술탄', color: '#2e6a3a',
-    shot: 'scimitar', range: 6.5, dmg: 150, rate: 0.8, salvo: 10, hits: ['ground', 'air'],
+    shot: 'scimitar', range: 6.5, dmg: 75, rate: 0.8, salvo: 10, hits: ['ground', 'air'],
     role: '초승달 검기 회전 베기', desc: '흰 터번과 초록 겉옷, 휘어진 시미터. 몸을 한 바퀴 돌며 베면 초승달 검기가 퍼져 주변 적 10명을 벰(공중 포함)', gesture: '시미터를 비스듬히 들고 있다가 몸을 크게 돌려 벰' },
   // ---- 조합 영웅 (뽑기에 안 나오고 📖 무기도감 조합으로만 생김). model: 이 영웅 모양을 크게 + 금빛 ----
   turtle: { name: '이순신 · 거북선 함대', short: '거북선 함대', nation: '조선·영국', title: '불멸의 함대 조합 (이순신 + 넬슨)', color: '#c0392b', legend: true, combo: true, big: 1.4, model: 'yisunsin',
-    shot: 'broadside', range: 13, dmg: 150, rate: 0.6, salvo: 14, splash: 1.7, hits: ['ground'],
+    shot: 'broadside', range: 13, dmg: 118.929, rate: 0.6, salvo: 14, splash: 1.7, hits: ['ground'],
     role: '거북선 함대 일제 포격', desc: '이순신과 넬슨이 함께 지휘하는 함대. 포탄 14발이 연달아 쏟아짐', gesture: '각궁을 앞으로 뻗어 함대에 포격 명령' },
   pacific: { name: '맥아더 · 태평양 연합사령부', short: '태평양 사령부', nation: '미국', title: '태평양 연합 조합 (맥아더 + 니미츠)', color: '#c9a24a', legend: true, combo: true, big: 1.4, model: 'macarthur',
-    shot: 'carrier', range: 14, dmg: 230, rate: 0.8, salvo: 10, splash: 1.0, hits: ['ground', 'air'],
+    shot: 'carrier', range: 14, dmg: 124.875, rate: 0.8, salvo: 10, splash: 1.0, hits: ['ground', 'air'],
     role: '항모 전단 + 폭격기 총공세', desc: '맥아더와 니미츠가 함께 부르는 함재기 편대. 유도탄 10발이 서로 다른 적을 노림(공중 포함)', gesture: '파이프를 문 채 손을 뻗어 총공세 명령' },
   conqueror: { name: '나폴레옹 · 정복왕', short: '정복왕', nation: '프랑스·마케도니아', title: '정복왕 조합 (나폴레옹 + 알렉산더)', color: '#1f2f6e', legend: true, combo: true, big: 1.4, model: 'napoleon',
-    shot: 'grandbattery', range: 13, dmg: 170, rate: 0.55, salvo: 12, splash: 1.8, hits: ['ground'],
+    shot: 'grandbattery', range: 13, dmg: 151.364, rate: 0.55, salvo: 12, splash: 1.8, hits: ['ground'],
     role: '대포병대 12문 일제 포격', desc: '두 정복자가 함께 지휘하는 대포병대. 대포 12문이 줄지어 불을 뿜음', gesture: '오른손을 뻗어 목표를 가리킴' },
   goguryeo: { name: '을지문덕 · 살수귀주 대첩', short: '살수귀주', nation: '고구려·고려', title: '고구려·고려 수호 조합 (을지문덕 + 강감찬)', color: '#2a6fb0', legend: true, combo: true, big: 1.4, model: 'euljimundeok',
-    shot: 'flood', range: 12, dmg: 160, rate: 0.7, salvo: 14, splash: 3.2, hits: ['ground'],
+    shot: 'flood', range: 12, dmg: 101.939, rate: 0.7, salvo: 14, splash: 3.2, hits: ['ground'],
     role: '대홍수 + 밀어내기', desc: '두 명장의 기운이 합쳐진 큰 물벼락. 적 14명을 휩쓸고 멀리 밀어냄(보스 제외)', gesture: '환두대도를 머리 위로 들었다가 크게 내리침' },
   horde: { name: '칭기즈칸 · 대초원 기마군단', short: '기마군단', nation: '몽골·아이유브', title: '기마군단 조합 (칭기즈칸 + 살라딘)', color: '#7a4a1e', legend: true, combo: true, big: 1.4, model: 'genghis',
-    shot: 'horsearrows', range: 13, dmg: 140, rate: 1.0, salvo: 14, hits: ['ground', 'air'],
+    shot: 'horsearrows', range: 13, dmg: 71.357, rate: 1.0, salvo: 14, hits: ['ground', 'air'],
     role: '기마군단 화살 폭풍', desc: '두 기마 민족의 영웅이 이끄는 대군단. 서로 다른 적 14명에게 화살을 퍼부음(공중 포함)', gesture: '짧은 활을 들고 재빨리 시위를 당김' },
   // ---- GOAT (최상위 등급): 신화 영웅 + 조합 무기(Lv.4+Lv.4 조합 성공체)를 조합해야 탄생. DPS 9999 (= 3333 × 3발 × 초당 1) ----
   k2wing: { name: 'K2 11전투비행단장', short: '11전비단장', nation: '대한민국 공군', title: 'GOAT · 목탁 스님 + L-SAM 다층 방공망', color: '#2b4a7e', legend: true, combo: true, tier: 'goat', big: 1.6,
     shot: 'fighters', range: 30, dmg: 3333, rate: 1.0, salvo: 3, splash: 2.4, hits: ['ground', 'air'],
     role: 'F-15K 편대 공대공·공대지 공격', desc: '파란 공군 정복을 입은 공군 장군. 손짓 한 번에 F-15K 전투기 편대가 날아가 서로 다른 적 3곳에 미사일을 꽂음(공중·지상 모두). 사거리가 전장 대부분을 덮음', gesture: '정모를 쓰고 뒷짐을 지고 있다가 손을 앞으로 휙 뻗어 출격 신호' }
 };
+// 영웅 지휘 버프 (조합 제안 G): 영웅 곁(CMD_R) 안의 해당 무기군을 강화. 같은 능력치는 가장 센 영웅 하나만 적용
+//   g: 무기군 / dmg 피해 · rate 연사 · range 사거리 (비율). 영웅·지원 무기(aura)는 받지 않음
+export const CMD_R = 6;
+export const CMD_GROUPS = {
+  arty: { name: '포병', test: (W) => W.shot === 'shell' || W.shot === 'rockets' },
+  air: { name: '방공', test: (W) => W.hits.length === 1 && W.hits[0] === 'air' },
+  direct: { name: '직사', test: (W) => W.shot === 'cannon' || W.shot === 'rail' },
+  rapid: { name: '연사', test: (W) => W.shot === 'bullet' || W.shot === 'laser' },
+  guided: { name: '유도탄·드론', test: (W) => W.shot === 'missile' || W.shot === 'drone' },
+  all: { name: '모든 무기', test: () => true }
+};
+const CMD = {
+  limbaegeun: { g: 'all', rate: 0.15 }, leejunhak: { g: 'rapid', dmg: 0.3 }, kimdeokhun: { g: 'direct', dmg: 0.35 }, simjaegwan: { g: 'air', range: 0.25 }, gowonkyung: { g: 'all', dmg: 0.15 },
+  monk: { g: 'all', dmg: 0.25 }, k2wing: { g: 'all', dmg: 0.4 },
+  macarthur: { g: 'arty', dmg: 0.25 }, nimitz: { g: 'air', rate: 0.25 }, yisunsin: { g: 'arty', rate: 0.2 }, nelson: { g: 'direct', range: 0.2 }, hideyoshi: { g: 'rapid', rate: 0.3 },
+  churchill: { g: 'all', dmg: 0.1 }, euljimundeok: { g: 'guided', range: 0.15 }, gangamchan: { g: 'air', dmg: 0.25 }, napoleon: { g: 'arty', range: 0.15 }, genghis: { g: 'rapid', dmg: 0.2 },
+  alexander: { g: 'direct', dmg: 0.25 }, hannibal: { g: 'guided', dmg: 0.2 }, julius: { g: 'all', range: 0.08 }, washington: { g: 'rapid', range: 0.15 }, saladin: { g: 'direct', rate: 0.2 },
+  turtle: { g: 'arty', dmg: 0.3 }, pacific: { g: 'air', rate: 0.35 }, conqueror: { g: 'arty', range: 0.25 }, goguryeo: { g: 'guided', dmg: 0.3 }, horde: { g: 'rapid', rate: 0.35 }
+};
+// 레전더리 영웅을 배치할 때 7초 동안 나오는 포효 자막 (사용자 지정)
+const ROAR = { limbaegeun: '루이 가서 물어!', kimdeokhun: '6배율 어디갔노?', leejunhak: '혁대로 그냥 바로 탁 쳐야지!', simjaegwan: '어...형님들....진정하십쇼', gowonkyung: '내..! 깜방가기 싫다!!!!!!' };
+for (const id in HEROES) { if (CMD[id]) HEROES[id].cmd = CMD[id]; if (ROAR[id]) HEROES[id].roar = ROAR[id]; }
+// 지휘 효과 글: '포병 피해 +25%'
+export const cmdText = (c) => c ? `${CMD_GROUPS[c.g].name} ` + [['dmg', '피해'], ['rate', '연사'], ['range', '사거리']].filter(([k]) => c[k]).map(([k, n]) => `${n} +${Math.round(c[k] * 100)}%`).join(' · ') : '';
+export const cmdHits = (c, W) => !!c && !W.hero && W.shot !== 'aura' && CMD_GROUPS[c.g].test(W);
+
 // 영웅 등급: normal 일반 / legend 레전더리 / myth 신화(레전더리끼리 조합) / goat GOAT(신화 + 조합 무기)
 export const TIERS = [['normal', '일반 영웅'], ['legend', '레전더리 영웅'], ['myth', '신화 영웅'], ['goat', 'GOAT']];
 export const heroTier = (id) => HEROES[id].tier || (HEROES[id].legend ? 'legend' : 'normal');
@@ -119,7 +148,7 @@ export function rollHero() {
 }
 // 뽑기 규칙. lucky = [받는 보급, 확률 %]
 export const GACHA = {
-  heroCost: 600,                // 영웅 모집 1회 (20명 중 무작위 1명, 모두 같은 확률)
+  heroCost: 600,                // 영웅 모집 1회 (21명 중 무작위 1명, 모두 같은 확률)
   heroMaxRefund: 250,           // 이미 최대 강화된 영웅이 또 나오면 돌려주는 보급
   luckyCost: 100, luckyPerWave: 3,
   lucky: [[30, 20], [60, 25], [100, 25], [150, 18], [300, 10], [600, 2]]
@@ -189,6 +218,7 @@ const FLAGS = {
   leejunhak: (g, w, h) => { g.fillStyle = '#2f5d8f'; g.fillRect(0, 0, w, h); g.fillStyle = '#8fb6dc'; for (let x = 0; x < w; x += 6) g.fillRect(x, 0, 2, h); g.fillStyle = '#5a3418'; g.fillRect(0, h * 0.42, w, h * 0.18); g.fillStyle = '#e8c14a'; g.fillRect(w * 0.4, h * 0.36, w * 0.2, h * 0.3); g.fillStyle = '#5a3418'; g.fillRect(w * 0.45, h * 0.44, w * 0.1, h * 0.14); },
   kimdeokhun: (g, w, h) => { g.fillStyle = '#3e4a22'; g.fillRect(0, 0, w, h); for (let i = 0; i < 40; i++) { g.fillStyle = ['#5f6b34', '#2c3618', '#76713f', '#4a5a2a'][i % 4]; g.fillRect((i * 37) % w, (i * 23) % h, 10, 6); } g.strokeStyle = '#f2f2e8'; g.lineWidth = 3; g.beginPath(); g.arc(w / 2, h / 2, h * 0.3, 0, 7); g.moveTo(w / 2 - h * 0.42, h / 2); g.lineTo(w / 2 + h * 0.42, h / 2); g.moveTo(w / 2, h * 0.08); g.lineTo(w / 2, h * 0.92); g.stroke(); },
   simjaegwan: (g, w, h) => { g.fillStyle = '#f4f1e8'; g.fillRect(0, 0, w, h); g.strokeStyle = '#111'; g.lineWidth = 7; for (const cx of [w * 0.3, w * 0.7]) { g.beginPath(); g.ellipse(cx, h / 2, w * 0.16, h * 0.24, 0, 0, 7); g.stroke(); } g.beginPath(); g.moveTo(w * 0.46, h / 2 - 3); g.lineTo(w * 0.54, h / 2 - 3); g.stroke(); g.fillStyle = 'rgba(120,200,255,.55)'; for (const cx of [w * 0.3, w * 0.7]) { g.beginPath(); g.ellipse(cx, h / 2, w * 0.13, h * 0.2, 0, 0, 7); g.fill(); } },
+  gowonkyung: (g, w, h) => { g.fillStyle = '#2f8a4a'; g.fillRect(0, 0, w, h); g.fillStyle = '#7fd08a'; for (let i = 0; i < 5; i++) g.fillRect(6 + i * 18, 6 + (i % 2) * 8, 14, 7); g.fillStyle = '#ffd34a'; g.font = `bold ${h * 0.62}px sans-serif`; g.textAlign = 'center'; g.textBaseline = 'middle'; g.fillText('₩', w / 2, h * 0.58); g.strokeStyle = '#ffd34a'; g.lineWidth = 3; g.strokeRect(2, 2, w - 4, h - 4); },
   monk: (g, w, h) => { g.fillStyle = '#e8a33a'; g.fillRect(0, 0, w, h); g.fillStyle = '#fff3c8'; for (let i = 0; i < 8; i++) { g.save(); g.translate(w / 2, h * 0.62); g.rotate(-1.2 + i * 0.34); g.beginPath(); g.ellipse(0, -h * 0.22, h * 0.07, h * 0.22, 0, 0, 7); g.fill(); g.restore(); } g.fillStyle = '#b5651d'; g.fillRect(0, h * 0.82, w, h * 0.18); },
   macarthur: (g, w, h) => { for (let i = 0; i < 7; i++) { g.fillStyle = i % 2 ? '#f4f4f4' : '#b8262e'; g.fillRect(0, i * h / 7, w, h / 7 + 1); } g.fillStyle = '#2b3a78'; g.fillRect(0, 0, w * 0.45, h * 4 / 7); g.fillStyle = '#fff'; for (let y = 0; y < 3; y++) for (let x = 0; x < 4; x++) g.fillRect(6 + x * 13, 6 + y * 12, 3, 3); },
   yisunsin: (g, w, h) => { g.fillStyle = '#efe6cf'; g.fillRect(0, 0, w, h); g.strokeStyle = '#7a1c1c'; g.lineWidth = 8; g.strokeRect(4, 4, w - 8, h - 8); g.fillStyle = '#111'; g.font = `bold ${h * 0.62}px serif`; g.textAlign = 'center'; g.textBaseline = 'middle'; g.fillText('帥', w / 2, h / 2 + 3); },
@@ -830,6 +860,55 @@ export function makeHero(id) {
       set(h.L, lerp(0.3, 1.2, k), lerp(-0.1, -0.6, k), 0.3);
       body.rotation.y = spinA;
     };
+  } else if (mid === 'gowonkyung') {
+    // 노란 슈퍼카(낮은 쐐기 차체·바퀴 4개·스포일러) 지붕에 걸터앉은 키 작은 동양 남자: 흰 셔츠·금목걸이·선글라스·올백 머리
+    const car = new THREE.Group(); car.position.y = 0.02; car.scale.set(1.25, 1.1, 1.25); body.add(car);
+    const paint = M(0xf2c200, { metalness: 0.55, roughness: 0.25 }), dark = M(0x15171c, { roughness: 0.2, metalness: 0.4 }), tyre = M(0x111111, { roughness: 0.9 });
+    mesh(car, new THREE.BoxGeometry(0.66, 0.08, 0.34), paint, 0, 0.09, 0);                        // 차체 아래
+    const nose = mesh(car, new THREE.BoxGeometry(0.2, 0.05, 0.33), paint, 0.25, 0.145, 0); nose.rotation.z = -0.22;   // 낮은 앞코
+    mesh(car, new THREE.BoxGeometry(0.3, 0.07, 0.3), paint, -0.06, 0.16, 0);                       // 실내 덮개
+    const wind = mesh(car, new THREE.BoxGeometry(0.13, 0.008, 0.27), dark, 0.13, 0.19, 0); wind.rotation.z = -0.55;   // 앞 유리
+    for (const s2 of [-1, 1]) mesh(car, new THREE.BoxGeometry(0.22, 0.045, 0.004), dark, -0.05, 0.165, s2 * 0.151);  // 옆 창
+    mesh(car, new THREE.BoxGeometry(0.06, 0.012, 0.36), dark, -0.32, 0.2, 0);                      // 스포일러
+    for (const s2 of [-1, 1]) mesh(car, new THREE.BoxGeometry(0.02, 0.06, 0.012), dark, -0.31, 0.165, s2 * 0.15);
+    for (const [x, z] of [[0.2, 0.17], [0.2, -0.17], [-0.21, 0.17], [-0.21, -0.17]]) {
+      const w = mesh(car, new THREE.CylinderGeometry(0.06, 0.06, 0.05, 14), tyre, x, 0.06, z); w.rotation.x = Math.PI / 2;
+      const hub = mesh(car, new THREE.CylinderGeometry(0.035, 0.035, 0.052, 10), M(0xc8ccd2, { metalness: 0.9, roughness: 0.2 }), x, 0.06, z); hub.rotation.x = Math.PI / 2;
+    }
+    for (const s2 of [-1, 1]) { mesh(car, new THREE.BoxGeometry(0.01, 0.018, 0.07), M(0xfff6d0, { emissive: 0xfff0b0, emissiveIntensity: 0.8 }), 0.345, 0.115, s2 * 0.11); mesh(car, new THREE.BoxGeometry(0.01, 0.018, 0.09), M(0xff2a2a, { emissive: 0xff0000, emissiveIntensity: 0.6 }), -0.335, 0.12, s2 * 0.1); }
+    // 사람: 몸을 작게(키 작은) 만들고, 서 있는 다리는 빼고 앉은 다리(허벅지는 앞으로, 정강이는 아래로)
+    const h = humanoid({ coat: 0xf6f6f2, pants: 0x1c1c22, belt: 0x8a6a2a, wide: 0.24 });
+    const legs = []; h.fig.children.forEach((o) => { if (o.isMesh && o.position.y < 0.2) legs.push(o); }); legs.forEach((o) => h.fig.remove(o));
+    const pants = M(0x1c1c22), shoe = M(0x5a3a1e, { roughness: 0.35 });
+    for (const s2 of [-1, 1]) {
+      const th = mesh(h.fig, new THREE.CylinderGeometry(0.037, 0.034, 0.17, 8), pants, 0.08, 0.31, s2 * 0.055); th.rotation.z = Math.PI / 2;
+      mesh(h.fig, new THREE.CylinderGeometry(0.033, 0.03, 0.17, 8), pants, 0.16, 0.235, s2 * 0.06);
+      mesh(h.fig, new THREE.BoxGeometry(0.1, 0.045, 0.06), shoe, 0.18, 0.15, s2 * 0.06);
+    }
+    h.fig.scale.setScalar(0.8); h.fig.position.set(-0.1, -0.005, 0); body.add(h.fig);
+    mesh(h.torso, new THREE.TorusGeometry(0.05, 0.007, 6, 18), gold, 0.06, 0.1, 0).rotation.y = Math.PI / 2;   // 금목걸이
+    mesh(h.torso, new THREE.BoxGeometry(0.03, 0.05, 0.05), M(0xe3b48f), 0.072, 0.11, 0);   // 열린 셔츠 앞섶
+    mesh(h.head, new THREE.SphereGeometry(0.072, 14, 8, 0, Math.PI * 2, 0, Math.PI / 2.2), M(0x0d0d0d, { roughness: 0.25, metalness: 0.3 }), -0.01, 0.012, 0);   // 올백 머리(번들)
+    mesh(h.head, new THREE.BoxGeometry(0.02, 0.022, 0.11), M(0x0a0a0a, { roughness: 0.1, metalness: 0.7 }), 0.066, 0.018, 0);   // 선글라스
+    mesh(h.head, new THREE.BoxGeometry(0.006, 0.006, 0.03), M(0x8a4a3a), 0.067, -0.035, 0);
+    // 왼손 돈다발, 오른손에 던질 한 뭉치
+    const bill = M(0x6fbf5a, { roughness: 0.6 }), band = M(0xffd34a);
+    const wad = new THREE.Group(); h.L.hand.add(wad); wad.position.set(0.02, -0.02, 0);
+    mesh(wad, new THREE.BoxGeometry(0.1, 0.05, 0.05), bill, 0, 0, 0); mesh(wad, new THREE.BoxGeometry(0.02, 0.052, 0.052), band, 0, 0, 0);
+    const toss = new THREE.Group(); h.R.hand.add(toss); toss.position.set(0.02, -0.02, 0);
+    mesh(toss, new THREE.BoxGeometry(0.08, 0.025, 0.04), bill, 0, 0, 0);
+    pose = (t, a) => {
+      // a: 1 → 0. 1~0.65 오른팔을 머리 위로 들어 올림 / 0.65~0.45 앞으로 휙 던짐(손의 돈 사라짐) / 이후 다시 집어 듦
+      const up = a > 0.65 ? ease((1 - a) / 0.35) : 0, th = a <= 0.65 && a > 0.45 ? ease((0.65 - a) / 0.2) : a <= 0.45 ? 1 : 0, back = a <= 0.45 ? ease((0.45 - a) / 0.45) : 0;
+      const z = up ? lerp(0.4, 2.9, up) : lerp(lerp(2.9, 1.2, th), 0.4, back);
+      set(h.R, a > 0 ? z : 0.4 + Math.sin(t * 2) * 0.05, -0.15, a > 0 ? lerp(0.6, 0.15, Math.max(up, th)) : 0.6);
+      toss.visible = !(a <= 0.62 && a > 0.2);
+      set(h.L, 0.9 + Math.sin(t * 1.4) * 0.06, 0.25, 1.3);   // 돈다발을 가슴 앞에 끼고 있음
+      h.head.rotation.z = lerp(0.05, 0.16, Math.max(up, th * (1 - back))) + Math.sin(t * 0.8) * 0.02;
+      h.head.rotation.y = Math.sin(t * 0.6) * 0.2 * (a ? 0.2 : 1);
+      h.torso.rotation.y = lerp(0, -0.25, up) + lerp(0, 0.25, th * (1 - back));
+      car.rotation.x = Math.sin(t * 9) * 0.004;   // 공회전 떨림
+    };
   } else if (mid === 'k2wing') {
     // 공군 정복(파란 상의·하의) + 흰 셔츠·검은 넥타이 + 정모(금빛 월계 챙) + 장군 별 + 조종사 윙
     const h = humanoid({ coat: 0x2b4a7e, pants: 0x24406e, belt: 0x1a2c4e, cuff: 0xd8aa45, wide: 0.25, gloves: 0xf4f4f0 });
@@ -857,7 +936,7 @@ export function makeHero(id) {
   }
 
   // 공격 순간 몸짓이 크게 보이도록 act 1 → 0 으로 줄어듦 (game.js 가 fire 때 act = 1)
-  const muzzle = new THREE.Object3D(); muzzle.position.set(...({ monk: [0.25, 0.6], limbaegeun: [0.45, 0.75], leejunhak: [0.35, 1.1], simjaegwan: [0.12, 0.95], kimdeokhun: [0.66, 0.68] }[mid] || [0.3, 0.9]), 0); yaw.add(muzzle);
+  const muzzle = new THREE.Object3D(); muzzle.position.set(...({ monk: [0.25, 0.6], limbaegeun: [0.45, 0.75], leejunhak: [0.35, 1.1], simjaegwan: [0.12, 0.95], gowonkyung: [0.05, 0.95], kimdeokhun: [0.66, 0.68] }[mid] || [0.3, 0.9]), 0); yaw.add(muzzle);
   const animate = (dt, t) => {
     P.act = Math.max(0, P.act - dt * 0.9);
     pose(t + P.idle, P.act);
@@ -886,6 +965,19 @@ export function makeBuddha() {
     buddhaProto = g;
   }
   return buddhaProto.clone();
+}
+
+// 고원경이 던지는 돈다발: 띠 두른 지폐 뭉치 + 흩날리는 낱장 몇 장
+let moneyProto = null;
+export function makeMoney() {
+  if (!moneyProto) {
+    const g = new THREE.Group(), bill = new THREE.MeshStandardMaterial({ color: 0x7fd06a, roughness: 0.6, emissive: 0x1a4a10, emissiveIntensity: 0.4 }), band = new THREE.MeshStandardMaterial({ color: 0xffd34a, emissive: 0x7a5a00, emissiveIntensity: 0.6 });
+    const m = (geo, mat, x, y, z) => { const o = new THREE.Mesh(geo, mat); o.position.set(x, y, z); g.add(o); return o; };
+    m(new THREE.BoxGeometry(0.3, 0.12, 0.15), bill, 0, 0, 0); m(new THREE.BoxGeometry(0.06, 0.125, 0.155), band, 0, 0, 0);
+    for (let i = 0; i < 5; i++) { const b = m(new THREE.BoxGeometry(0.22, 0.004, 0.11), bill, Math.cos(i * 1.3) * 0.22, 0.05 + i * 0.03, Math.sin(i * 1.3) * 0.22); b.rotation.set(i * 0.7, i, i * 0.4); }
+    moneyProto = g;
+  }
+  return moneyProto.clone();
 }
 
 // 한니발 공격 때 날아드는 전투 코끼리 (회색 몸 + 머리 + 코 + 상아 + 다리 + 등 위 붉은 깔개)
