@@ -260,7 +260,7 @@ export class UI {
       <p>${X.briefing}</p>
       <div class="zn-meta">웨이브 ${X.waves.length} · 기지 체력 ${X.lives} · 적 진입로 ${1 + (X.branches || []).length}곳 · 최고 기록 <b>${this.stars(this.best(id))}</b></div>
       <div class="zn-legend"><span class="lg-r"></span>본 도로 <span class="lg-b"></span>갈래 길 <span class="lg-g"></span>적 입구 <span class="lg-h"></span>연합 지휘부</div>
-      <div class="zn-diff"><span>난이도</span>${Object.entries(GF.DIFF).map(([k, D]) => `<button data-d="${k}" class="${GF.SETTINGS.difficulty === k ? 'on' : ''}">${D.name}<small>${D.hp === 1 ? '기본 적' : `체력·수 ×${D.hp}`}</small></button>`).join('')}</div>
+      <div class="zn-diff"><span>난이도</span>${GF.diffsFor(X).map((k) => { const D = GF.DIFF[k]; return `<button data-d="${k}" class="${GF.diffFor(X, GF.SETTINGS.difficulty) === k ? 'on' : ''}">${D.name}<small>체력 ×${D.hp} · 수 ×${D.cnt}</small></button>`; }).join('')}</div>
       <div class="zn-go">${d ? `<button class="zn-cont">▶ 이어하기<small>웨이브 ${d.wave + 1}부터${GF.DIFF[d.diff] ? ' · ' + GF.DIFF[d.diff].name : ''}</small></button>` : ''}<button class="zn-start">${d ? '새로 전투시작' : '⚔ 전투시작'}</button></div>`;
     this.drawMap(side.querySelector('.zn-big'), X);
     side.querySelector('.zn-start').onclick = () => this.zoneStart(false);

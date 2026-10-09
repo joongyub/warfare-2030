@@ -2,7 +2,7 @@
 window.GF = window.GF || {};
 
 GF.SETTINGS = {
-  version: '0.36.0 (베타 · 10개 도시)',
+  version: '0.37.0 (베타 · 11개 도시)',
   // true: 실제 무기 이름 (K9 썬더, 재블린 …) / false: 살짝 바꾼 이름 (K9-X 썬더, 재블런스 …)
   // 출시 직전 상표 검토 후 결정 (문서 10번 2장 참고)
   useRealWeaponNames: true,
@@ -46,12 +46,17 @@ GF.SETTINGS = {
   }
 };
 
-// 난이도: hp = 적 체력 배수, cnt = 웨이브 적 수 배수(보스 제외). 쉬움 = v0.28까지의 적 그대로 (2026-10-08 사용자 지정)
+// 난이도: hp = 적 체력 배수, cnt = 웨이브 적 수 배수(보스 제외)
 GF.DIFF = {
-  easy:   { name: '쉬움',   hp: 1,   cnt: 1 },
-  normal: { name: '보통',   hp: 1.5, cnt: 1.5 },
-  hard:   { name: '어려움', hp: 2,   cnt: 2 }
+  // v0.37.0 사용자 요청 '너무 쉬움' → 세 단계 모두 적 체력·수를 올림 (예전: 쉬움 1·1 / 보통 1.5·1.5 / 어려움 2·2)
+  easy:   { name: '쉬움',   hp: 1.35, cnt: 1.2 },
+  normal: { name: '보통',   hp: 2.1,  cnt: 1.7 },
+  hard:   { name: '어려움', hp: 3,    cnt: 2.2 }
 };
+GF.NO_EASY_FROM = 5;   // 사용자 요청: 스테이지 5부터는 쉬움 없이 보통·어려움만
+// 이 스테이지에서 고를 수 있는 난이도 / 실제로 쓸 난이도 (쉬움을 골라 뒀어도 5스테이지부터는 보통)
+GF.diffsFor = (S) => Object.keys(GF.DIFF).filter((k) => !(k === 'easy' && S && S.no >= GF.NO_EASY_FROM));
+GF.diffFor = (S, want) => { const ok = GF.diffsFor(S); return ok.includes(want) ? want : ok[0]; };
 // 사용자가 바꾼 설정(그래픽·난이도·효과음 등)은 이 기기에 기억
 GF.PREF_KEYS = ['graphics', 'difficulty', 'foldScreen', 'sound', 'shadows', 'showLandmarkLabels', 'useRealWeaponNames'];
 try { Object.assign(GF.SETTINGS, JSON.parse(localStorage.getItem('gf_prefs') || '{}')); } catch (e) { /* 저장 불가 환경 */ }
