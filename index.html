@@ -686,6 +686,52 @@
   .hud-layer .sq.fs-btn { display: none; } .mobile .hud-layer .sq.fs-btn { display: inline-flex; }
   .mobile .hud-layer .sq svg { width: 20px; height: 20px; }
   .mobile .hud-layer .tl .logo { font-size: 17px; letter-spacing: 0; }
+  /* ===== 전투지역(도시 고르기) 화면 밀리터리 스타일 (v0.47.0): 전투 화면 HUD 와 같은 토큰 ===== */
+  .zone-screen { background: radial-gradient(ellipse at 70% 30%, rgba(52,60,38,.45), rgba(10,12,8,.97) 70%), #0b0d08; }
+  .zone-screen.has-bg { background: linear-gradient(rgba(12,14,9,.86), rgba(12,14,9,.94)), var(--home-bg) center / cover no-repeat, #0b0d08; }
+  .zone-screen::before { content: ''; position: absolute; inset: 0; pointer-events: none; background: repeating-linear-gradient(0deg, rgba(200,182,122,.035) 0 1px, transparent 1px 48px), repeating-linear-gradient(90deg, rgba(200,182,122,.035) 0 1px, transparent 1px 48px); }
+  .zone-screen::after { content: ''; position: absolute; left: 0; right: 0; top: 0; height: 8px; background: var(--mil-hazard); opacity: .85; pointer-events: none; }
+  .zone-screen .zn-head b { font-weight: 900; letter-spacing: 2px; color: #efe6c8; text-shadow: 0 2px 0 #000; }
+  .zone-screen .zn-head b::after { content: 'AREA OF OPERATIONS'; display: block; margin-top: 2px; font-family: var(--mil-font); font-weight: 400; font-size: 16px; letter-spacing: 4px; color: var(--mil-amber); }
+  .zone-screen .zn-head span { color: #a9a283; }
+  .zone-screen .zn-back { border-radius: 3px; border: 1px solid var(--mil-line); background: linear-gradient(180deg, #3a4130, #1d2117); color: #e9dfbf; box-shadow: inset 0 1px 0 rgba(255,255,255,.12), inset 0 -3px 0 rgba(0,0,0,.35); }
+  .zone-screen .zn-back:hover { border-color: var(--mil-amber); }
+  /* 도시 카드 */
+  .zone-screen .zn-card { border-radius: 3px; border: 1px solid rgba(200,182,122,.28); background: linear-gradient(180deg, rgba(40,46,32,.94), rgba(20,24,17,.94)); color: #d8d0b4; box-shadow: inset 0 1px 0 rgba(255,255,255,.06); }
+  .zone-screen .zn-card canvas { background: #1a1f15; border-bottom: 1px solid rgba(200,182,122,.25); }
+  .zone-screen .zn-card:hover { filter: none; border-color: var(--mil-amber); }
+  .zone-screen .zn-card.on { border-color: var(--mil-amber); background: linear-gradient(180deg, rgba(92,76,32,.9), rgba(34,30,16,.94)); box-shadow: 0 0 0 1px rgba(242,181,60,.6), 0 0 22px rgba(242,181,60,.35); }
+  .zone-screen .zn-card.on::after { content: ''; position: absolute; left: 0; right: 0; top: 0; height: 5px; background: var(--mil-hazard); }
+  .zone-screen .zn-n small { border-radius: 1px; background: var(--mil-amber); color: #16150f; font-family: var(--mil-font); font-weight: 400; }
+  .zone-screen .zn-card.lock .zn-n small { background: #4a4a3c; color: #a9a283; }
+  .zone-screen .zn-n b { font-weight: 900; color: #f1ead2; } .zone-screen .zn-n i { color: var(--mil-amber); }
+  .zone-screen .zn-dcs .dc { border-radius: 1px; background: rgba(200,182,122,.1); color: #a9a283; }
+  .zone-screen .zn-dcs .dc.done { background: rgba(127,190,80,.2); color: #b4e07a; } .zone-screen .zn-dcs .dc.run { background: rgba(242,181,60,.2); color: var(--mil-amber); }
+  .zone-screen .zn-bar { height: 6px; border-radius: 0; background: rgba(200,182,122,.12); } .zone-screen .zn-bar i { background: repeating-linear-gradient(90deg, var(--mil-amber) 0 8px, #c58716 8px 10px); }
+  .zone-screen .zn-st.win .zn-bar i { background: repeating-linear-gradient(90deg, #8fc45a 0 8px, #5e8a36 8px 10px); }
+  .zone-screen .zn-lock b { width: 54px; height: 54px; font-size: 0; filter: drop-shadow(0 4px 6px rgba(0,0,0,.7)); }
+  .zone-screen .zn-lock b svg { width: 54px; height: 54px; fill: #2a2d22; stroke: var(--mil-amber); stroke-width: 2.2; }
+  .zone-screen .zn-lock span { border-radius: 1px; background: rgba(10,10,6,.8); border: 1px solid rgba(242,181,60,.45); color: var(--mil-amber); letter-spacing: .5px; }
+  /* 오른쪽 작전 브리핑 */
+  .zone-screen .zn-side { border-radius: 3px; border: 1px solid var(--mil-line); background: linear-gradient(180deg, rgba(36,41,29,.95), rgba(16,19,13,.96)); box-shadow: 0 10px 40px rgba(0,0,0,.5); overflow: hidden; }
+  .zone-screen .zn-side::before { content: ''; position: absolute; left: 0; right: 0; top: 0; height: 6px; background: var(--mil-hazard); }
+  .zone-screen .zn-big { border-radius: 2px; background: #1a1f15; border: 1px solid rgba(200,182,122,.3); }
+  .zone-screen .zn-no { font-family: var(--mil-font); font-weight: 400; color: var(--mil-amber); }
+  .zone-screen .zn-city { font-weight: 900; color: #f1ead2; } .zone-screen .zn-city em { color: var(--mil-amber); font-weight: 800; }
+  .zone-screen .zn-side p { color: #d0c8ab; } .zone-screen .zn-meta { color: #bdb596; } .zone-screen .zn-meta b { color: var(--mil-amber); } .zone-screen .zn-legend { color: #a9a283; }
+  .zone-screen .zn-ms-t { color: var(--mil-amber); letter-spacing: 1px; } .zone-screen .zn-ms-t small { color: #8f8a70; letter-spacing: 0; }
+  .zone-screen .ms { border-radius: 2px; border: 1px solid rgba(200,182,122,.28); background: rgba(26,30,20,.75); }
+  .zone-screen .ms.on { border-color: var(--mil-amber); background: rgba(70,60,26,.55); box-shadow: inset 4px 0 0 var(--mil-amber); }
+  .zone-screen .ms-n { border-radius: 1px; font-weight: 900; }
+  .zone-screen .ms.d-easy .ms-n { background: rgba(110,150,60,.4); color: #d6eab0; } .zone-screen .ms.d-normal .ms-n { background: rgba(190,140,40,.4); color: #f6deA0; } .zone-screen .ms.d-hard .ms-n { background: rgba(170,50,36,.5); color: #ffc0b0; }
+  .zone-screen .ms-done { color: #b4e07a; } .zone-screen .ms-run { color: var(--mil-amber); } .zone-screen .ms-none { color: #a9a283; } .zone-screen .ms-s small { color: #8f8a70; }
+  .zone-screen .ms-b button { border-radius: 2px; font-weight: 900; letter-spacing: 1px; }
+  .zone-screen .ms-start, .zone-screen .ms-cont { position: relative; overflow: hidden; color: #16150f; border: 1px solid #16150f; background: repeating-linear-gradient(-45deg, rgba(0,0,0,0) 0 12px, rgba(0,0,0,.09) 12px 24px), linear-gradient(180deg, #f6c75a, #c58716); box-shadow: 0 0 0 1px rgba(242,181,60,.5); }
+  .zone-screen .ms-cont { background: repeating-linear-gradient(-45deg, rgba(0,0,0,0) 0 12px, rgba(0,0,0,.09) 12px 24px), linear-gradient(180deg, #a8d06a, #5e8a36); box-shadow: 0 0 0 1px rgba(150,200,90,.5); }
+  .zone-screen .ms.done .ms-start, .zone-screen .ms-new { color: #e9dfbf; border: 1px solid var(--mil-line); background: linear-gradient(180deg, #3a4130, #1d2117); box-shadow: none; }
+  .zone-screen .zn-locked { border-radius: 2px; background: rgba(10,10,6,.55); border: 1px dashed rgba(242,181,60,.55); color: var(--mil-amber); }
+  .zone-screen .zn-locked small { color: #d0c8ab; }
+  .mobile .zone-screen .zn-head b::after { display: none; } .mobile .zone-screen .zn-lock b, .mobile .zone-screen .zn-lock b svg { width: 38px; height: 38px; }
 </style>
 </head>
 <body>

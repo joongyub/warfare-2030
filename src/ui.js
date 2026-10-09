@@ -90,6 +90,7 @@ const ICO = {
   hero: '<svg viewBox="0 0 24 24"><path d="M12 2l2.4 4.9 5.4.8-3.9 3.8.9 5.4L12 14.4 7.2 16.9l.9-5.4L4.2 7.7l5.4-.8z"/><path d="M6 19l6 3 6-3"/></svg>',
   save: '<svg viewBox="0 0 24 24"><path d="M4 4h13l3 3v13H4z"/><path d="M8 4v5h7V4"/><path d="M7 20v-6h10v6"/></svg>',
   gear: '<svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="3.2"/><path d="M12 2v3M12 19v3M2 12h3M19 12h3M4.9 4.9l2.1 2.1M17 17l2.1 2.1M4.9 19.1L7 17M17 7l2.1-2.1"/><circle cx="12" cy="12" r="7"/></svg>',
+  lock: '<svg viewBox="0 0 24 24"><path d="M7 11V8a5 5 0 0 1 10 0v3" fill="none"/><path d="M4.5 11h15v10.5h-15z"/><path d="M12 15v3"/></svg>',
   full: '<svg viewBox="0 0 24 24"><path d="M3 9V3h6M15 3h6v6M21 15v6h-6M9 21H3v-6"/></svg>',
 };
 
@@ -252,8 +253,8 @@ export class UI {
     const z = this.zone = h('div', 'zone-screen' + (GF.SETTINGS.homeBg ? ' has-bg' : ''), null, this.root);
     if (GF.SETTINGS.homeBg) z.style.setProperty('--home-bg', `url("${GF.SETTINGS.homeBg}")`);
     const list = this.stageList();
-    z.innerHTML = `<div class="zn-head"><button class="zn-back">← 홈</button><div><b>전투지역</b><span>지킬 도시를 고르고 전투시작을 누르세요</span></div></div>
-      <div class="zn-grid">${list.map((X) => { const ok = this.unlocked(X), P = this.prevStage(X); return `<button class="zn-card${ok ? '' : ' lock'}" data-id="${X.id}"><canvas width="228" height="176"></canvas>${ok ? '' : `<div class="zn-lock"><b>🔒</b><span>${P ? P.name : ''} 방어완료 시 열림</span></div>`}<div class="zn-n"><small>${X.no}</small><b>${GF.SETTINGS.useCityAlias ? X.alias : X.name}</b><i>${this.stars(this.best(X.id))}</i></div>${ok ? this.zoneStatus(X) : '<div class="zn-st new"><div class="zn-dcs"><i class="dc">🔒 잠김</i></div><div class="zn-bar"><i style="width:0%"></i></div></div>'}</button>`; }).join('')}</div>
+    z.innerHTML = `<div class="zn-head"><button class="zn-back">← 홈</button><div><b>전투지역</b><span>지킬 도시를 고르고 전투 시작을 누르세요</span></div></div>
+      <div class="zn-grid">${list.map((X) => { const ok = this.unlocked(X), P = this.prevStage(X); return `<button class="zn-card${ok ? '' : ' lock'}" data-id="${X.id}"><canvas width="228" height="176"></canvas>${ok ? '' : `<div class="zn-lock"><b>${ICO.lock}</b><span>${P ? P.name : ''} 방어완료 시 열림</span></div>`}<div class="zn-n"><small>${X.no}</small><b>${GF.SETTINGS.useCityAlias ? X.alias : X.name}</b><i>${this.stars(this.best(X.id))}</i></div>${ok ? this.zoneStatus(X) : '<div class="zn-st new"><div class="zn-dcs"><i class="dc">🔒 잠김</i></div><div class="zn-bar"><i style="width:0%"></i></div></div>'}</button>`; }).join('')}</div>
       <div class="zn-side"></div>`;
     z.querySelectorAll('.zn-card').forEach((b) => {
       this.drawMap(b.querySelector('canvas'), GF.STAGES[b.dataset.id]);
@@ -295,7 +296,7 @@ export class UI {
       const st = m.save ? `<b class="ms-run">진행중</b> 웨이브 ${m.save.wave + 1}/${X.waves.length} · 기지 ${m.save.lives}/${X.lives}<small>${Saves.when(m.save.time)} 저장${m.clear ? ' · 이미 방어완료 ' + this.stars(m.clear.stars) : ''}</small>`
         : m.clear ? `<b class="ms-done">방어완료</b> ${this.stars(m.clear.stars)}<small>${m.clear.lives != null ? `남은 기지 ${m.clear.lives}/${X.lives}` : ''}${m.clear.kills ? ` · 격파 ${m.clear.kills.toLocaleString('ko-KR')}` : ''}</small>`
         : `<b class="ms-none">진행없음</b><small>적 체력 ×${D.hp} · 적 수 ×${D.cnt}</small>`;
-      const btn = m.save ? `<button class="ms-cont">▶ 이어하기</button><button class="ms-new">새로</button>` : `<button class="ms-start">${m.clear ? '다시 도전' : '⚔ 전투시작'}</button>`;
+      const btn = m.save ? `<button class="ms-cont">▶ 이어하기</button><button class="ms-new">새로</button>` : `<button class="ms-start">${m.clear ? '다시 도전' : '전투 시작'}</button>`;
       return `<div class="ms d-${k}${k === sel ? ' on' : ''}${m.clear ? ' done' : ''}${m.save ? ' run' : ''}" data-d="${k}"><div class="ms-n">${D.name}<i>${m.clear ? '✓' : ''}</i></div><div class="ms-s">${st}</div><div class="ms-b">${btn}</div></div>`;
     };
     side.innerHTML = `<canvas class="zn-big" width="600" height="340"></canvas>
