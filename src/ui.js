@@ -7,6 +7,7 @@ import { layout, isTouch } from './layout.js';
 const APK_URL = 'https://github.com/joongyub/warfare-2030/releases/download/apk/warfare-2030.apk';
 const isApk = () => /W2030App/.test(navigator.userAgent);
 const isIOS = () => /iPhone|iPad|iPod/.test(navigator.userAgent) || (navigator.platform === 'MacIntel' && navigator.maxTouchPoints > 1);
+import { playInvasion } from './invasion.js';
 import { HEROES, HERO_IDS, GACHA, heroChance, heroTier, TIERS, cmdText } from './heroes.js';
 import { Saves, Clears } from './save.js';
 import { RECIPES, RECIPE_CATS, Codex, comboRate, comboFee } from './codex.js';
@@ -308,9 +309,15 @@ export class UI {
   zoneStart(cont) {
     const id = this.zoneSel || this.app.stage.id, k = GF.diffFor(GF.STAGES[id], GF.SETTINGS.difficulty);
     if (cont == null) cont = !!Saves.get(id, k);
-    if (cont && Saves.get(id, k)) { this.app.loadGame(id, k); return; }
-    this.app.selectStage(id);
-    this.app.startGame();
+    // 전투 진입 연출(약 3초): 도시 캐리커처 + 북한군 미사일 침공 → 끝나면 게임 (그 도시 장면이 있을 때만, 지금은 서울)
+    if (this.invading) return;
+    this.invading = true;
+    playInvasion(this.root, id, (n) => { if (this.app.sound) this.app.sound.play(n, 0.8); }, () => {
+      this.invading = false;
+      if (cont && Saves.get(id, k)) { this.app.loadGame(id, k); return; }
+      this.app.selectStage(id);
+      this.app.startGame();
+    });
   }
   // 맵 모양 썸네일: 도로(본 도로·갈래 길), 랜드마크, 강, 적 입구, 지휘부를 위에서 본 그림으로
   drawMap(cv, S) {

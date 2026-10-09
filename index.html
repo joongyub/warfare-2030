@@ -317,6 +317,9 @@
   .sv-d { font-style: normal; font-size: 12px; font-weight: 800; padding: 1px 6px; border-radius: 6px; vertical-align: 2px; } .sv-d.d-easy { background: rgba(60,160,100,.45); } .sv-d.d-normal { background: rgba(190,140,30,.45); } .sv-d.d-hard { background: rgba(190,40,50,.5); }
 
   /* 웨이브 절반 방송 (7초): 홈 그림의 여자 캐릭터만 + 하단 자막 */
+  .invasion { position: absolute; inset: 0; z-index: 90; background: #000; cursor: pointer; }
+  .invasion canvas { width: 100%; height: 100%; object-fit: cover; display: block; }
+  .invasion .iv-skip { position: absolute; left: 24px; bottom: 18px; color: rgba(255,255,255,.75); font-size: 18px; font-weight: 700; text-shadow: 0 2px 4px #000; }
   .roar { position: absolute; inset: 0; z-index: 54; pointer-events: none; background: radial-gradient(ellipse at 30% 70%, rgba(255,210,110,.28), rgba(0,0,0,0) 60%); animation: rr-in .5s ease-out; }
   .roar.out { opacity: 0; transition: opacity .4s; }
   .roar .rr-fw { position: absolute; inset: 0; width: 100%; height: 100%; }
