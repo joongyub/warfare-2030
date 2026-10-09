@@ -20,7 +20,7 @@ export const HEROES = {
     shot: 'glasses', range: 10.5, dmg: 300, rate: 1.2, salvo: 8, splash: 3.0, hits: ['ground', 'air'],
     role: '뿔테안경 섬광 광선', desc: '검정 뿔테안경을 쓴 키 큰 동양 남자. 검지로 안경을 쓱 올리면 렌즈가 번쩍이며 두 줄기 광선이 날아가 목표 주변 적 8명을 두 번 태우고 잠깐 눈부시게 해 멈춰 세움(공중 포함). 공격력은 임배근·이준학과 같음', gesture: '검지로 뿔테안경을 밀어 올리면 렌즈가 번쩍임' },
   // 조합 영웅: 임배근 + 김덕훈을 가까이 놓으면 합체. 크기 1.45배, 두 영웅을 합친 것보다 조금 강함
-  monk: { name: '능인 스님', short: '목탁 스님', nation: '능인고', title: '능인고 조합 영웅 (임배근 + 김덕훈)', color: '#d98a2b', legend: true, combo: true, big: 1.45,
+  monk: { name: '능인 스님', short: '목탁 스님', nation: '능인고', title: '능인고 조합 영웅 (임배근 + 김덕훈)', color: '#d98a2b', legend: true, combo: true, tier: 'myth', big: 1.45,
     shot: 'moktak', range: 13, dmg: 800, rate: 1.0, salvo: 8, splash: 3.2, hits: ['ground', 'air'],
     role: '목탁 부처님 공격', desc: '회색 승복에 주황 가사를 걸친 대형 스님. 목탁을 똑! 똑! 두드릴 때마다 금빛 부처님이 날아가 목표 주변 적 8명에게 큰 피해를 주고 잠깐 멈춰 세움(공중 포함)', gesture: '합장하듯 목탁을 들고 나무채로 똑똑 두드림' },
   macarthur: { name: '더글러스 맥아더', short: '맥아더', nation: '미국', title: '인천상륙작전의 지휘관', color: '#c9a24a',
@@ -87,8 +87,15 @@ export const HEROES = {
     role: '대홍수 + 밀어내기', desc: '두 명장의 기운이 합쳐진 큰 물벼락. 적 14명을 휩쓸고 멀리 밀어냄(보스 제외)', gesture: '환두대도를 머리 위로 들었다가 크게 내리침' },
   horde: { name: '칭기즈칸 · 대초원 기마군단', short: '기마군단', nation: '몽골·아이유브', title: '기마군단 조합 (칭기즈칸 + 살라딘)', color: '#7a4a1e', legend: true, combo: true, big: 1.4, model: 'genghis',
     shot: 'horsearrows', range: 13, dmg: 140, rate: 1.0, salvo: 14, hits: ['ground', 'air'],
-    role: '기마군단 화살 폭풍', desc: '두 기마 민족의 영웅이 이끄는 대군단. 서로 다른 적 14명에게 화살을 퍼부음(공중 포함)', gesture: '짧은 활을 들고 재빨리 시위를 당김' }
+    role: '기마군단 화살 폭풍', desc: '두 기마 민족의 영웅이 이끄는 대군단. 서로 다른 적 14명에게 화살을 퍼부음(공중 포함)', gesture: '짧은 활을 들고 재빨리 시위를 당김' },
+  // ---- GOAT (최상위 등급): 신화 영웅 + 조합 무기(Lv.4+Lv.4 조합 성공체)를 조합해야 탄생. DPS 9999 (= 3333 × 3발 × 초당 1) ----
+  k2wing: { name: 'K2 11전투비행단장', short: '11전비단장', nation: '대한민국 공군', title: 'GOAT · 목탁 스님 + L-SAM 다층 방공망', color: '#2b4a7e', legend: true, combo: true, tier: 'goat', big: 1.6,
+    shot: 'fighters', range: 30, dmg: 3333, rate: 1.0, salvo: 3, splash: 2.4, hits: ['ground', 'air'],
+    role: 'F-15K 편대 공대공·공대지 공격', desc: '파란 공군 정복을 입은 공군 장군. 손짓 한 번에 F-15K 전투기 편대가 날아가 서로 다른 적 3곳에 미사일을 꽂음(공중·지상 모두). 사거리가 전장 대부분을 덮음', gesture: '정모를 쓰고 뒷짐을 지고 있다가 손을 앞으로 휙 뻗어 출격 신호' }
 };
+// 영웅 등급: normal 일반 / legend 레전더리 / myth 신화(레전더리끼리 조합) / goat GOAT(신화 + 조합 무기)
+export const TIERS = [['normal', '일반 영웅'], ['legend', '레전더리 영웅'], ['myth', '신화 영웅'], ['goat', 'GOAT']];
+export const heroTier = (id) => HEROES[id].tier || (HEROES[id].legend ? 'legend' : 'normal');
 // 조합 영웅(combo)은 뽑기에 나오지 않고 조합으로만 생김
 export const HERO_IDS = Object.keys(HEROES).filter((id) => !HEROES[id].combo);
 // 뽑기 확률: 모든 영웅 같음 (2026-10-08 사용자 요청으로 전설 절반 → 다시 동일하게 원복)
@@ -100,7 +107,9 @@ export const COMBOS = [
   { a: 'macarthur', b: 'nimitz', into: 'pacific', dist: 3.6, name: '태평양 연합 조합완성' },
   { a: 'napoleon', b: 'alexander', into: 'conqueror', dist: 3.6, name: '정복왕 조합완성' },
   { a: 'euljimundeok', b: 'gangamchan', into: 'goguryeo', dist: 3.6, name: '살수귀주 조합완성' },
-  { a: 'genghis', b: 'saladin', into: 'horde', dist: 3.6, name: '기마군단 조합완성' }
+  { a: 'genghis', b: 'saladin', into: 'horde', dist: 3.6, name: '기마군단 조합완성' },
+  // 신화 영웅 + 조합 무기 → GOAT (w: 조합 무기 id). 사용자가 앞으로 더 기획할 예정, 지금은 시험으로 하나
+  { a: 'monk', w: 'lsam', into: 'k2wing', dist: 3.6, name: 'GOAT 탄생! K2 11전투비행단장' }
 ];
 export const heroChance = (id) => heroWeight(id) / HERO_IDS.reduce((s, x) => s + heroWeight(x), 0);
 export function rollHero() {
@@ -196,6 +205,7 @@ const FLAGS = {
   hannibal: (g, w, h) => { g.fillStyle = '#5a2a6a'; g.fillRect(0, 0, w, h); g.fillStyle = '#c9c3b8'; g.beginPath(); g.ellipse(w / 2, h * 0.55, w * 0.22, h * 0.22, 0, 0, 7); g.fill(); g.fillRect(w * 0.66, h * 0.5, 6, h * 0.35); g.fillStyle = '#f4f1e6'; g.fillRect(w * 0.62, h * 0.55, 10, 3); },
   julius: (g, w, h) => { g.fillStyle = '#a0222a'; g.fillRect(0, 0, w, h); g.fillStyle = '#e8c14a'; g.font = `bold ${h * 0.34}px serif`; g.textAlign = 'center'; g.textBaseline = 'middle'; g.fillText('SPQR', w / 2, h / 2 + 2); },
   washington: (g, w, h) => { for (let i = 0; i < 13; i++) { g.fillStyle = i % 2 ? '#f4f4f4' : '#b8262e'; g.fillRect(0, i * h / 13, w, h / 13 + 1); } g.fillStyle = '#2b3a78'; g.fillRect(0, 0, w * 0.42, h * 7 / 13); g.strokeStyle = '#fff'; g.lineWidth = 2; g.beginPath(); g.arc(w * 0.21, h * 0.27, h * 0.15, 0, 7); g.stroke(); },
+  k2wing: (g, w, h) => { g.fillStyle = '#4a8fd8'; g.fillRect(0, 0, w, h); g.fillStyle = '#fff'; for (const s of [-1, 1]) { g.beginPath(); g.moveTo(w / 2 + s * 8, h * 0.5); g.quadraticCurveTo(w / 2 + s * w * 0.32, h * 0.22, w / 2 + s * w * 0.46, h * 0.3); g.quadraticCurveTo(w / 2 + s * w * 0.3, h * 0.46, w / 2 + s * 8, h * 0.62); g.fill(); } g.fillStyle = '#c0262e'; g.beginPath(); g.arc(w / 2, h / 2, 9, Math.PI, 0); g.fill(); g.fillStyle = '#1f3d8f'; g.beginPath(); g.arc(w / 2, h / 2, 9, 0, Math.PI); g.fill(); g.fillStyle = '#ffd36a'; g.font = `bold ${h * 0.2}px sans-serif`; g.textAlign = 'center'; g.fillText('11', w / 2, h * 0.92); },
   saladin: (g, w, h) => { g.fillStyle = '#e8c14a'; g.fillRect(0, 0, w, h); g.fillStyle = '#2e6a3a'; g.beginPath(); g.arc(w / 2, h / 2, h * 0.32, 0, 7); g.fill(); g.fillStyle = '#e8c14a'; g.beginPath(); g.arc(w / 2 + 7, h / 2 - 2, h * 0.28, 0, 7); g.fill(); }
 };
 
@@ -819,6 +829,30 @@ export function makeHero(id) {
       set(h.R, lerp(0.4, 1.7, k), lerp(0.1, 0.9, k), lerp(0.4, 0.2, k));
       set(h.L, lerp(0.3, 1.2, k), lerp(-0.1, -0.6, k), 0.3);
       body.rotation.y = spinA;
+    };
+  } else if (mid === 'k2wing') {
+    // 공군 정복(파란 상의·하의) + 흰 셔츠·검은 넥타이 + 정모(금빛 월계 챙) + 장군 별 + 조종사 윙
+    const h = humanoid({ coat: 0x2b4a7e, pants: 0x24406e, belt: 0x1a2c4e, cuff: 0xd8aa45, wide: 0.25, gloves: 0xf4f4f0 });
+    body.add(h.fig);
+    mesh(h.torso, new THREE.BoxGeometry(0.152, 0.12, 0.05), M(0xf4f4f4), 0.002, 0.07, 0);
+    mesh(h.torso, new THREE.BoxGeometry(0.154, 0.11, 0.014), M(0x111522), 0.002, 0.06, 0);
+    for (const s of [-1, 1]) for (let i = 0; i < 3; i++) mesh(h.torso, new THREE.SphereGeometry(0.008, 6, 4), gold, 0.077, -0.01 - i * 0.05, s * 0.05);
+    for (const s of [-1, 1]) { mesh(h.torso, new THREE.BoxGeometry(0.06, 0.014, 0.07), M(0x1a2c4e), 0, 0.14, s * 0.11); mesh(h.torso, new THREE.OctahedronGeometry(0.018), M(0xf4f4f0, { metalness: 0.8, roughness: 0.2 }), 0.01, 0.152, s * 0.11); }   // 장군 별
+    mesh(h.torso, new THREE.BoxGeometry(0.006, 0.014, 0.07), gold, 0.078, 0.11, 0.05);   // 조종사 윙
+    for (let i = 0; i < 6; i++) mesh(h.torso, new THREE.BoxGeometry(0.004, 0.01, 0.022), [M(0xb8262e), M(0x2b4fa0), M(0xd8aa45), M(0x2e8b57), M(0xf4f4f4), M(0x6a3a9a)][i], 0.078, 0.112 - (i % 2) * 0.014, -0.09 + (i >> 1) * 0.024);
+    mesh(h.head, new THREE.CylinderGeometry(0.1, 0.078, 0.05, 18), M(0x24406e, { roughness: 0.5 }), 0.005, 0.078, 0);   // 정모
+    mesh(h.head, new THREE.CylinderGeometry(0.08, 0.08, 0.026, 16), M(0x111522), 0.005, 0.046, 0);
+    mesh(h.head, new THREE.CylinderGeometry(0.096, 0.096, 0.01, 14, 1, false, -Math.PI / 2, Math.PI), M(0x0d0d0d, { roughness: 0.2 }), 0.035, 0.036, 0);
+    mesh(h.head, new THREE.BoxGeometry(0.012, 0.012, 0.09), gold, 0.088, 0.04, 0);   // 챙의 금빛 월계
+    mesh(h.head, new THREE.SphereGeometry(0.016, 8, 6), gold, 0.084, 0.066, 0);
+    mesh(h.head, new THREE.BoxGeometry(0.02, 0.022, 0.11), M(0x0a0a0a, { roughness: 0.1, metalness: 0.7 }), 0.066, 0.018, 0);   // 보잉 선글라스
+    pose = (t, a) => {
+      // 평소: 뒷짐. 공격: 0~ 오른손을 앞으로 휙 뻗어 출격 신호 (머리 위에서 앞으로)
+      const k = a > 0.75 ? ease((1 - a) / 0.25) : ease(Math.min(1, a / 0.75));
+      set(h.R, lerp(-0.35, lerp(2.6, 1.55, ease(1 - Math.min(1, a))), k), lerp(0.25, 0.05, k), lerp(1.3, 0.05, k));
+      set(h.L, -0.35, -0.25, 1.3);
+      h.head.rotation.z = lerp(0.04 + Math.sin(t * 0.6) * 0.03, 0.14, k); body.rotation.z = lerp(0, -0.05, k);
+      h.head.rotation.y = Math.sin(t * 0.35) * 0.18 * (1 - k);
     };
   }
 

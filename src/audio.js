@@ -52,7 +52,7 @@ export class Sound {
   play(name, vol = 1) {
     if (!this.ctx || !GF.SETTINGS.sound) return;
     const c = this.ctx, t = c.currentTime;
-    const gaps = { bullet: 0.07, cannon: 0.09, shell: 0.12, missile: 0.15, intercept: 0.08, rockets: 0.2, gepard: 0.2, buzz: 0.3, laser: 0.1, rail: 0.2, boom: 0.06, bigboom: 0.15, kill: 0.05, hit: 0.05 };
+    const gaps = { applause: 0.5, bullet: 0.07, cannon: 0.09, shell: 0.12, missile: 0.15, intercept: 0.08, rockets: 0.2, gepard: 0.2, buzz: 0.3, laser: 0.1, rail: 0.2, boom: 0.06, bigboom: 0.15, kill: 0.05, hit: 0.05 };
     if (t - (this.last[name] || -9) < (gaps[name] || 0.03)) return;
     this.last[name] = t;
     const v = vol;
@@ -143,6 +143,13 @@ export class Sound {
         break;
       case 'win':
         [523, 659, 784, 1046, 784, 1046].forEach((f, i) => this.tone(t + i * 0.16, { f, dur: 0.3, type: 'triangle', vol: 0.2 * v }));
+        break;
+      case 'applause': // 박수 소리: 짧은 잡음 박수를 수백 번 흩뿌리고 끝으로 갈수록 잦아듦 + 환호
+        for (let i = 0; i < 260; i++) {
+          const k = Math.random(), at = t + k * 3.2;
+          this.noiseHit(at, { dur: 0.025 + Math.random() * 0.03, f: 900 + Math.random() * 2600, type: 'bandpass', q: 0.9, vol: (0.07 + Math.random() * 0.09) * (1 - k * 0.6) * v });
+        }
+        this.noiseHit(t + 0.1, { dur: 1.6, f: 700, fEnd: 1400, type: 'bandpass', q: 0.6, vol: 0.05 * v });
         break;
       case 'lose':
         [392, 349, 311, 262].forEach((f, i) => this.tone(t + i * 0.28, { f, dur: 0.4, type: 'sawtooth', vol: 0.12 * v }));

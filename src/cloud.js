@@ -3,7 +3,7 @@
 // 서버에 올리는 것: 저장한 게임(스테이지별), 지운 기록, 별 기록, 지휘관 이름·보급창
 const SDK = 'https://www.gstatic.com/firebasejs/10.14.1/';
 const load = (f) => import(SDK + f);   // 주소를 변수로 넘겨 빌드에 넣지 않고 필요할 때만 받음
-const K = { saves: 'gf_saves', del: 'gf_saves_del', progress: 'gf_progress', profile: 'gf_profile', codex: 'gf_codex' };
+const K = { saves: 'gf_saves', del: 'gf_saves_del', progress: 'gf_progress', profile: 'gf_profile', codex: 'gf_codex', clears: 'gf_clears' };
 const read = (k) => { try { return JSON.parse(localStorage.getItem(k) || '{}') || {}; } catch (e) { return {}; } };
 const write = (k, v) => { try { localStorage.setItem(k, JSON.stringify(v)); } catch (e) { /* 저장 불가 환경 */ } };
 
@@ -59,6 +59,9 @@ export const Cloud = {
     const cx = read(K.codex), rc = remote.codex || {};   // 무기도감: 발견한 조합은 양쪽 모두 합침
     Object.keys(rc).forEach((k) => { cx[k] = Math.min(cx[k] || Infinity, rc[k]); });
     write(K.codex, cx);
+    const cl = read(K.clears), rcl = remote.clears || {};   // 난이도별 완료 기록: 별이 많은 쪽
+    Object.keys(rcl).forEach((id) => { cl[id] = cl[id] || {}; Object.keys(rcl[id] || {}).forEach((d) => { const a = cl[id][d], b = rcl[id][d]; if (b && (!a || (b.stars || 0) > (a.stars || 0))) cl[id][d] = b; }); });
+    write(K.clears, cl);
     write(K.saves, outS); write(K.del, outD); write(K.progress, prog); write(K.profile, prof);
   },
   async pull() {
@@ -78,7 +81,7 @@ export const Cloud = {
     if (!this.fb || !this.user) return;
     const { fs, db } = this.fb, prof = read(K.profile);
     await fs.setDoc(fs.doc(db, 'players', this.user.uid), {
-      saves: read(K.saves), del: read(K.del), progress: read(K.progress), codex: read(K.codex),
+      saves: read(K.saves), del: read(K.del), progress: read(K.progress), codex: read(K.codex), clears: read(K.clears),
       profile: { name: prof.name || '', credits: prof.credits || 0, t: prof.t || 0 }, updated: Date.now()
     });
   },

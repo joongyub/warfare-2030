@@ -5,13 +5,15 @@ import { COMBOS, HEROES } from './heroes.js';
 
 const KEY = 'gf_codex';
 export const RECIPES = [];
+export const RECIPE_CATS = [['weapon', '⚙ 일반무기 조합'], ['legend', '🎖 레전더리 영웅 조합'], ['myth', '🐐 신화 영웅 조합']];
 export function buildRecipes() {
   RECIPES.length = 0;
   for (const [id, W] of Object.entries(GF.COMBO_WEAPONS || {})) {
-    RECIPES.push({ key: 'w_' + id, hero: false, ta: W.parts[0], tb: W.parts[1], into: id, name: W.name, dist: GF.COMBO_RULES.dist });
+    RECIPES.push({ key: 'w_' + id, hero: false, cat: 'weapon', ta: W.parts[0], tb: W.parts[1], into: id, name: W.name, dist: GF.COMBO_RULES.dist });
   }
+  // cat: weapon 일반무기 조합 / legend 레전더리 영웅 조합(영웅 + 영웅) / myth 신화 영웅 조합(신화 영웅 + 조합 무기 → GOAT)
   for (const C of COMBOS) {
-    RECIPES.push({ key: 'h_' + C.into, hero: true, ta: 'hero_' + C.a, tb: 'hero_' + C.b, into: 'hero_' + C.into, name: HEROES[C.into].name, title: C.name, dist: C.dist || GF.COMBO_RULES.dist });
+    RECIPES.push({ key: 'h_' + C.into, hero: true, goat: !!C.w, cat: C.w ? 'myth' : 'legend', ta: 'hero_' + C.a, tb: C.w || 'hero_' + C.b, into: 'hero_' + C.into, name: HEROES[C.into].name, title: C.name, dist: C.dist || GF.COMBO_RULES.dist });
   }
   return RECIPES;
 }
@@ -30,5 +32,5 @@ export const Codex = {
   count() { return RECIPES.filter((r) => this.has(r.key)).length; }
 };
 // 조합 성공률·수수료
-export const comboRate = (R) => (R.hero ? GF.COMBO_RULES.heroRate : GF.COMBO_RULES.weaponRate);
-export const comboFee = (R) => (R.hero ? GF.COMBO_RULES.heroFee : Math.round((GF.WEAPONS[R.ta].cost + GF.WEAPONS[R.tb].cost) * GF.COMBO_RULES.weaponFee));
+export const comboRate = (R) => (R.goat ? GF.COMBO_RULES.goatRate : R.hero ? GF.COMBO_RULES.heroRate : GF.COMBO_RULES.weaponRate);
+export const comboFee = (R) => (R.goat ? GF.COMBO_RULES.goatFee : R.hero ? GF.COMBO_RULES.heroFee : Math.round((GF.WEAPONS[R.ta].cost + GF.WEAPONS[R.tb].cost) * GF.COMBO_RULES.weaponFee));
