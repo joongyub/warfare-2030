@@ -777,7 +777,7 @@ export class UI {
       const found = (id) => RECIPES.some((R) => R.into === 'hero_' + id && Codex.has(R.key));
       if (!this.heroFilter) this.heroFilter = 'all';
       const card = (id) => {
-        const H = HEROES[id], t = heroTier(id), cmb = t === 'myth' || t === 'goat', seen = !cmb || found(id);
+        const H = HEROES[id], t = heroTier(id), cmb = t === 'myth' || t === 'goat', seen = !cmb || t === 'myth' || found(id);   // 신화는 처음부터 공개 (2026-10-09 사용자 요청), GOAT 만 발견 전 가림
         const how = t === 'goat' ? '신화 영웅 + 조합 무기' : '레전더리 영웅 2명';
         return `<div class="hr${H.legend ? ' lg' : ''}${cmb ? ' cmb ' + t : ''}${seen ? '' : ' hid'}" data-id="${id}" title="${seen ? '몸짓: ' + H.gesture : ''}"><img src="${this.icons['hero_' + id]}">${cmb ? `<i class="hr-only">조합 전용</i>` : ''}<b>${seen ? H.name : '???'}</b><em>${seen ? H.title : how + ' 조합으로 탄생'}</em><span>${seen ? `${H.role} · DPS ${dps(H)}` : '📖 무기도감에서 발견'}</span>${seen && H.cmd ? `<u class="hr-cmd">🎖 지휘 ${cmdText(H.cmd)}</u>` : ''}</div>`;
       };
