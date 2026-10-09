@@ -5,6 +5,7 @@ import { Cloud } from './cloud.js';
 import { layout, isTouch } from './layout.js';
 import { HEROES, HERO_IDS, GACHA, heroChance } from './heroes.js';
 import { Saves } from './save.js';
+import { RECIPES, Codex, comboRate, comboFee } from './codex.js';
 import { HomeAnim } from './homeanim.js';
 // 화면 글자·위치가 바뀔 때만 실제로 씀 (매 프레임 다시 쓰면 휴대폰에서 끊김)
 const putCache = new WeakMap();
@@ -15,6 +16,31 @@ function put(o, k, v) {
 const won = (n) => '₩' + n.toLocaleString('ko-KR');
 const h = (tag, cls, html, parent) => { const e = document.createElement(tag); if (cls) e.className = cls; if (html != null) e.innerHTML = html; if (parent) parent.appendChild(e); return e; };
 
+// 무기도감 제작자 '이중엽': 키 큰 평범한 남자 (회색 티셔츠 + 청바지). 팔은 CSS로 움직임 (.work 망치질 · .win 만세 · .lose 머리 긁기)
+const MAKER_SVG = `<svg class="mk" viewBox="0 0 200 330" aria-hidden="true">
+  <ellipse cx="100" cy="322" rx="48" ry="7" fill="rgba(0,0,0,.35)"/>
+  <g class="mk-body">
+    <path d="M78 172 L74 300 L94 300 L99 196 L101 196 L106 300 L126 300 L122 172Z" fill="#33507a"/>
+    <path d="M99 196 L101 196 L101 300 L99 300Z" fill="#284068"/>
+    <rect x="68" y="298" width="30" height="12" rx="5" fill="#f2f2f2"/><rect x="102" y="298" width="30" height="12" rx="5" fill="#f2f2f2"/>
+    <rect x="68" y="306" width="30" height="4" fill="#9aa4b0"/><rect x="102" y="306" width="30" height="4" fill="#9aa4b0"/>
+    <path d="M72 86 Q100 78 128 86 L130 176 L70 176Z" fill="#8a96a6"/>
+    <path d="M90 84 Q100 94 110 84" fill="none" stroke="#6e7a8a" stroke-width="3"/>
+    <rect x="70" y="168" width="60" height="9" rx="3" fill="#2a2a2e"/><rect x="96" y="168" width="9" height="9" fill="#c9a24a"/>
+    <rect x="93" y="64" width="14" height="16" fill="#e8bf9a"/>
+    <g class="mk-head">
+      <ellipse cx="100" cy="46" rx="22" ry="25" fill="#f0c8a2"/>
+      <path d="M77 44 Q76 18 100 17 Q125 18 123 44 Q120 30 112 28 Q100 34 84 30 Q79 34 77 44Z" fill="#1a1a1c"/>
+      <ellipse cx="91" cy="48" rx="2.6" ry="3" fill="#1a1a1c"/><ellipse cx="109" cy="48" rx="2.6" ry="3" fill="#1a1a1c"/>
+      <path d="M86 41 L95 40 M105 40 L114 41" stroke="#1a1a1c" stroke-width="2.4" stroke-linecap="round"/>
+      <path class="mk-mouth" d="M93 60 Q100 65 107 60" fill="none" stroke="#9a4a3a" stroke-width="2.4" stroke-linecap="round"/>
+      <ellipse cx="78" cy="49" rx="3" ry="6" fill="#e8bf9a"/><ellipse cx="122" cy="49" rx="3" ry="6" fill="#e8bf9a"/>
+    </g>
+    <g class="mk-arm mk-l"><path d="M70 90 L60 150 L66 176" fill="none" stroke="#8a96a6" stroke-width="15" stroke-linecap="round" stroke-linejoin="round"/><path d="M62 150 L66 176" stroke="#f0c8a2" stroke-width="12" stroke-linecap="round"/><circle cx="66" cy="180" r="8" fill="#f0c8a2"/></g>
+    <g class="mk-arm mk-r"><path d="M130 90 L140 150 L134 176" fill="none" stroke="#8a96a6" stroke-width="15" stroke-linecap="round" stroke-linejoin="round"/><path d="M138 150 L134 176" stroke="#f0c8a2" stroke-width="12" stroke-linecap="round"/><circle cx="134" cy="180" r="8" fill="#f0c8a2"/>
+      <g class="mk-hammer"><rect x="131" y="150" width="6" height="40" rx="2" fill="#7a4a24"/><rect x="122" y="142" width="24" height="13" rx="3" fill="#5a6470"/></g></g>
+  </g>
+</svg>`;
 // 조합 연출용 금빛 부처님 좌상 (SVG): 광배·빛살·연꽃 받침
 const BUDDHA_SVG = `<svg class="cb-buddha" viewBox="0 0 400 400" aria-hidden="true">
   <defs>
@@ -132,8 +158,8 @@ export class UI {
     }
   }
   // 영웅 조합 연출: 화면 정중앙에서 부처님이 점 크기에서 전체 화면으로 클로즈업 + 조합 이름 + 빛나는 폭죽 (약 3.6초) → done()
-  playCombo(title, done) {
-    const o = h('div', 'combo-fx', `<canvas></canvas>${BUDDHA_SVG}<div class="cb-title">${title}</div>`, document.body);
+  playCombo(title, done, img) {
+    const o = h('div', 'combo-fx', `<canvas></canvas>${img ? `<div class="cb-buddha cb-pic"><img src="${img}"></div>` : BUDDHA_SVG}<div class="cb-title">${title}</div>`, document.body);
     const cv = o.querySelector('canvas'), c = cv.getContext('2d');
     const W = cv.width = window.innerWidth, H = cv.height = window.innerHeight, parts = [];
     const burst = (x, y) => { const hue = Math.random() * 360; for (let i = 0; i < 70; i++) { const a = Math.random() * Math.PI * 2, v = 2 + Math.random() * 6; parts.push({ x, y, vx: Math.cos(a) * v, vy: Math.sin(a) * v, life: 1, hue: hue + Math.random() * 40 }); } };
@@ -316,6 +342,8 @@ export class UI {
     pb.querySelector('.pb-shop').onclick = () => this.openShop('charge');
     this.eKills = h('div', 'kills', '', hud);
     const tr = h('div', 'tr', null, hud);
+    this.bCodex = h('button', 'sq cdx-btn', '<span>📖</span><b>무기도감</b><i></i>', tr); this.bCodex.title = '무기도감 · 조합 (C 키)'; this.bCodex.onclick = () => this.openCodex();
+    this.bCodexN = this.bCodex.querySelector('i');
     const hq = h('button', 'sq hq', '<span>🎖</span><b>영웅 · 뽑기</b>', tr); hq.title = '영웅 모집 · 보급 뽑기 · 보급 충전 (H 키)'; hq.onclick = () => this.openShop('hero');
     this.bench = h('div', 'hbench', '', hud); this.benchKey = null;
     this.eLives = h('div', 'pill lives', '', tr);
@@ -649,7 +677,7 @@ export class UI {
         <div class="hr-grid">${HERO_IDS.map((id) => { const H = HEROES[id]; return `<div class="hr${H.legend ? ' lg' : ''}" data-id="${id}">${H.legend ? '<i class="lg-tag">LEGENDARY</i>' : ''}<img src="${this.icons['hero_' + id]}"><b>${H.name}</b><em>${H.title}</em><span>${H.role} · DPS ${dps(H)} · 확률 ${(heroChance(id) * 100).toFixed(1)}%</span><small>몸짓: ${H.gesture}</small></div>`; }).join('')}</div>
         <div class="hr-side">
           <div class="hr-stage"><div class="hr-q">?</div></div>
-          <div class="hr-res">${HERO_IDS.length}명 중 1명 무작위 (모두 ${(heroChance(HERO_IDS[0]) * 100).toFixed(1)}%) · 임배근+김덕훈을 가까이 두면 능인고 조합</div>
+          <div class="hr-res">${HERO_IDS.length}명 중 1명 무작위 (모두 ${(heroChance(HERO_IDS[0]) * 100).toFixed(1)}%) · 가까이 두면 합체하는 영웅들이 있어요 · 📖 무기도감</div>
           <button class="hr-pull" ${inBattle ? '' : 'disabled'}>${inBattle ? `영웅 모집 <small>보급 ${GACHA.heroCost}</small>` : '전투 중에 모집할 수 있어요'}</button>
           <button class="hr-place" style="display:none"></button>
           <div class="hr-note">뽑을 때마다 영웅이 한 명씩 늘어납니다 (같은 영웅도 여러 명 배치 가능). 배치한 영웅은 보급으로 Lv.10까지 강화. 일반 무기 최고 DPS는 약 80</div>
@@ -728,6 +756,122 @@ export class UI {
         };
       });
     }
+  }
+  // ---------- 📖 무기도감: 조합법 목록 + 제작자 이중엽이 조합 ----------
+  codexReady(n) {
+    if (!this.bCodex) return;
+    put(this.bCodex, 'className', 'sq cdx-btn' + (n ? ' ready' : ''));
+    put(this.bCodexN, 'textContent', n ? String(n) : '');
+  }
+  openCodex() {
+    if (this.codexEl) return;
+    this.closeShop();
+    const g = this.g, inBattle = !!(g && g.canGacha && g.canGacha());
+    if (inBattle && !this.app.paused && g.state === 'battle') { this.app.togglePause(); this.codexPaused = true; }
+    if (inBattle) g.refreshCombos(true);
+    const el = this.codexEl = h('div', 'shop cdx', '', this.root);
+    el.innerHTML = `<div class="sh-box cdx-box">
+      <div class="sh-head"><b>📖 무기도감</b><span>발견 <b class="cdx-cnt"></b></span>${inBattle ? '<span>전투 보급 <b class="sh-money"></b></span>' : ''}<button class="sh-x">✕</button></div>
+      <div class="cdx-wrap"><div class="cdx-list"></div>
+        <div class="cdx-side">
+          <div class="cdx-maker">${MAKER_SVG}<img class="cdx-orb l"><img class="cdx-orb r"><div class="cdx-flash"></div><div class="cdx-say">무엇을 합쳐 볼까요?</div><div class="cdx-tag">제작자 <b>이중엽</b></div></div>
+          <div class="cdx-meter"><div class="cdx-num">성공 확률 <b>—</b></div><div class="cdx-bar"><i class="ok"></i><em></em></div></div>
+          <div class="cdx-sel">왼쪽에서 조합을 고르세요</div>
+          <button class="cdx-go" disabled>조합하기</button>
+          <div class="hr-note">일반 무기는 <b>둘 다 Lv.4</b>, 영웅은 <b>Lv.1</b>부터 서로 <b>가까이</b> 놓으면 조합할 수 있어요. 성공률 무기 ${Math.round(GF.COMBO_RULES.weaponRate * 100)}% · 영웅 ${Math.round(GF.COMBO_RULES.heroRate * 100)}%. 실패하면 수수료만 사라지고 재료는 남아요. 처음 성공한 조합은 도감에 영원히 기록돼요.</div>
+        </div></div></div>`;
+    el.querySelector('.sh-x').onclick = () => this.closeCodex();
+    el.onclick = (e) => { if (e.target === el && !this.codexBusy) this.closeCodex(); };
+    this.codexSel = null;
+    this.renderCodex();
+  }
+  renderCodex() {
+    const el = this.codexEl; if (!el) return;
+    const g = this.g, inBattle = !!(g && g.canGacha && g.canGacha());
+    const ready = inBattle ? (g.comboReady || []) : [], isReady = (R) => ready.some((p) => p.R.key === R.key);
+    el.querySelector('.cdx-cnt').textContent = `${Codex.count()} / ${RECIPES.length}`;
+    if (inBattle) el.querySelector('.sh-money').textContent = Math.floor(g.money).toLocaleString('ko-KR');
+    const ico = (t) => this.icons[t] || '';
+    const nat = (t) => (GF.WEAPONS[t].hero ? HEROES[GF.WEAPONS[t].hero].nation : GF.WEAPONS[t].nation);
+    const card = (R) => {
+      const known = Codex.has(R.key), rd = isReady(R), rate = Math.round(comboRate(R) * 100);
+      const mat = (t) => (known || rd ? `<img src="${ico(t)}" title="${GF.WEAPONS[t].name}">` : '<i class="q">?</i>');
+      const names = known || rd ? `${GF.wname(R.ta)} + ${GF.wname(R.tb)}` : `힌트: ${nat(R.ta)} + ${nat(R.tb)}`;
+      return `<div class="cdx-c${known ? ' known' : ''}${rd ? ' rd' : ''}${this.codexSel === R.key ? ' sel' : ''}${R.hero ? ' hero' : ''}" data-k="${R.key}">
+        ${rd ? '<i class="cdx-badge">조합 가능!</i>' : ''}
+        <div class="cdx-row">${mat(R.ta)}<s>+</s>${mat(R.tb)}<s>→</s>${known ? `<img class="res" src="${ico(R.into)}">` : '<i class="q res">?</i>'}</div>
+        <b>${known ? R.name : '???'}</b><small>${names}</small><span>성공 ${rate}%</span></div>`;
+    };
+    const W = RECIPES.filter((R) => !R.hero), Hs = RECIPES.filter((R) => R.hero);
+    el.querySelector('.cdx-list').innerHTML = `<div class="cdx-h">⚙ 무기 조합 <small>둘 다 Lv.4 · 성공 ${Math.round(GF.COMBO_RULES.weaponRate * 100)}%</small></div><div class="cdx-grid">${W.map(card).join('')}</div>
+      <div class="cdx-h">🎖 영웅 조합 <small>Lv.1부터 · 성공 ${Math.round(GF.COMBO_RULES.heroRate * 100)}%</small></div><div class="cdx-grid">${Hs.map(card).join('')}</div>`;
+    el.querySelectorAll('.cdx-c').forEach((c) => { c.onclick = () => { if (this.codexBusy) return; this.codexSel = c.dataset.k; this.renderCodex(); }; });
+    this.codexSide();
+  }
+  codexSide() {
+    const el = this.codexEl, g = this.g, inBattle = !!(g && g.canGacha && g.canGacha());
+    const R = RECIPES.find((x) => x.key === this.codexSel), go = el.querySelector('.cdx-go'), sel = el.querySelector('.cdx-sel');
+    const ok = el.querySelector('.cdx-bar .ok'), mark = el.querySelector('.cdx-bar em');
+    const orbL = el.querySelector('.cdx-orb.l'), orbR = el.querySelector('.cdx-orb.r');
+    if (!R) { go.disabled = true; return; }
+    const known = Codex.has(R.key), rd = inBattle && (g.comboReady || []).some((p) => p.R.key === R.key), rate = comboRate(R), fee = comboFee(R);
+    el.querySelector('.cdx-num').innerHTML = `성공 확률 <b>${Math.round(rate * 100)}%</b>`; ok.style.width = rate * 100 + '%'; mark.style.left = '-20px';
+    if (known || rd) { orbL.src = this.icons[R.ta]; orbR.src = this.icons[R.tb]; orbL.style.opacity = orbR.style.opacity = 1; } else { orbL.style.opacity = orbR.style.opacity = 0; }
+    sel.innerHTML = known || rd ? `<b>${GF.wname(R.ta)}</b> + <b>${GF.wname(R.tb)}</b> → <b>${known ? R.name : '???'}</b>` : '아직 발견하지 못한 조합이에요';
+    if (!inBattle) { go.disabled = true; go.innerHTML = '전투 중에 조합할 수 있어요'; return; }
+    if (!rd) { go.disabled = true; go.innerHTML = known || rd ? (R.hero ? '두 영웅을 가까이 배치하세요' : '두 무기를 Lv.4로 만들어 가까이 두세요') : '재료를 찾아 가까이 놓아 보세요'; return; }
+    go.disabled = false; go.innerHTML = `이중엽에게 조합 맡기기 <small>수수료 보급 ${fee} · 성공 ${Math.round(rate * 100)}%</small>`;
+    go.onclick = () => this.codexRun(R);
+  }
+  // 조합 연출: 이중엽이 두 재료를 맞부딪혀 망치질 → 판정 바늘이 이리저리 흔들리다 멈춤 (초록 칸이면 성공)
+  codexRun(R) {
+    const el = this.codexEl, g = this.g, snd = (n, v) => { if (this.app.sound) this.app.sound.play(n, v); };
+    const r = g.tryCombo(R.key);
+    if (!r) return;
+    if (r.fail) { el.querySelector('.cdx-sel').innerHTML = `<span class="bad">${r.fail}</span>`; return; }
+    this.codexBusy = true;
+    const maker = el.querySelector('.cdx-maker'), say = el.querySelector('.cdx-say'), go = el.querySelector('.cdx-go');
+    const mark = el.querySelector('.cdx-bar em'), num = el.querySelector('.cdx-num');
+    el.querySelector('.sh-money').textContent = Math.floor(g.money).toLocaleString('ko-KR');
+    go.disabled = true; maker.className = 'cdx-maker work'; say.textContent = '자, 합쳐 봅시다!';
+    let i = 0;
+    const T = 26, spin = setInterval(() => {
+      i++;
+      const v = i < T ? Math.random() : r.roll;
+      mark.style.left = `calc(${v * 100}% - 4px)`;
+      num.innerHTML = `판정 <b>${Math.round(v * 100)}</b> <small>(${Math.round(r.rate * 100)} 미만이면 성공)</small>`;
+      if (i % 3 === 0) snd('click');
+      if (i % 9 === 0) snd('upgrade', 0.5);
+      if (i >= T) {
+        clearInterval(spin);
+        maker.className = 'cdx-maker ' + (r.ok ? 'win' : 'lose');
+        say.textContent = r.ok ? '성공! 완벽하게 합쳐졌어요!' : '앗… 이번엔 실패했어요';
+        num.innerHTML = r.ok ? '<b class="good">조합 성공!</b>' : '<b class="bad">조합 실패</b> <small>재료는 그대로예요</small>';
+        snd(r.ok ? 'win' : 'deny');
+        setTimeout(() => {
+          this.codexBusy = false;
+          if (r.ok) {
+            const first = Codex.add(R.key), p = r.pair;
+            this.closeCodex();
+            g.fuse(p.a, p.b, R, this.icons[R.into]);
+            if (first) setTimeout(() => this.toast(`📖 새 조합 발견! 무기도감에 ${R.name} 기록`, '#FFD36A', 3200), 4600);
+          } else {
+            this.toast(`조합 실패… 수수료 보급 ${r.fee}`, '#FF8A8E', 2400);
+            g.refreshCombos(true); this.renderCodex();
+            if (this.codexEl) {   // 실패 판정 자리를 그대로 보여 줌
+              this.codexEl.querySelector('.cdx-bar em').style.left = `calc(${r.roll * 100}% - 4px)`;
+              this.codexEl.querySelector('.cdx-num').innerHTML = `<b class="bad">실패</b> <small>판정 ${Math.round(r.roll * 100)} · ${Math.round(r.rate * 100)} 미만이면 성공</small>`;
+              this.codexEl.querySelector('.cdx-maker').className = 'cdx-maker lose';
+            }
+          }
+        }, r.ok ? 1100 : 900);
+      }
+    }, 90);
+  }
+  closeCodex() {
+    if (!this.codexEl || this.codexBusy) return;
+    this.codexEl.remove(); this.codexEl = null;
+    if (this.codexPaused) { this.codexPaused = false; if (this.app.paused) this.app.togglePause(); }
   }
   closeShop() {
     if (!this.shopEl) return;

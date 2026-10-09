@@ -2,10 +2,12 @@
 window.GF = window.GF || {};
 
 GF.SETTINGS = {
-  version: '0.34.2 (베타 · 10개 도시)',
+  version: '0.35.0 (베타 · 10개 도시)',
   // true: 실제 무기 이름 (K9 썬더, 재블린 …) / false: 살짝 바꾼 이름 (K9-X 썬더, 재블런스 …)
   // 출시 직전 상표 검토 후 결정 (문서 10번 2장 참고)
   useRealWeaponNames: true,
+  // 구글 로그인한 사람만: 웨이브의 적을 모두 물리칠 때마다 자동 저장
+  autoSave: true,
   // true 로 바꾸면 실제 도시 이름 대신 가명을 보여 줌
   useCityAlias: false,
   // 지휘 포인트(CP): 전투 중 몇 초마다 1씩 차는지, 최대치, 시작값

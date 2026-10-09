@@ -478,6 +478,7 @@ function collect(root) {
 }
 
 export function getTower(type) {
+  if (GF.WEAPONS[type] && GF.WEAPONS[type].parts) return getComboTower(type);
   if (!towerProto[type]) {
     const m = makeTowerV4(type);
     tagSpin(m.spin); m.glow.forEach((g) => (g.userData.glow = true));
@@ -493,6 +494,24 @@ export function getTower(type) {
   const root = towerProto[type].clone(true);
   const yaw = root.getObjectByName('yaw'), pitch = root.getObjectByName('pitch'), muzzle = root.getObjectByName('muzzle');
   return Object.assign({ root, yaw, pitch, muzzle }, collect(root));
+}
+
+// 조합 무기: 금테 받침 위에 재료 두 무기를 나란히 얹어 함께 돎 (재료 모델을 그대로 써서 무엇을 합쳤는지 보임)
+export function getComboTower(type) {
+  const W = GF.WEAPONS[type], [pa, pb] = W.parts;
+  const root = new THREE.Group(), yaw = new THREE.Group(); yaw.name = 'yaw';
+  const gold = mat(0xd8aa45, { metalness: 0.85, roughness: 0.3 });
+  add(root, C(0.62, 0.68, 0.08, 24), mat(0x22262c, { roughness: 0.4, metalness: 0.4 }), 0, 0.04, 0);
+  add(root, C(0.63, 0.63, 0.02, 24), gold, 0, 0.085, 0);
+  const ring = new THREE.Mesh(new THREE.TorusGeometry(0.7, 0.022, 6, 48), new THREE.MeshStandardMaterial({ color: 0xffe08a, emissive: 0xffb020, emissiveIntensity: 1.3 }));
+  ring.rotation.x = -Math.PI / 2; ring.position.y = 0.03; root.add(ring);
+  yaw.position.y = 0.09; root.add(yaw);
+  const a = getTower(pa), b = getTower(pb);
+  a.root.scale.setScalar(0.82); b.root.scale.setScalar(0.72);
+  a.root.position.set(0.04, 0, 0.3); b.root.position.set(-0.06, 0, -0.3);
+  yaw.add(a.root, b.root);
+  root.traverse((o) => { o.castShadow = false; });
+  return { root, yaw, pitch: a.pitch, muzzle: a.muzzle, spin: a.spin.concat(b.spin), glow: a.glow.concat(b.glow, [ring]) };
 }
 
 export function getEnemy(type) {

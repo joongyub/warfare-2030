@@ -2,6 +2,7 @@
 // 카메라: 시안처럼 비스듬히 내려다보는 3D 원근 시점. 각도는 하나로 고정, 전투 구역이 화면을 꽉 채우도록 맞춤.
 // 확대·축소는 같은 각도 그대로 카메라만 앞뒤로 움직임(커서 아래 지점이 그대로 유지됨)
 import { Saves } from './save.js';
+import { buildRecipes } from './codex.js';
 import { Cloud } from './cloud.js';
 import * as THREE from 'three';
 import { City } from './city.js';
@@ -53,6 +54,7 @@ class App {
     this.look = new Look(r, this.scene, this.camera, sun);
 
     registerHeroes();   // 영웅을 무기 목록(GF.WEAPONS)에 등록
+    buildRecipes();     // 📖 무기도감 조합법 목록
     this.city = new City(this.scene, this.stage);
     this.sound = new Sound();
     this.ui = new UI(this);
@@ -93,9 +95,10 @@ class App {
     const d = new THREE.DirectionalLight(0xffffff, 2.2); d.position.set(-3, 5, 4); sc.add(d);
     const cam = new THREE.OrthographicCamera(-0.75, 0.75, 0.75, -0.75, 0.1, 20);
     cam.position.set(2.2, 2.2, 2.6); cam.lookAt(0.1, 0.25, 0);
-    for (const id of GF.LOADOUT) {
+    for (const id of GF.LOADOUT.concat(Object.keys(GF.COMBO_WEAPONS || {}))) {   // 조합 무기 그림도 (무기도감용)
       const m = getTower(id);
       m.yaw.rotation.y = 0.5;
+      if (GF.WEAPONS[id].parts) m.root.scale.setScalar(0.7);
       sc.add(m.root);
       r.render(sc, cam);
       out[id] = r.domElement.toDataURL();
@@ -128,11 +131,12 @@ class App {
     this.game.restore(d);
   }
   // 전투 중 저장 (exit = 저장하고 처음 화면으로)
-  saveGame(exit) {
+  saveGame(exit, auto) {
     const d = this.game.serialize();
-    if (!d) { this.ui.toast('지금은 저장할 수 없습니다'); return false; }
+    if (!d) { if (!auto) this.ui.toast('지금은 저장할 수 없습니다'); return false; }
     if (!Saves.put(d)) { this.ui.toast('저장 실패: 브라우저 저장 공간을 쓸 수 없습니다', '#FF8A8E'); return false; }
     if (exit) { this.paused = false; this.toTitle(); this.ui.toastAny(`저장 완료 · ${this.stage.name} 웨이브 ${d.wave + 1}부터 이어하기`); }
+    else if (auto) this.ui.toast(`☁ 자동 저장 · 웨이브 ${d.wave} 완료`, '#8FF3FF', 2400);
     else this.ui.toast(`저장 완료 · 웨이브 ${d.wave + 1}부터 이어할 수 있어요`, '#8FF3FF', 3000);
     return true;
   }
@@ -373,6 +377,7 @@ class App {
       this.sound.unlock();
       if (e.target && e.target.tagName === 'INPUT') return;   // 이름 입력 중에는 단축키 무시
       if (this.ui.shopEl && e.code === 'Escape') { this.ui.closeShop(); return; }
+      if (this.ui.codexEl) { if (e.code === 'Escape') this.ui.closeCodex(); return; }
       this.keys[e.code] = true;
       const g = this.game;
       if (g.state === 'title') { if (e.code === 'Enter') { if (this.ui.zone) this.ui.zoneStart(false); else this.ui.openZone(); } if (e.code === 'Escape') this.ui.closeZone(); return; }
@@ -386,6 +391,7 @@ class App {
       if (e.code === 'KeyE') g.pickCard(2);
       if (e.code === 'Escape') g.cancelMode();
       if (e.code === 'KeyH') this.ui.openShop('hero');
+      if (e.code === 'KeyC') this.ui.openCodex();
       if (e.code === 'Space') { e.preventDefault(); this.togglePause(); }
       if (e.code === 'KeyN' || e.code === 'Enter') g.callNext();
       if (e.code === 'Equal' || e.code === 'NumpadAdd') this.zoomAt(this.L.x + this.W / 2, this.L.y + this.H / 2, 1.25);
