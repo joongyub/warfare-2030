@@ -29,6 +29,8 @@ export const Cloud = {
   },
   async signIn() {
     if (!this.fb) return;
+    // 안드로이드 APK(웹뷰)는 구글이 로그인 창을 막아서, 크롬 사이트에서 로그인하도록 안내
+    if (/W2030App/.test(navigator.userAgent)) { this.error = '앱에서는 구글 로그인이 막혀 있어요. 크롬에서 joongyub.github.io/warfare-2030 으로 로그인해 주세요'; this.emit(); return; }
     const { auth, A } = this.fb, p = new auth.GoogleAuthProvider();
     p.setCustomParameters({ prompt: 'select_account' });
     try { await auth.signInWithPopup(A, p); } catch (e) {

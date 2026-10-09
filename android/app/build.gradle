@@ -1,0 +1,19 @@
+plugins { id 'com.android.application' }
+android {
+    namespace 'io.github.joongyub.warfare2030'
+    compileSdk 34
+    defaultConfig {
+        applicationId 'io.github.joongyub.warfare2030'
+        minSdk 24
+        targetSdk 34
+        // 앱 껍데기를 다시 만들 때마다 번호가 올라가 덮어 설치가 됨 (게임 내용 업데이트는 앱 재설치 필요 없음)
+        versionCode Integer.parseInt(System.getenv('APK_BUILD') ?: '1')
+        versionName '1.' + (System.getenv('APK_BUILD') ?: '1')
+    }
+    // 같은 서명이라야 새 APK 를 기존 앱 위에 덮어 설치할 수 있음 (개인 배포용 키)
+    signingConfigs {
+        release { storeFile file('release.jks'); storePassword 'warfare2030'; keyAlias 'warfare'; keyPassword 'warfare2030' }
+    }
+    buildTypes { release { minifyEnabled false; signingConfig signingConfigs.release } }
+    compileOptions { sourceCompatibility JavaVersion.VERSION_17; targetCompatibility JavaVersion.VERSION_17 }
+}

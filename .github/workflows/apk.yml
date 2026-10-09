@@ -1,0 +1,26 @@
+# 안드로이드 APK 자동 만들기: android/ 폴더가 바뀌면 APK 를 새로 만들어 릴리스 'apk' 에 올림
+# 다운로드 주소(고정): https://github.com/joongyub/warfare-2030/releases/download/apk/warfare-2030.apk
+# 앱은 공개 사이트를 여는 껍데기라서, 게임 업데이트는 pages 배포만으로 앱에도 바로 반영됨
+name: apk
+on:
+  push: { branches: [main], paths: ['android/**', '.github/workflows/apk.yml'] }
+  workflow_dispatch:
+permissions: { contents: write }
+concurrency: { group: apk, cancel-in-progress: true }
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-java@v4
+        with: { distribution: temurin, java-version: '17' }
+      - uses: gradle/actions/setup-gradle@v4
+        with: { gradle-version: '8.9' }
+      - run: gradle -p android assembleRelease
+        env: { APK_BUILD: '${{ github.run_number }}' }
+      - run: cp android/app/build/outputs/apk/release/app-release.apk warfare-2030.apk
+      - name: 릴리스 'apk' 에 올리기 (있으면 파일만 바꿈)
+        env: { GH_TOKEN: '${{ github.token }}' }
+        run: |
+          gh release view apk >/dev/null 2>&1 || gh release create apk --title "2030 Warfare 안드로이드 앱" --notes "안드로이드 전용 APK. 게임 내용은 사이트에서 받아서 사이트가 업데이트되면 앱도 자동으로 최신이 됩니다. (아이폰은 APK 설치 불가: 사파리 공유 → 홈 화면에 추가)" --latest
+          gh release upload apk warfare-2030.apk --clobber
