@@ -292,7 +292,7 @@ export class UI {
       <div class="zn-city">${GF.SETTINGS.useCityAlias ? X.alias : X.name}<em>${X.title}</em></div>
       <p>${X.briefing}</p>
       <div class="zn-meta">웨이브 ${X.waves.length} · 기지 체력 ${X.lives} · 적 진입로 ${1 + (X.branches || []).length}곳 · 최고 기록 <b>${this.stars(this.best(id))}</b></div>
-      <div class="zn-legend"><span class="lg-r"></span>본 도로 <span class="lg-b"></span>갈래 길 <span class="lg-g"></span>적 입구 <span class="lg-h"></span>연합 지휘부</div>
+      <div class="zn-legend">${X.maze ? '<b class="lg-mz">특별 작전 · 길 만들기</b> 칸에 무기를 놓아 적의 길을 직접 만들어요 <span class="lg-g"></span>적 입구 <span class="lg-h"></span>연합 지휘부' : '<span class="lg-r"></span>본 도로 <span class="lg-b"></span>갈래 길 <span class="lg-g"></span>적 입구 <span class="lg-h"></span>연합 지휘부'}</div>
       <div class="zn-ms"><div class="zn-ms-t">난이도별 작전 <small>난이도마다 진행과 저장이 따로예요</small></div>${GF.diffsFor(X).map(row).join('')}</div>`;
     this.drawMap(side.querySelector('.zn-big'), X);
     side.querySelectorAll('.ms').forEach((r) => {
@@ -335,9 +335,24 @@ export class UI {
       c.beginPath(); c.moveTo(X(pts[0][0]), Z(pts[0][1])); for (const [x, z] of pts.slice(1)) c.lineTo(X(x), Z(z));
       c.strokeStyle = col; c.lineWidth = Math.max(2.5, 2.2 * k); c.lineJoin = 'round'; c.lineCap = 'round'; c.stroke();
     };
+    const dot = (p, col, r) => { if (!p) return; c.beginPath(); c.arc(X(p[0]), Z(p[1]), r, 0, Math.PI * 2); c.fillStyle = col; c.fill(); c.lineWidth = 2; c.strokeStyle = '#fff'; c.stroke(); };
+    if (S.maze) {
+      // 길 만들기 맵: 칸 바둑판 + 입구→지휘부 점선 (길은 플레이어가 무기로 만듦)
+      const C = S.maze.cell || 2;
+      c.strokeStyle = 'rgba(200,225,235,.28)'; c.lineWidth = 1;
+      for (let x = B.x0; x <= B.x1; x += C) { c.beginPath(); c.moveTo(X(x), Z(B.z0)); c.lineTo(X(x), Z(B.z1)); c.stroke(); }
+      for (let z = B.z0; z <= B.z1; z += C) { c.beginPath(); c.moveTo(X(B.x0), Z(z)); c.lineTo(X(B.x1), Z(z)); c.stroke(); }
+      const e = S.route[0].pts[S.route[0].pts.length - 1];
+      c.setLineDash([6, 6]); c.strokeStyle = '#ffd36a'; c.lineWidth = Math.max(2, 1.2 * k);
+      c.beginPath(); c.moveTo(X(e[0]), Z(e[1])); c.lineTo(X(S.base[0]), Z(S.base[1])); c.stroke(); c.setLineDash([]);
+      for (const b of S.blockers || []) { c.fillStyle = '#8c7a5a'; c.fillRect(X(b.x - b.w / 2), Z(b.z - b.d / 2), b.w * k, b.d * k); }
+      c.restore();
+      dot(e, '#ff4d4d', Math.max(4, 1.6 * k));
+      const hq = S.base, s2 = Math.max(9, 3 * k); c.fillStyle = '#3aa0ff'; c.strokeStyle = '#fff'; c.lineWidth = 2; c.fillRect(X(hq[0]) - s2 / 2, Z(hq[1]) - s2 / 2, s2, s2); c.strokeRect(X(hq[0]) - s2 / 2, Z(hq[1]) - s2 / 2, s2, s2);
+      return;
+    }
     for (const br of S.branches || []) line(br.pts, '#f2a33a', 0);
     for (const seg of S.route || []) { if (seg.choice) seg.choice.forEach((ch) => line(ch.pts, '#e8dcc0', 0)); else line(seg.pts, '#e8dcc0', 0); }
-    const dot = (p, col, r) => { if (!p) return; c.beginPath(); c.arc(X(p[0]), Z(p[1]), r, 0, Math.PI * 2); c.fillStyle = col; c.fill(); c.lineWidth = 2; c.strokeStyle = '#fff'; c.stroke(); };
     dot(S.gate, '#ff4d4d', Math.max(4, 1.6 * k));
     for (const br of S.branches || []) dot(br.gate, '#ff4d4d', Math.max(3.5, 1.3 * k));
     c.restore();
@@ -683,9 +698,10 @@ export class UI {
     const M = this.L.mobile, tap = M ? '터치' : '클릭', esc = M ? '버튼 다시 누르면 취소' : 'ESC 취소';
     if (g.mode === 'strat') hint = GF.STRATEGIC[g.stratSel].name + `: 떨어뜨릴 곳을 ${tap} · ${esc}`;
     else if (g.mode === 'card') hint = GF.CARDS[g.hand[g.cardSel]].name + `: 지도에서 위치 ${tap} · ${esc}`;
-    else if (g.mode === 'hero') hint = HEROES[g.heroSel].name + ` 배치: 회색 공간 아무 곳이나 ${tap} · ${M ? '영웅 버튼 다시 누르면 취소' : '오른쪽 클릭/ESC 취소'}`;
-    else if (g.mode) hint = GF.wname(g.mode) + (GF.WEAPONS[g.mode] && GF.WEAPONS[g.mode].role ? ` (${GF.WEAPONS[g.mode].role})` : '') + ` 설치: 회색 공간 아무 곳이나 ${tap} · ${M ? '카드 다시 누르면 취소' : '오른쪽 클릭/ESC 취소'}`;
+    else if (g.mode === 'hero') hint = HEROES[g.heroSel].name + ` 배치: ${g.maze ? '빈 칸' : '회색 공간 아무 곳이나'} ${tap} · ${M ? '영웅 버튼 다시 누르면 취소' : '오른쪽 클릭/ESC 취소'}`;
+    else if (g.mode) hint = GF.wname(g.mode) + (GF.WEAPONS[g.mode] && GF.WEAPONS[g.mode].role ? ` (${GF.WEAPONS[g.mode].role})` : '') + ` 설치: ${g.maze ? '빈 칸' : '회색 공간 아무 곳이나'} ${tap} · ${M ? '카드 다시 누르면 취소' : '오른쪽 클릭/ESC 취소'}`;
     if (g.mode && isTouch() && g.mode !== 'detour') hint = '📌 지도 고정됨 · 손가락을 대고 끌어 위치를 맞춘 뒤 떼면 설치 · ' + hint;
+    else if (g.state === 'ready' && g.maze) hint = `특별 작전 · 칸에 무기를 놓으면 벽이 돼요 · 빨간 화살표가 지금 적이 갈 길 (지금 길이 ${Math.round(g.maze.dist[g.maze.entry] * g.maze.C)}) · 길을 완전히 막을 수는 없어요`;
     else if (g.state === 'ready') hint = this.L.mobile ? '무기 카드를 누르고 회색 공간을 터치해 배치 · 두 손가락 벌리기 확대 · 한 손가락 끌기로 이동 · 각도는 오른쪽 위 버튼' : '회색 공간 어디든 무기를 놓으세요 (거리 사이에 놓으면 위아래 거리를 동시에 공격) · 휠: 확대 · 시점 각도: 오른쪽 위 ⟲ ⟳ ▲ ▼ 버튼 · R: 기본 시점';
     put(this.eHint, 'textContent', hint);
   }

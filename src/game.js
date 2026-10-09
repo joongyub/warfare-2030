@@ -5,6 +5,7 @@ import { makeHero, HEROES, HERO_IDS, GACHA, rollHero, makeBuddha, makeElephant }
 import { RECIPES, Codex, comboRate, comboFee } from './codex.js';
 import { VFX } from './vfx.js';
 import { Clears, Saves } from './save.js';
+import { Maze } from './maze.js';
 
 const V = (x = 0, y = 0, z = 0) => new THREE.Vector3(x, y, z);
 const TOWER_SCALE = 1.6, TOWER_GAP = 1.4, HERO_SCALE = 2.1;
@@ -70,8 +71,11 @@ export class Game {
     this.heroBench = []; this.heroBonus = {}; this.heroSel = null; this.luckyLeft = GACHA.luckyPerWave;
     this.computeSynergy();
     this.updateRemain();
+    // 길 만들기 스테이지(부산): 바둑판 칸 + 길찾기
+    this.maze = S.maze ? new Maze(S, this.city) : null;
+    if (this.maze) this.city.showMazePath(this.maze);
     this.state = 'ready';
-    this.ui().toast(`난이도 ${this.diff.name} · 도로 밖 어디든 무기를 놓고 "작전 개시"를 누르세요`, '#8FF3FF', 4200);
+    this.ui().toast(this.maze ? `난이도 ${this.diff.name} · 특별 작전: 칸에 무기를 놓아 벽을 쌓으면 적은 빈 칸으로 길을 찾아요. 길을 길게 만드세요!` : `난이도 ${this.diff.name} · 도로 밖 어디든 무기를 놓고 "작전 개시"를 누르세요`, '#8FF3FF', this.maze ? 6000 : 4200);
   }
 
   computeSynergy() {
@@ -391,17 +395,39 @@ export class Game {
     this.rangeDisc.visible = false;
     if (this.ghost) { this.scene.remove(this.ghost.root); this.ghost = null; }
     this.tip = null;
+    if (this.maze && this.mzPrev != null) { this.mzPrev = null; this.city.showMazePath(this.maze); }
   }
 
   // 놓을 수 없는 이유 (없으면 null)
   placeReason(x, z) {
+    if (this.maze) return this.mazeReason(x, z);
     const r = this.city.blockReason(x, z);
     if (r) return r;
     for (const t of this.towers) if ((t.pos.x - x) ** 2 + (t.pos.z - z) ** 2 < TOWER_GAP * TOWER_GAP) return '다른 무기와 너무 가까움';
     return null;
   }
 
+  // 길 만들기: 칸 판정. 지상 적이 서 있거나 향하는 칸, 길을 끊는 칸은 못 놓음
+  mazeReason(x, z) {
+    const M = this.maze; M.sync(this.towers);
+    const busy = new Set(), from = [];
+    for (const e of this.enemies) {
+      if (e.air || e.dead || !e.mz) continue;
+      const k = M.cellOf(e.pos.x, e.pos.z);
+      if (k >= 0) { busy.add(k); from.push(k); }
+      busy.add(e.tk); from.push(e.tk);
+    }
+    return M.reason(M.cellOf(x, z), busy, from);
+  }
+  // 무기·영웅을 놓을 때는 칸 가운데로 맞춤
+  snapCell(p) {
+    if (!this.maze || !this.mode || this.mode === 'card' || this.mode === 'strat' || this.mode === 'detour') return p;
+    const k = this.maze.cellOf(p.x, p.z); if (k < 0) return p;
+    const [x, z] = this.maze.center(k); return V(x, p.y || 0, z);
+  }
+
   hoverAt(p) {
+    p = this.snapCell(p);
     this.hoverP = p;
     this.tip = null;
     if (this.mode === 'card') { this.showRange(V(p.x, 0, p.z), GF.CARDS[this.hand[this.cardSel]].radius, 0x8fc3ff); return; }
@@ -417,7 +443,9 @@ export class Game {
     this.ghost.root.position.set(p.x, 0, p.z);
     this.ghost.setOk(ok);
     this.showRange(V(p.x, 0, p.z), GF.WEAPONS[this.mode === 'hero' ? 'hero_' + this.heroSel : this.mode].range, ok ? 0x7fe9ff : 0xff7a7a);
-    this.tip = ok ? { ok: true, text: '자유 배치 가능' } : { ok: false, text: why };
+    this.tip = ok ? { ok: true, text: this.maze ? '이 칸에 배치 가능 · 화살표가 바뀐 길이에요' : '자유 배치 가능' } : { ok: false, text: why };
+    // 길 만들기: 놓으면 바뀔 적의 길을 화살표로 미리 보여 줌
+    if (this.maze) { const k = this.maze.cellOf(p.x, p.z); if (ok && k !== this.mzPrev) { this.city.showMazePath(this.maze, this.maze.preview(k)); this.mzPrev = k; } else if (!ok && this.mzPrev != null) { this.city.showMazePath(this.maze); this.mzPrev = null; } }
   }
 
   showRange(pos, r, color) {
@@ -429,6 +457,7 @@ export class Game {
 
   click(p) {
     if (this.isOver()) return;
+    p = this.snapCell(p);
     if (this.mode === 'card') { this.useCard(this.cardSel, p); return; }
     if (this.mode === 'strat') { this.useStrat(this.stratSel, p); return; }
     if (this.mode === 'detour') { this.clickDetour(p); return; }
@@ -590,7 +619,7 @@ export class Game {
   // 조합 성공: 연출(조합 이름 + 폭죽) 뒤 두 재료가 사라지고 가운데에 조합 결과 등장
   fuse(a, b, R, img) {
     a.fusing = b.fusing = true;
-    const mid = a.pos.clone().add(b.pos).multiplyScalar(0.5), app = this.app;
+    const mid = this.maze ? a.pos.clone() : a.pos.clone().add(b.pos).multiplyScalar(0.5), app = this.app;   // 길 만들기 맵은 첫 재료 칸에
     const wasPaused = app.paused; app.paused = true;
     this.snd('fanfare');
     const into = GF.WEAPONS[R.into], monk = R.into === 'hero_monk';
@@ -679,6 +708,10 @@ export class Game {
       const pts = this.airPath(lane);
       e.fly = { pts, segs: [] }; e.len = 0;
       for (let i = 0; i < pts.length - 1; i++) { const l = pts[i].distanceTo(pts[i + 1]); e.fly.segs.push({ a: pts[i], b: pts[i + 1], l, c: e.len }); e.len += l; }
+    } else if (this.maze) {
+      // 길 만들기: 입구 터널에서 첫 칸으로 들어와 칸을 따라 걸음
+      const [gx, gz] = this.S.route[0].pts[0];
+      e.mz = true; e.gx = gx; e.gz = gz; e.tk = this.maze.entry; e.pk = -1; e.ga = 0;
     } else if (lane) {
       e.br = lane; e.opt = lane;
     } else {
@@ -724,6 +757,13 @@ export class Game {
       pts.push(base);
       return pts;
     }
+    // 길 만들기 맵: 공중 적도 지금 만들어진 칸 길을 따라 날아옴 (2칸마다 한 점)
+    if (this.maze) {
+      const M = this.maze, pts = [V(S.route[0].pts[0][0] - 2, 0, S.route[0].pts[0][1])];
+      M.path.forEach((k, i) => { if (i % 2 === 0 || i === M.path.length - 1) { const [x, z] = M.center(k); pts.push(V(x + j() * 0.6, 0, z + j() * 0.6)); } });
+      pts.push(base);
+      return pts;
+    }
     // 지상군과 같은 입구: 도로 꺾임점을 따라 (조금씩 흩어져서)
     const pts = [];
     for (const st of S.route) for (const [x, z] of (st.choice ? st.choice[0] : st).pts) {
@@ -757,6 +797,21 @@ export class Game {
     return false;
   }
 
+  // 길 만들기: 다음 칸 가운데로 걸어가고, 닿으면 거리가 가장 줄어드는 이웃 칸을 고름. 지휘부 칸에 닿으면 true
+  moveMaze(e, step) {
+    const M = this.maze;
+    if (M.tower[e.tk] || M.wall[e.tk]) { const k = M.cellOf(e.gx, e.gz); if (k >= 0 && M.open(k)) e.tk = k; }   // 혹시 가던 칸이 막히면 지금 칸으로
+    for (let g = 0; g < 6; g++) {
+      const [tx, tz] = M.center(e.tk), dx = tx - e.gx, dz = tz - e.gz, L = Math.hypot(dx, dz);
+      if (L > step) { if (L > 1e-6) { e.gx += dx / L * step; e.gz += dz / L * step; e.ga = Math.atan2(dz, dx); } return false; }
+      e.gx = tx; e.gz = tz; step -= L;
+      if (e.tk === M.goal) return true;
+      const n = M.next(e.tk, e.pk); if (n < 0) return false;
+      e.pk = e.tk; e.tk = n;
+    }
+    return false;
+  }
+
   placeEnemy(e, dt) {
     let x, z, ang;
     if (e.air) {
@@ -767,6 +822,11 @@ export class Game {
       x = sg.a.x + (sg.b.x - sg.a.x) * k - Math.sin(ang) * side;
       z = sg.a.z + (sg.b.z - sg.a.z) * k + Math.cos(ang) * side;
       e.rem = e.len - e.d;
+    } else if (e.mz) {
+      const M = this.maze, [tx, tz] = M.center(e.tk);
+      ang = e.ga;
+      x = e.gx - Math.sin(ang) * e.off; z = e.gz + Math.cos(ang) * e.off;
+      e.rem = M.dist[e.tk] * M.C + Math.hypot(tx - e.gx, tz - e.gz);
     } else {
       const s = e.opt.samples;
       while (e.k < s.length - 2 && s[e.k + 1].cum < e.d) e.k++;
@@ -793,6 +853,7 @@ export class Game {
 
   // ---------- 매 프레임 ----------
   update(dt, time) {
+    if (this.maze && this.maze.sync(this.towers)) { this.mzPrev = null; this.city.showMazePath(this.maze); }   // 무기를 놓거나 팔면 적의 길이 바로 바뀜
     for (const e of this.enemies) for (const [o, ax, sp] of e.model.spin) o.rotation[ax] += sp * dt;
     for (const tw of this.towers) {
       if (tw.model.animate) tw.model.animate(dt, time);
@@ -875,8 +936,9 @@ export class Game {
     // 적 이동
     for (const e of this.enemies) {
       if (e.dead) continue;
-      if (e.stun > 0) e.stun -= dt; else e.d += e.E.speed * e.slowMul * dt;
-      if (e.air ? e.d >= e.len : this.advanceGround(e)) { this.leak(e); continue; }
+      let step = 0;
+      if (e.stun > 0) e.stun -= dt; else { step = e.E.speed * e.slowMul * dt; e.d += step; }
+      if (e.air ? e.d >= e.len : e.mz ? this.moveMaze(e, step) : this.advanceGround(e)) { this.leak(e); continue; }
       this.placeEnemy(e, dt);
     }
     this.enemies = this.enemies.filter((e) => !e.dead);
