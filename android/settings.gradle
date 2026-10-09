@@ -1,0 +1,6 @@
+// 2030 Warfare 안드로이드 앱 (APK): 공개 사이트를 전체 화면으로 여는 얇은 껍데기
+// 게임 내용은 늘 https://joongyub.github.io/warfare-2030/ 에서 받아서, 사이트를 업데이트하면 앱도 같이 바뀜
+pluginManagement { repositories { google(); mavenCentral(); gradlePluginPortal() } }
+dependencyResolutionManagement { repositories { google(); mavenCentral() } }
+rootProject.name = 'warfare2030'
+include ':app'

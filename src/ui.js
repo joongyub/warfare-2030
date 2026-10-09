@@ -3,6 +3,10 @@
 import { Profile } from './profile.js';
 import { Cloud } from './cloud.js';
 import { layout, isTouch } from './layout.js';
+// 안드로이드 APK(앱 껍데기)·아이폰 판별, APK 다운로드 주소 (.github/workflows/apk.yml 이 올림)
+const APK_URL = 'https://github.com/joongyub/warfare-2030/releases/download/apk/warfare-2030.apk';
+const isApk = () => /W2030App/.test(navigator.userAgent);
+const isIOS = () => /iPhone|iPad|iPod/.test(navigator.userAgent) || (navigator.platform === 'MacIntel' && navigator.maxTouchPoints > 1);
 import { HEROES, HERO_IDS, GACHA, heroChance } from './heroes.js';
 import { Saves } from './save.js';
 import { RECIPES, Codex, comboRate, comboFee } from './codex.js';
@@ -134,7 +138,7 @@ export class UI {
     t.querySelector('.pc-cfg').onclick = () => pop('pc-set');
     t.querySelector('.pc-exit').onclick = (e) => this.exitGame(e.currentTarget);
     t.querySelector('.pc-install').onclick = () => {
-      const ip = window.__installPrompt; if (!ip) return;
+      const ip = window.__installPrompt; if (!ip) { this.appGuide(); return; }
       ip.prompt(); ip.userChoice.then(() => { window.__installPrompt = null; document.body.classList.remove('can-install'); });
     };
     if (this.L.mobile) t.querySelector('.help').textContent = '조작: 무기 카드 터치 → 회색 공간 터치로 배치 · 한 손가락 끌기 이동 · 두 손가락 벌리기 확대 · 두 손가락 비틀기 회전 · 무기 터치로 강화 · 같은 카드 다시 터치하면 취소';
@@ -673,8 +677,16 @@ export class UI {
     const snd = (n) => { if (this.app.sound) this.app.sound.play(n); };
     if (t === 'hero') {
       const dps = (H) => Math.round(H.dmg * H.rate * (H.salvo || 1));
+      // 일반 / 레전더리 구분해서 작은 카드로 (필터는 기억)
+      const legend = HERO_IDS.filter((id) => HEROES[id].legend), normal = HERO_IDS.filter((id) => !HEROES[id].legend);
+      if (!this.heroFilter) this.heroFilter = 'all';
+      const card = (id) => { const H = HEROES[id]; return `<div class="hr${H.legend ? ' lg' : ''}" data-id="${id}" title="몸짓: ${H.gesture}"><img src="${this.icons['hero_' + id]}"><b>${H.name}</b><em>${H.title}</em><span>${H.role} · DPS ${dps(H)}</span></div>`; };
+      const sec = (f, label, ids) => `<div class="hr-sec" data-f="${f}"><div class="hr-sec-t${f === 'legend' ? ' lgt' : ''}">${label} <small>${ids.length}명</small></div><div class="hr-cards">${ids.map(card).join('')}</div></div>`;
       body.innerHTML = `<div class="hr-wrap">
-        <div class="hr-grid">${HERO_IDS.map((id) => { const H = HEROES[id]; return `<div class="hr${H.legend ? ' lg' : ''}" data-id="${id}">${H.legend ? '<i class="lg-tag">LEGENDARY</i>' : ''}<img src="${this.icons['hero_' + id]}"><b>${H.name}</b><em>${H.title}</em><span>${H.role} · DPS ${dps(H)} · 확률 ${(heroChance(id) * 100).toFixed(1)}%</span><small>몸짓: ${H.gesture}</small></div>`; }).join('')}</div>
+        <div class="hr-main">
+          <div class="hr-filter">${[['all', '전체', HERO_IDS.length], ['normal', '일반 영웅', normal.length], ['legend', '레전더리 영웅', legend.length]].map(([f, n, c]) => `<button data-f="${f}" class="${f === this.heroFilter ? 'on' : ''}${f === 'legend' ? ' lgf' : ''}">${n} <small>${c}</small></button>`).join('')}</div>
+          <div class="hr-grid">${sec('legend', '★ 레전더리 영웅', legend)}${sec('normal', '일반 영웅', normal)}</div>
+        </div>
         <div class="hr-side">
           <div class="hr-stage"><div class="hr-q">?</div></div>
           <div class="hr-res">${HERO_IDS.length}명 중 1명 무작위 (모두 ${(heroChance(HERO_IDS[0]) * 100).toFixed(1)}%) · 가까이 두면 합체하는 영웅들이 있어요 · 📖 무기도감</div>
@@ -682,6 +694,12 @@ export class UI {
           <button class="hr-place" style="display:none"></button>
           <div class="hr-note">뽑을 때마다 영웅이 한 명씩 늘어납니다 (같은 영웅도 여러 명 배치 가능). 배치한 영웅은 보급으로 Lv.10까지 강화. 일반 무기 최고 DPS는 약 80</div>
         </div></div>`;
+      const applyFilter = () => {
+        body.querySelectorAll('.hr-filter button').forEach((b) => b.classList.toggle('on', b.dataset.f === this.heroFilter));
+        body.querySelectorAll('.hr-sec').forEach((x) => { x.style.display = this.heroFilter === 'all' || this.heroFilter === x.dataset.f ? '' : 'none'; });
+      };
+      body.querySelectorAll('.hr-filter button').forEach((b) => { b.onclick = () => { this.heroFilter = b.dataset.f; applyFilter(); snd('click'); }; });
+      applyFilter();
       const pull = body.querySelector('.hr-pull'), stage = body.querySelector('.hr-stage'), res = body.querySelector('.hr-res'), place = body.querySelector('.hr-place');
       pull.onclick = () => {
         const r = g.pullHero();
@@ -884,11 +902,15 @@ export class UI {
   autoFullscreen() {
     if (this.fsOff) return;
     const d = document.documentElement, fs = document.fullscreenElement || document.webkitFullscreenElement;
-    if (fs) return;
+    if (fs || isApk()) return;
     const req = d.requestFullscreen || d.webkitRequestFullscreen;
     const app = matchMedia('(display-mode: fullscreen), (display-mode: standalone)').matches || navigator.standalone;
     if (!req) {
-      if (!app && !this.iosHinted) { this.iosHinted = true; setTimeout(() => this.toastAny('아이폰은 사파리 아래 공유(⬆) → "홈 화면에 추가"로 열면 주소창 없이 전체 화면으로 할 수 있어요', 6500), 600); }
+      if (!app && !this.iosHinted) {
+        this.iosHinted = true;
+        let seen = false; try { seen = !!localStorage.getItem('gf_appguide'); localStorage.setItem('gf_appguide', '1'); } catch (e) { /* 저장 불가 */ }
+        setTimeout(() => (seen ? this.toastAny('아이폰 전체 화면: 공유(⬆) → "홈 화면에 추가" 후 홈 화면 아이콘으로 실행', 5000) : this.appGuide()), 600);
+      }
       return;
     }
     Promise.resolve(req.call(d, { navigationUI: 'hide' })).then(() => { try { screen.orientation.lock('landscape').catch(() => {}); } catch (e) { /* 미지원 */ } }).catch(() => {});
@@ -899,8 +921,29 @@ export class UI {
     if (fs) { this.fsOff = true; (document.exitFullscreen || document.webkitExitFullscreen).call(document); return; }
     this.fsOff = false;
     const req = d.requestFullscreen || d.webkitRequestFullscreen;
-    if (!req) { this.toastAny('이 브라우저는 전체 화면을 지원하지 않아요. 공유 → 홈 화면에 추가로 열어 주세요'); return; }
+    if (!req) { this.appGuide(); return; }
     Promise.resolve(req.call(d, { navigationUI: 'hide' })).then(() => { try { screen.orientation.lock('landscape').catch(() => {}); } catch (e) { /* 미지원 */ } }).catch(() => {});
+  }
+  // 📲 앱처럼 전체 화면으로 하는 법: 아이폰은 '홈 화면에 추가'(APK 는 아이폰에 설치 불가), 안드로이드는 APK 또는 크롬 설치
+  //   둘 다 공개 사이트를 열기 때문에 사이트를 배포하면 홈 화면 앱·APK·크롬 링크가 같이 최신이 됨
+  appGuide() {
+    if (this.guideEl) return;
+    const ios = isIOS();
+    const el = this.guideEl = h('div', 'ag', null, this.root);
+    el.innerHTML = `<div class="ag-box">
+      <button class="ag-x">✕</button>
+      <b class="ag-t">📲 앱처럼 전체 화면으로 하기</b>
+      <div class="ag-cols">
+        <div class="ag-col${ios ? ' on' : ''}"><div class="ag-h"> 아이폰 · 아이패드</div>
+          <ol><li><b>사파리</b>로 이 게임 주소를 열어요</li><li>아래(아이패드는 위) <b>공유 ⬆</b> 버튼</li><li><b>"홈 화면에 추가"</b> → <b>추가</b></li><li>홈 화면의 <b>2030 Warfare</b> 아이콘으로 실행하면 주소창 없이 전체 화면</li></ol>
+          <small>아이폰은 APK 파일을 설치할 수 없어요 (애플이 막아 둠). 홈 화면 앱은 열 때마다 최신 버전으로 자동 업데이트돼요.</small></div>
+        <div class="ag-col${ios ? '' : ' on'}"><div class="ag-h">🤖 안드로이드</div>
+          <ol><li><a class="ag-apk" href="${APK_URL}" target="_blank" rel="noopener">APK 내려받기</a> → 파일 열어 설치 (처음 한 번 "출처를 알 수 없는 앱 허용")</li><li>또는 크롬 메뉴 ⋮ → <b>"앱 설치"</b> / "홈 화면에 추가"</li></ol>
+          <small>APK 앱도 사이트에서 게임을 받아서 업데이트할 때 다시 설치할 필요가 없어요. 구글 로그인(클라우드 저장)은 크롬에서 해 주세요.</small></div>
+      </div></div>`;
+    const close = () => { el.remove(); this.guideEl = null; };
+    el.querySelector('.ag-x').onclick = close;
+    el.onclick = (e) => { if (e.target === el) close(); };
   }
   whiteFlash() {
     const f = h('div', 'wflash', '', this.root);
