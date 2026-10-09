@@ -474,10 +474,11 @@ export class UI {
 
     // 무기 정보 창
     this.panel = h('div', 'tpanel', '', hud);
-    this.panel.innerHTML = `<b class="pt"></b><div class="pi"></div><button class="up"></button><button class="all"></button><div class="row"><button class="sell"></button><button class="close">닫기</button></div>`;
+    this.panel.innerHTML = `<b class="pt"></b><div class="pi"></div><button class="up"></button><button class="all"></button><div class="row"><button class="move">✥ 이동</button><button class="sell"></button><button class="close">닫기</button></div>`;
     this.panel.querySelector('.up').onclick = () => g.upgradeTower(g.selected);
     this.panel.querySelector('.all').onclick = () => g.upgradeAll(g.selected.type);
     this.panel.querySelector('.sell').onclick = () => g.sellTower(g.selected);
+    this.panel.querySelector('.move').onclick = () => g.startMove(g.selected);
     this.panel.querySelector('.close').onclick = () => g.select(null);
 
     // 저장 창
@@ -699,6 +700,7 @@ export class UI {
     if (g.mode === 'strat') hint = GF.STRATEGIC[g.stratSel].name + `: 떨어뜨릴 곳을 ${tap} · ${esc}`;
     else if (g.mode === 'card') hint = GF.CARDS[g.hand[g.cardSel]].name + `: 지도에서 위치 ${tap} · ${esc}`;
     else if (g.mode === 'hero') hint = HEROES[g.heroSel].name + ` 배치: ${g.maze ? '빈 칸' : '회색 공간 아무 곳이나'} ${tap} · ${M ? '영웅 버튼 다시 누르면 취소' : '오른쪽 클릭/ESC 취소'}`;
+    else if (g.mode === 'move' && g.moveTw) hint = GF.wname(g.moveTw.type) + ` 이동: ${g.maze ? '빈 칸' : '회색 공간 아무 곳이나'} ${tap} (무료, 강화 그대로) · ${M ? '원래 자리 다시 누르면 취소' : '원래 자리 클릭·오른쪽 클릭·ESC 취소'}`;
     else if (g.mode) hint = GF.wname(g.mode) + (GF.WEAPONS[g.mode] && GF.WEAPONS[g.mode].role ? ` (${GF.WEAPONS[g.mode].role})` : '') + ` 설치: ${g.maze ? '빈 칸' : '회색 공간 아무 곳이나'} ${tap} · ${M ? '카드 다시 누르면 취소' : '오른쪽 클릭/ESC 취소'}`;
     if (g.mode && isTouch() && g.mode !== 'detour') hint = '📌 지도 고정됨 · 손가락을 대고 끌어 위치를 맞춘 뒤 떼면 설치 · ' + hint;
     else if (g.state === 'ready' && g.maze) hint = `특별 작전 · 칸에 무기를 놓으면 벽이 돼요 · 빨간 화살표가 지금 적이 갈 길 (지금 길이 ${Math.round(g.maze.dist[g.maze.entry] * g.maze.C)}) · 길을 완전히 막을 수는 없어요`;
