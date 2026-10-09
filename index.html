@@ -464,7 +464,12 @@
 <script src="dist/game.js"></script>
 <script>
   // 인터넷 주소(https)로 열었을 때만: 앱 설치·오프라인 저장
-  if ('serviceWorker' in navigator && location.protocol.indexOf('http') === 0) navigator.serviceWorker.register('sw.js').catch(function () {});
+  if ('serviceWorker' in navigator && location.protocol.indexOf('http') === 0) {
+    // 새 버전이 깔리면 한 번 새로고침 → 옛 화면이 남지 않게
+    var hadSW = !!navigator.serviceWorker.controller, reloaded = false;
+    navigator.serviceWorker.addEventListener('controllerchange', function () { if (hadSW && !reloaded) { reloaded = true; location.reload(); } });
+    navigator.serviceWorker.register('sw.js', { updateViaCache: 'none' }).then(function (r) { r.update(); }).catch(function () {});
+  }
   window.addEventListener('beforeinstallprompt', function (e) { e.preventDefault(); window.__installPrompt = e; document.body.classList.add('can-install'); });
 </script>
 </body>
