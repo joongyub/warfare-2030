@@ -40,7 +40,54 @@ export const HEROES = {
     role: '항모 함재기 유도탄', desc: '흰 정모와 쌍안경. 쌍안경으로 적을 찾은 뒤 경례하면 유도탄 4발이 서로 다른 적 4명을 노림(공중 포함)', gesture: '쌍안경으로 살피다 거수경례 후 손을 뻗음' },
   churchill: { name: '윈스턴 처칠', short: '처칠', nation: '영국', title: '결코 항복하지 않는 전시 총리', color: '#7a1f2b',
     shot: 'finest', range: 9, dmg: 300, rate: 0.42, salvo: 1, splash: 3.0, slow: 0.25, hits: ['ground'],
-    role: '중포 일격 + 결의의 연설', desc: '중절모·나비넥타이·시가·지팡이. V자 승리 손짓마다 거대한 포탄 한 발, 사거리 안 적은 늘 25% 느려짐', gesture: '시가를 피우다 오른손을 번쩍 들어 V자 승리 손짓' }
+    role: '중포 일격 + 결의의 연설', desc: '중절모·나비넥타이·시가·지팡이. V자 승리 손짓마다 거대한 포탄 한 발, 사거리 안 적은 늘 25% 느려짐', gesture: '시가를 피우다 오른손을 번쩍 들어 V자 승리 손짓' },
+  // ---- v0.35 추가: 세계의 전쟁 영웅 10명 ----
+  euljimundeok: { name: '을지문덕', short: '을지문덕', nation: '고구려', title: '살수대첩으로 수나라 30만을 물리친 명장', color: '#2a6fb0',
+    shot: 'flood', range: 10, dmg: 70, rate: 0.6, salvo: 8, splash: 2.6, hits: ['ground'],
+    role: '살수 물벼락 · 밀어내기', desc: '붉은 찰갑과 깃털 투구, 환두대도. 칼을 들어 올렸다 내리치면 목표 자리에 강물이 터져 적 8명을 휩쓸고 뒤로 밀어냄(보스 제외)', gesture: '환두대도를 머리 위로 들었다가 앞으로 크게 내리침' },
+  gangamchan: { name: '강감찬', short: '강감찬', nation: '고려', title: '귀주대첩으로 거란 10만을 무찌른 장군', color: '#2c3e6a',
+    shot: 'arrowrain', range: 10.5, dmg: 40, rate: 0.7, salvo: 12, splash: 2.6, hits: ['ground', 'air'],
+    role: '귀주대첩 화살비', desc: '흰 수염과 남색 갑옷, 지휘 깃발. 깃발을 휘두르면 하늘에서 화살 12발이 비처럼 쏟아짐(공중 포함)', gesture: '지휘 깃발을 높이 들었다가 적 쪽으로 힘차게 내림' },
+  napoleon: { name: '나폴레옹 보나파르트', short: '나폴레옹', nation: '프랑스', title: '아우스터리츠의 포병 황제', color: '#1f2f6e',
+    shot: 'grandbattery', range: 11, dmg: 100, rate: 0.5, salvo: 6, splash: 1.5, hits: ['ground'],
+    role: '대포병대 일제 포격', desc: '옆으로 쓴 이각모와 남색 군복, 조끼에 넣은 손. 손을 뽑아 가리키면 대포 6문이 줄지어 불을 뿜음', gesture: '왼손은 조끼 속에 넣고, 오른손을 뻗어 목표를 가리킴' },
+  joan: { name: '잔 다르크', short: '잔 다르크', nation: '프랑스', title: '오를레앙을 구한 성녀 기사', color: '#e8e4d8',
+    shot: 'holylight', range: 9, dmg: 280, rate: 0.55, splash: 2.0, hits: ['ground', 'air'], buff: { range: 0.05, dmg: 0.15 }, buffR: 5,
+    role: '성스러운 빛 + 주변 무기 강화', desc: '은빛 판금 갑옷과 백합 깃발. 칼을 하늘로 들면 빛기둥이 내리꽂히고, 곁(5칸)의 아군 무기 피해 +15%', gesture: '깃발을 쥔 채 칼을 하늘 높이 치켜듦' },
+  genghis: { name: '칭기즈칸', short: '칭기즈칸', nation: '몽골', title: '세계를 휩쓴 대초원의 정복자', color: '#7a4a1e',
+    shot: 'horsearrows', range: 11, dmg: 75, rate: 0.9, salvo: 6, hits: ['ground', 'air'],
+    role: '기마 궁수 속사', desc: '털모자와 가죽 갑옷, 짧은 각궁. 활을 들면 기마 궁수들이 서로 다른 적 6명에게 화살을 날림(공중 포함)', gesture: '짧은 활을 옆으로 눕혀 들고 재빨리 시위를 당김' },
+  alexander: { name: '알렉산드로스 대왕', short: '알렉산더', nation: '마케도니아', title: '한 번도 지지 않은 젊은 대왕', color: '#b8862e',
+    shot: 'phalanx', range: 8.5, dmg: 240, rate: 0.6, salvo: 10, hits: ['ground'],
+    role: '팔랑크스 장창 돌격', desc: '붉은 깃 장식 황금 투구와 붉은 망토, 긴 장창. 창을 내지르면 창끝 충격이 일직선으로 뻗어 줄 선 적 10명을 꿰뚫음', gesture: '긴 장창을 뒤로 당겼다가 앞으로 힘껏 내지름' },
+  hannibal: { name: '한니발 바르카', short: '한니발', nation: '카르타고', title: '코끼리를 이끌고 알프스를 넘은 장군', color: '#5a2a6a',
+    shot: 'elephant', range: 9, dmg: 360, rate: 0.4, splash: 2.4, hits: ['ground'],
+    role: '전투 코끼리 돌진', desc: '청동 투구와 보라 망토. 손짓하면 전투 코끼리가 날아들어 쿵! 주변 적을 짓밟고 잠깐 멈춰 세움', gesture: '팔을 크게 휘저어 코끼리 부대에 돌격 신호를 보냄' },
+  julius: { name: '율리우스 카이사르', short: '카이사르', nation: '로마', title: '왔노라, 보았노라, 이겼노라', color: '#a0222a',
+    shot: 'pilum', range: 9.5, dmg: 110, rate: 0.8, salvo: 5, splash: 0.8, hits: ['ground'],
+    role: '로마 군단 투창', desc: '월계관과 흰 토가, 붉은 망토. 팔을 휘두르면 군단병의 투창(필룸) 5개가 서로 다른 적에게 꽂힘', gesture: '월계관을 쓴 채 팔을 뒤로 젖혔다가 앞으로 내던짐' },
+  washington: { name: '조지 워싱턴', short: '워싱턴', nation: '미국', title: '델라웨어강을 건넌 대륙군 총사령관', color: '#23356b',
+    shot: 'musket', range: 8.5, dmg: 42, rate: 1.3, salvo: 7, hits: ['ground', 'air'],
+    role: '대륙군 머스킷 일제 사격', desc: '삼각모와 남색·담황색 군복, 흰 머리. 칼을 앞으로 겨누면 대륙군 머스킷 7정이 동시에 불을 뿜음(공중 포함)', gesture: '군도를 뽑아 앞으로 곧게 겨눔' },
+  saladin: { name: '살라딘', short: '살라딘', nation: '아이유브', title: '예루살렘을 되찾은 관대한 술탄', color: '#2e6a3a',
+    shot: 'scimitar', range: 6.5, dmg: 150, rate: 0.8, salvo: 10, hits: ['ground', 'air'],
+    role: '초승달 검기 회전 베기', desc: '흰 터번과 초록 겉옷, 휘어진 시미터. 몸을 한 바퀴 돌며 베면 초승달 검기가 퍼져 주변 적 10명을 벰(공중 포함)', gesture: '시미터를 비스듬히 들고 있다가 몸을 크게 돌려 벰' },
+  // ---- 조합 영웅 (뽑기에 안 나오고 📖 무기도감 조합으로만 생김). model: 이 영웅 모양을 크게 + 금빛 ----
+  turtle: { name: '이순신 · 거북선 함대', short: '거북선 함대', nation: '조선·영국', title: '불멸의 함대 조합 (이순신 + 넬슨)', color: '#c0392b', legend: true, combo: true, big: 1.4, model: 'yisunsin',
+    shot: 'broadside', range: 13, dmg: 150, rate: 0.6, salvo: 14, splash: 1.7, hits: ['ground'],
+    role: '거북선 함대 일제 포격', desc: '이순신과 넬슨이 함께 지휘하는 함대. 포탄 14발이 연달아 쏟아짐', gesture: '각궁을 앞으로 뻗어 함대에 포격 명령' },
+  pacific: { name: '맥아더 · 태평양 연합사령부', short: '태평양 사령부', nation: '미국', title: '태평양 연합 조합 (맥아더 + 니미츠)', color: '#c9a24a', legend: true, combo: true, big: 1.4, model: 'macarthur',
+    shot: 'carrier', range: 14, dmg: 230, rate: 0.8, salvo: 10, splash: 1.0, hits: ['ground', 'air'],
+    role: '항모 전단 + 폭격기 총공세', desc: '맥아더와 니미츠가 함께 부르는 함재기 편대. 유도탄 10발이 서로 다른 적을 노림(공중 포함)', gesture: '파이프를 문 채 손을 뻗어 총공세 명령' },
+  conqueror: { name: '나폴레옹 · 정복왕', short: '정복왕', nation: '프랑스·마케도니아', title: '정복왕 조합 (나폴레옹 + 알렉산더)', color: '#1f2f6e', legend: true, combo: true, big: 1.4, model: 'napoleon',
+    shot: 'grandbattery', range: 13, dmg: 170, rate: 0.55, salvo: 12, splash: 1.8, hits: ['ground'],
+    role: '대포병대 12문 일제 포격', desc: '두 정복자가 함께 지휘하는 대포병대. 대포 12문이 줄지어 불을 뿜음', gesture: '오른손을 뻗어 목표를 가리킴' },
+  goguryeo: { name: '을지문덕 · 살수귀주 대첩', short: '살수귀주', nation: '고구려·고려', title: '고구려·고려 수호 조합 (을지문덕 + 강감찬)', color: '#2a6fb0', legend: true, combo: true, big: 1.4, model: 'euljimundeok',
+    shot: 'flood', range: 12, dmg: 160, rate: 0.7, salvo: 14, splash: 3.2, hits: ['ground'],
+    role: '대홍수 + 밀어내기', desc: '두 명장의 기운이 합쳐진 큰 물벼락. 적 14명을 휩쓸고 멀리 밀어냄(보스 제외)', gesture: '환두대도를 머리 위로 들었다가 크게 내리침' },
+  horde: { name: '칭기즈칸 · 대초원 기마군단', short: '기마군단', nation: '몽골·아이유브', title: '기마군단 조합 (칭기즈칸 + 살라딘)', color: '#7a4a1e', legend: true, combo: true, big: 1.4, model: 'genghis',
+    shot: 'horsearrows', range: 13, dmg: 140, rate: 1.0, salvo: 14, hits: ['ground', 'air'],
+    role: '기마군단 화살 폭풍', desc: '두 기마 민족의 영웅이 이끄는 대군단. 서로 다른 적 14명에게 화살을 퍼부음(공중 포함)', gesture: '짧은 활을 들고 재빨리 시위를 당김' }
 };
 // 조합 영웅(combo)은 뽑기에 나오지 않고 조합으로만 생김
 export const HERO_IDS = Object.keys(HEROES).filter((id) => !HEROES[id].combo);
@@ -48,7 +95,12 @@ export const HERO_IDS = Object.keys(HEROES).filter((id) => !HEROES[id].combo);
 export const heroWeight = () => 1;
 // 영웅 조합: 두 영웅이 가까이(dist 안) 놓이면 합체 → into 영웅 (game.js checkCombo)
 export const COMBOS = [
-  { a: 'limbaegeun', b: 'kimdeokhun', into: 'monk', dist: 3.6, name: '능인고 조합완성' }
+  { a: 'limbaegeun', b: 'kimdeokhun', into: 'monk', dist: 3.6, name: '능인고 조합완성' },
+  { a: 'yisunsin', b: 'nelson', into: 'turtle', dist: 3.6, name: '불멸의 함대 조합완성' },
+  { a: 'macarthur', b: 'nimitz', into: 'pacific', dist: 3.6, name: '태평양 연합 조합완성' },
+  { a: 'napoleon', b: 'alexander', into: 'conqueror', dist: 3.6, name: '정복왕 조합완성' },
+  { a: 'euljimundeok', b: 'gangamchan', into: 'goguryeo', dist: 3.6, name: '살수귀주 조합완성' },
+  { a: 'genghis', b: 'saladin', into: 'horde', dist: 3.6, name: '기마군단 조합완성' }
 ];
 export const heroChance = (id) => heroWeight(id) / HERO_IDS.reduce((s, x) => s + heroWeight(x), 0);
 export function rollHero() {
@@ -58,7 +110,7 @@ export function rollHero() {
 }
 // 뽑기 규칙. lucky = [받는 보급, 확률 %]
 export const GACHA = {
-  heroCost: 600,                // 영웅 모집 1회 (10명 중 무작위 1명, 전설 영웅은 일반의 절반 확률. 이미 있는 영웅이면 강화)
+  heroCost: 600,                // 영웅 모집 1회 (20명 중 무작위 1명, 모두 같은 확률)
   heroMaxRefund: 250,           // 이미 최대 강화된 영웅이 또 나오면 돌려주는 보급
   luckyCost: 100, luckyPerWave: 3,
   lucky: [[30, 20], [60, 25], [100, 25], [150, 18], [300, 10], [600, 2]]
@@ -134,11 +186,21 @@ const FLAGS = {
   hideyoshi: (g, w, h) => { g.fillStyle = '#7a1a1a'; g.fillRect(0, 0, w, h); g.fillStyle = '#e8b830'; const gourd = (cx, cy, s) => { g.beginPath(); g.arc(cx, cy, s, 0, 7); g.fill(); g.beginPath(); g.arc(cx, cy - s * 1.3, s * 0.65, 0, 7); g.fill(); }; gourd(w / 2, h * 0.62, h * 0.2); },
   nelson: (g, w, h) => { const c = ['#d0312d', '#f2c14e', '#1f3d8f', '#f4f4f4']; for (let y = 0; y < 2; y++) for (let x = 0; x < 3; x++) { g.fillStyle = c[(x + y * 2) % 4]; g.fillRect(x * w / 3, y * h / 2, w / 3 + 1, h / 2 + 1); } g.strokeStyle = '#111'; g.lineWidth = 2; g.strokeRect(1, 1, w - 2, h - 2); },
   nimitz: (g, w, h) => { g.fillStyle = '#1d2f5a'; g.fillRect(0, 0, w, h); g.fillStyle = '#fff'; for (let i = 0; i < 4; i++) { const cx = w * (0.2 + i * 0.2), cy = h * 0.5; g.beginPath(); for (let k = 0; k < 10; k++) { const a = -Math.PI / 2 + k * Math.PI / 5, r = k % 2 ? 4 : 10; g.lineTo(cx + Math.cos(a) * r, cy + Math.sin(a) * r); } g.fill(); } },
-  churchill: (g, w, h) => { g.fillStyle = '#1f3d8f'; g.fillRect(0, 0, w, h); g.strokeStyle = '#fff'; g.lineWidth = 12; g.beginPath(); g.moveTo(0, 0); g.lineTo(w, h); g.moveTo(w, 0); g.lineTo(0, h); g.stroke(); g.strokeStyle = '#d0312d'; g.lineWidth = 5; g.stroke(); g.lineWidth = 16; g.strokeStyle = '#fff'; g.beginPath(); g.moveTo(w / 2, 0); g.lineTo(w / 2, h); g.moveTo(0, h / 2); g.lineTo(w, h / 2); g.stroke(); g.lineWidth = 9; g.strokeStyle = '#d0312d'; g.stroke(); }
+  churchill: (g, w, h) => { g.fillStyle = '#1f3d8f'; g.fillRect(0, 0, w, h); g.strokeStyle = '#fff'; g.lineWidth = 12; g.beginPath(); g.moveTo(0, 0); g.lineTo(w, h); g.moveTo(w, 0); g.lineTo(0, h); g.stroke(); g.strokeStyle = '#d0312d'; g.lineWidth = 5; g.stroke(); g.lineWidth = 16; g.strokeStyle = '#fff'; g.beginPath(); g.moveTo(w / 2, 0); g.lineTo(w / 2, h); g.moveTo(0, h / 2); g.lineTo(w, h / 2); g.stroke(); g.lineWidth = 9; g.strokeStyle = '#d0312d'; g.stroke(); },
+  euljimundeok: (g, w, h) => { g.fillStyle = '#1d3a6a'; g.fillRect(0, 0, w, h); g.strokeStyle = '#8fd0ff'; g.lineWidth = 4; for (let y = h * 0.3; y < h; y += h * 0.22) { g.beginPath(); for (let x = 0; x <= w; x += 4) g.lineTo(x, y + Math.sin(x / 8) * 4); g.stroke(); } g.fillStyle = '#e8c14a'; g.beginPath(); g.arc(w * 0.78, h * 0.25, 7, 0, 7); g.fill(); },
+  gangamchan: (g, w, h) => { g.fillStyle = '#c0262e'; g.fillRect(0, 0, w, h); g.fillStyle = '#fff'; g.font = `bold ${h * 0.62}px serif`; g.textAlign = 'center'; g.textBaseline = 'middle'; g.fillText('龜', w / 2, h / 2 + 3); },
+  napoleon: (g, w, h) => { ['#1f3d8f', '#f4f4f4', '#d0312d'].forEach((c, i) => { g.fillStyle = c; g.fillRect(i * w / 3, 0, w / 3 + 1, h); }); g.fillStyle = '#d8aa45'; g.font = `bold ${h * 0.5}px serif`; g.textAlign = 'center'; g.textBaseline = 'middle'; g.fillText('N', w / 2, h / 2 + 2); },
+  joan: (g, w, h) => { g.fillStyle = '#f4f1e6'; g.fillRect(0, 0, w, h); g.fillStyle = '#2a3e8a'; g.fillRect(0, 0, w, h * 0.18); g.fillStyle = '#d8aa45'; g.font = `bold ${h * 0.6}px serif`; g.textAlign = 'center'; g.textBaseline = 'middle'; g.fillText('⚜', w / 2, h * 0.6); },
+  genghis: (g, w, h) => { g.fillStyle = '#f4f1e6'; g.fillRect(0, 0, w, h); g.fillStyle = '#7a4a1e'; for (let i = 0; i < 9; i++) g.fillRect(w * 0.1 + i * w * 0.09, h * 0.15, 4, h * 0.7); g.fillStyle = '#c0262e'; g.beginPath(); g.arc(w / 2, h / 2, h * 0.18, 0, 7); g.fill(); },
+  alexander: (g, w, h) => { g.fillStyle = '#7a1c1c'; g.fillRect(0, 0, w, h); g.fillStyle = '#e8c14a'; g.translate(w / 2, h / 2); for (let i = 0; i < 16; i++) { g.rotate(Math.PI / 8); g.fillRect(0, -2, h * 0.38, 4); } g.setTransform(1, 0, 0, 1, 0, 0); g.beginPath(); g.arc(w / 2, h / 2, h * 0.12, 0, 7); g.fill(); },
+  hannibal: (g, w, h) => { g.fillStyle = '#5a2a6a'; g.fillRect(0, 0, w, h); g.fillStyle = '#c9c3b8'; g.beginPath(); g.ellipse(w / 2, h * 0.55, w * 0.22, h * 0.22, 0, 0, 7); g.fill(); g.fillRect(w * 0.66, h * 0.5, 6, h * 0.35); g.fillStyle = '#f4f1e6'; g.fillRect(w * 0.62, h * 0.55, 10, 3); },
+  julius: (g, w, h) => { g.fillStyle = '#a0222a'; g.fillRect(0, 0, w, h); g.fillStyle = '#e8c14a'; g.font = `bold ${h * 0.34}px serif`; g.textAlign = 'center'; g.textBaseline = 'middle'; g.fillText('SPQR', w / 2, h / 2 + 2); },
+  washington: (g, w, h) => { for (let i = 0; i < 13; i++) { g.fillStyle = i % 2 ? '#f4f4f4' : '#b8262e'; g.fillRect(0, i * h / 13, w, h / 13 + 1); } g.fillStyle = '#2b3a78'; g.fillRect(0, 0, w * 0.42, h * 7 / 13); g.strokeStyle = '#fff'; g.lineWidth = 2; g.beginPath(); g.arc(w * 0.21, h * 0.27, h * 0.15, 0, 7); g.stroke(); },
+  saladin: (g, w, h) => { g.fillStyle = '#e8c14a'; g.fillRect(0, 0, w, h); g.fillStyle = '#2e6a3a'; g.beginPath(); g.arc(w / 2, h / 2, h * 0.32, 0, 7); g.fill(); g.fillStyle = '#e8c14a'; g.beginPath(); g.arc(w / 2 + 7, h / 2 - 2, h * 0.28, 0, 7); g.fill(); }
 };
 
 export function makeHero(id) {
-  const H = HEROES[id];
+  const H = HEROES[id], mid = H.model || id;   // 조합 영웅은 재료 영웅 모양(model)을 크게 씀
   const root = new THREE.Group(), yaw = new THREE.Group(); root.add(yaw);
   const glow = [], spin = [], beams = [];
   // 받침대: 검은 대리석 + 금테 + 빛나는 고리 (전설 등급 표시)
@@ -156,17 +218,23 @@ export function makeHero(id) {
   // 뒤 깃발 (영웅을 따라 돌지 않음)
   const pole = mesh(root, new THREE.CylinderGeometry(0.008, 0.01, 0.9, 6), M(0xb9a46a, { metalness: 0.7, roughness: 0.3 }), -0.26, 0.55, -0.2);
   mesh(root, new THREE.SphereGeometry(0.018, 8, 6), M(0xd8aa45, { metalness: 0.9, roughness: 0.25 }), -0.26, 1.0, -0.2);
-  const flag = new THREE.Mesh(new THREE.PlaneGeometry(0.3, 0.2, 6, 1), new THREE.MeshStandardMaterial({ map: canvasTex('hflag' + id, 96, 64, FLAGS[id]), side: THREE.DoubleSide, roughness: 0.9 }));
+  const flag = new THREE.Mesh(new THREE.PlaneGeometry(0.3, 0.2, 6, 1), new THREE.MeshStandardMaterial({ map: canvasTex('hflag' + id, 96, 64, FLAGS[id] || FLAGS[mid]), side: THREE.DoubleSide, roughness: 0.9 }));
   flag.geometry.translate(0.15, 0, 0); flag.position.set(-0.26, 0.86, -0.2); flag.rotation.y = 0.6; root.add(flag);
   const flagPos = flag.geometry.attributes.position, flag0 = flagPos.array.slice();
   void pole;
 
   const body = new THREE.Group(); body.position.y = 0.11; yaw.add(body);
+  if (H.combo && H.model) {   // 조합 영웅: 머리 뒤 금빛 광배 + 어깨 위 작은 왕관 빛 (재료 영웅과 구별)
+    const halo = new THREE.Mesh(new THREE.TorusGeometry(0.16, 0.014, 8, 36), new THREE.MeshStandardMaterial({ color: 0xffe08a, emissive: 0xffb020, emissiveIntensity: 1.5 }));
+    halo.position.set(-0.07, 0.86, 0); halo.rotation.y = Math.PI / 2; body.add(halo); glow.push(halo);
+    const inner = new THREE.Mesh(new THREE.CircleGeometry(0.15, 32), new THREE.MeshBasicMaterial({ color: 0xfff2b0, transparent: true, opacity: 0.35, side: THREE.DoubleSide, depthWrite: false }));
+    inner.position.set(-0.075, 0.86, 0); inner.rotation.y = Math.PI / 2; body.add(inner);
+  }
   const gold = M(0xd8aa45, { metalness: 0.85, roughness: 0.3 });
   let pose = () => {}, pre = null;
   const P = { act: 0, idle: Math.random() * 10 };
 
-  if (id === 'limbaegeun') {
+  if (mid === 'limbaegeun') {
     const skin = M(0xd9a47c);
     const h = humanoid({ coat: 0x18181c, pants: 0x3e4434, belt: 0x111111, boots: 0x222018, wide: 0.33 });
     body.add(h.fig);
@@ -223,7 +291,7 @@ export function makeHero(id) {
       body.rotation.z = lerp(0, -0.08, push) + breathe; h.head.rotation.z = lerp(0.05, 0.18, push);
       h.torso.scale.y = 1.04 + breathe;
     };
-  } else if (id === 'leejunhak') {
+  } else if (mid === 'leejunhak') {
     // 키 큰 동양 남자: 흰 티셔츠 + 청바지. 왼손은 흘러내리는 바지를 잡고, 오른손에 푼 가죽 벨트 (마디 8개 사슬이라 채찍처럼 휨)
     const h = humanoid({ coat: 0xf2f2ee, pants: 0x34557f, boots: 0xeeeeee, wide: 0.25 });
     body.add(h.fig);
@@ -258,7 +326,7 @@ export function makeHero(id) {
       segs.forEach((sg, i) => { sg.rotation.z = up < 0.05 ? sway * (i + 1) * 0.3 : (lash * 0.55 - up * 0.25) * (1 + i * 0.12) + Math.sin(t * 9 - i * 0.7) * 0.12 * up; });
       body.rotation.z = lerp(0, -0.06, up) - Math.max(0, lash) * 0.08; h.head.rotation.z = lerp(0.03, 0.15, up);
     };
-  } else if (id === 'kimdeokhun') {
+  } else if (mid === 'kimdeokhun') {
     // 특수부대 저격수: 길리슈트(풀잎 가닥 덮개) + 두건 + Kar98 볼트액션 소총(나무 개머리·조준경). 소총은 +x 를 겨눔
     const h = humanoid({ coat: 0x4a5a2a, pants: 0x3e4a22, boots: 0x2a2418, gloves: 0x2c2c22, wide: 0.27 });
     body.add(h.fig);
@@ -303,7 +371,7 @@ export function makeHero(id) {
       h.head.rotation.z = -0.12 + kick * 0.1; h.head.position.x = 0.02;
       body.rotation.z = -0.05 + kick * 0.04;
     };
-  } else if (id === 'simjaegwan') {
+  } else if (mid === 'simjaegwan') {
     // 키 큰 동양 남자: 남색 니트 가디건 + 흰 셔츠 + 베이지 바지 + 검정 뿔테안경. 오른손 검지로 안경을 밀어 올림
     const h = humanoid({ coat: 0x1f2c4a, pants: 0xb9a888, boots: 0x2a2018, belt: 0x3a2a1a, wide: 0.25 });
     body.add(h.fig);
@@ -340,7 +408,7 @@ export function makeHero(id) {
       h.head.rotation.z = lerp(0.02, 0.1, up) + Math.sin(t * 0.7) * 0.02; h.head.rotation.y = Math.sin(t * 0.5) * 0.15 * (1 - up);
       body.rotation.z = lerp(0, -0.03, up);
     };
-  } else if (id === 'monk') {
+  } else if (mid === 'monk') {
     // 스님: 회색 승복 + 주황 가사(어깨에 비스듬히) + 민머리. 왼손에 목탁(둥근 나무 물고기), 오른손에 나무채
     const h = humanoid({ coat: 0x8a8a84, pants: 0x7e7e78, boots: 0xd8d2c0, wide: 0.29, skirt: 0.17, skirtColor: 0x8a8a84 });
     body.add(h.fig);
@@ -374,7 +442,7 @@ export function makeHero(id) {
       h.head.rotation.z = 0.05 + beat * 0.04; h.head.rotation.y = Math.sin(t * 0.4) * 0.08;
       body.rotation.z = Math.sin(t * 0.8) * 0.01;
     };
-  } else if (id === 'macarthur') {
+  } else if (mid === 'macarthur') {
     const h = humanoid({ coat: 0xb59a6a, pants: 0xa98f62, belt: 0x5a3c22, wide: 0.24 });
     body.add(h.fig);
     // 장교 정모 (구겨진 크라운 + 챙 + 금 장식) · 선글라스 · 옥수수 파이프
@@ -395,7 +463,7 @@ export function makeHero(id) {
       h.head.rotation.z = lerp(0.05, 0.12, k); body.rotation.z = lerp(0, -0.06, k);
       sm(t);
     };
-  } else if (id === 'yisunsin') {
+  } else if (mid === 'yisunsin') {
     const h = humanoid({ coat: 0x7a1c1c, pants: 0x2a2421, belt: 0xd8aa45, skirt: 0.17, skirtColor: 0x5e1515, cuff: 0x2a2421, wide: 0.26 });
     body.add(h.fig);
     // 두정갑 금 징 무늬 + 투구(둥근 사발 + 차양 + 붉은 상모) + 수염
@@ -448,7 +516,7 @@ export function makeHero(id) {
       body.rotation.y = lerp(0, -0.25, raise);   // 활 쏘는 자세: 몸을 옆으로
       h.head.rotation.y = lerp(0, 0.25, raise);
     };
-  } else if (id === 'hideyoshi') {
+  } else if (mid === 'hideyoshi') {
     const h = humanoid({ coat: 0xb8401f, pants: 0x3b2a1e, belt: 0x1d1d1d, skirt: 0.18, skirtColor: 0x3a2516, cuff: 0x1d1d1d, wide: 0.27 });
     body.add(h.fig);
     const lam = canvasTex('odoshi', 64, 64, (g, w) => { for (let y = 0; y < w; y += 8) { g.fillStyle = (y / 8) % 2 ? '#b8401f' : '#8e2d14'; g.fillRect(0, y, w, 8); g.fillStyle = '#e8c06a'; for (let x = 2; x < w; x += 8) g.fillRect(x, y + 3, 2, 2); } });
@@ -470,7 +538,7 @@ export function makeHero(id) {
       set(h.L, lerp(0.15, 0.4, k), -0.25, 0.5);
       body.rotation.x = Math.sin(t * 16) * 0.04 * k;
     };
-  } else if (id === 'nelson') {
+  } else if (mid === 'nelson') {
     const h = humanoid({ coat: 0x1b2a4e, pants: 0xeeeae0, belt: 0xd8aa45, cuff: 0xd8aa45, skirt: 0.14, skirtColor: 0x1b2a4e, wide: 0.23 });
     body.add(h.fig);
     for (const s of [-1, 1]) { mesh(h.torso, new THREE.BoxGeometry(0.07, 0.02, 0.075), gold, 0, 0.14, s * 0.12); for (let i = 0; i < 4; i++) mesh(h.torso, new THREE.SphereGeometry(0.008, 6, 4), gold, 0.077, 0.08 - i * 0.05, s * 0.035); }
@@ -495,7 +563,7 @@ export function makeHero(id) {
       set(h.L, lerp(0.95, 1.6, k), lerp(0.55, 0.15, k), lerp(1.75, 0.0, k));
       h.head.rotation.y = lerp(scan * 0.4, 0, k); body.rotation.y = lerp(scan * 0.3, 0, k);
     };
-  } else if (id === 'nimitz') {
+  } else if (mid === 'nimitz') {
     const h = humanoid({ coat: 0x1c2a44, pants: 0x1c2a44, belt: 0x111111, cuff: 0xd8aa45, wide: 0.24 });
     body.add(h.fig);
     mesh(h.torso, new THREE.BoxGeometry(0.152, 0.12, 0.05), M(0xf4f4f4), 0.002, 0.07, 0);   // 흰 셔츠
@@ -521,7 +589,7 @@ export function makeHero(id) {
       set(h.R, rz, rx, re);
       h.head.rotation.y = Math.sin(t * 0.5) * 0.2 * look;
     };
-  } else if (id === 'churchill') {
+  } else if (mid === 'churchill') {
     const h = humanoid({ coat: 0x1c1c22, pants: 0x2a2a30, cuff: 0xf2f2f2, wide: 0.29 });
     body.add(h.fig);
     h.torso.scale.set(1.25, 1, 1);   // 풍채
@@ -550,10 +618,212 @@ export function makeHero(id) {
       body.rotation.z = lerp(0, -0.05, k); h.head.rotation.z = lerp(0, 0.12, k);
       sm(t);
     };
+  } else if (mid === 'euljimundeok') {
+    // 고구려 장수: 붉은 찰갑 + 깃털 투구 + 환두대도(고리 달린 칼)
+    const h = humanoid({ coat: 0x8a2a1e, pants: 0x3a2a20, belt: 0xd8aa45, skirt: 0.17, skirtColor: 0x6a1e16, cuff: 0x3a2a20, wide: 0.26 });
+    body.add(h.fig);
+    const scale = canvasTex('lamellar', 64, 64, (g, w) => { g.fillStyle = '#7a2218'; g.fillRect(0, 0, w, w); g.strokeStyle = '#c9963a'; g.lineWidth = 1.5; for (let y = 0; y < w; y += 8) for (let x = (y / 8) % 2 ? 0 : 4; x < w; x += 8) g.strokeRect(x, y, 7, 7); });
+    h.torso.material = new THREE.MeshStandardMaterial({ map: scale, roughness: 0.55, metalness: 0.25 });
+    const helm = M(0x3a3a3e, { metalness: 0.7, roughness: 0.3 });
+    mesh(h.head, new THREE.ConeGeometry(0.085, 0.12, 12), helm, 0, 0.07, 0);
+    mesh(h.head, new THREE.CylinderGeometry(0.088, 0.088, 0.02, 14), gold, 0, 0.02, 0);
+    const plume = mesh(h.head, new THREE.ConeGeometry(0.018, 0.12, 6), M(0xd23a2a, { roughness: 1 }), -0.02, 0.17, 0); plume.rotation.z = 0.5;
+    for (const s of [-1, 1]) mesh(h.head, new THREE.BoxGeometry(0.03, 0.08, 0.02), helm, -0.005, -0.03, s * 0.075);
+    mesh(h.head, new THREE.ConeGeometry(0.02, 0.07, 6), M(0x141210), 0.062, -0.075, 0).rotation.z = Math.PI;   // 수염
+    const sword = new THREE.Group(); h.R.hand.add(sword);
+    mesh(sword, new THREE.BoxGeometry(0.008, 0.36, 0.03), M(0xdfe6ea, { metalness: 0.9, roughness: 0.2 }), 0, -0.2, 0);
+    mesh(sword, new THREE.TorusGeometry(0.022, 0.005, 6, 14), gold, 0, 0.03, 0);
+    mesh(sword, new THREE.BoxGeometry(0.012, 0.012, 0.06), gold, 0, -0.02, 0);
+    pose = (t, a) => {
+      // a: 1 → 0. 칼을 머리 위로 → 앞으로 내리침 → 천천히 제자리
+      const up = a > 0.7 ? ease((1 - a) / 0.3) : 0, chop = a <= 0.7 ? ease(Math.min(1, (0.7 - a) / 0.15)) : 0, rest = a <= 0.25 ? 1 - a / 0.25 : 0;
+      set(h.R, a > 0.7 ? lerp(0.35, 3.0, up) : lerp(lerp(3.0, 1.2, chop), 0.35, rest), 0.05, 0.25);
+      set(h.L, 0.25 + Math.sin(t * 1.3) * 0.04, -0.1, 0.4);
+      body.rotation.z = a > 0.7 ? 0.04 * up : -0.12 * chop * (1 - rest);
+      plume.rotation.z = 0.5 + Math.sin(t * 3) * 0.08;
+    };
+  } else if (mid === 'gangamchan') {
+    // 고려 장군: 남색 갑옷 + 둥근 투구 + 긴 흰 수염 + 지휘 깃발
+    const h = humanoid({ coat: 0x2c3e6a, pants: 0x1e2436, belt: 0xd8aa45, skirt: 0.17, skirtColor: 0x24345a, cuff: 0x1e2436, wide: 0.25 });
+    body.add(h.fig);
+    mesh(h.head, new THREE.SphereGeometry(0.08, 14, 8, 0, Math.PI * 2, 0, Math.PI / 2), M(0x2c3e6a, { metalness: 0.5, roughness: 0.35 }), 0, 0.03, 0);
+    mesh(h.head, new THREE.CylinderGeometry(0.1, 0.1, 0.008, 18), gold, 0, 0.03, 0);
+    mesh(h.head, new THREE.SphereGeometry(0.014, 8, 6), gold, 0, 0.115, 0);
+    const white = M(0xf2f0ea, { roughness: 1 });
+    mesh(h.head, new THREE.BoxGeometry(0.03, 0.14, 0.07), white, 0.055, -0.1, 0);   // 긴 흰 수염
+    for (const s of [-1, 1]) mesh(h.head, new THREE.BoxGeometry(0.008, 0.01, 0.03), white, 0.064, 0.03, s * 0.026);   // 흰 눈썹
+    const flagG = new THREE.Group(); h.R.hand.add(flagG);
+    mesh(flagG, new THREE.CylinderGeometry(0.007, 0.007, 0.55, 6), M(0x5a3a22), 0, 0.12, 0);
+    const fl = mesh(flagG, new THREE.PlaneGeometry(0.16, 0.12), new THREE.MeshStandardMaterial({ map: canvasTex('gflag', 48, 36, (g, w, hh) => { g.fillStyle = '#c0262e'; g.fillRect(0, 0, w, hh); g.fillStyle = '#fff'; g.font = `bold ${hh * 0.7}px serif`; g.textAlign = 'center'; g.textBaseline = 'middle'; g.fillText('令', w / 2, hh / 2 + 2); }), side: THREE.DoubleSide }), 0, 0.33, 0.085);
+    fl.rotation.y = Math.PI / 2;
+    pose = (t, a) => {
+      const k = a > 0.6 ? ease((1 - a) / 0.4) : ease(a / 0.6);
+      const sw = a > 0.6 ? 0 : Math.sin((0.6 - a) / 0.6 * Math.PI) ;
+      set(h.R, lerp(0.4, 2.7, k) - sw * 1.2, 0.1, lerp(0.5, 0.05, k));
+      set(h.L, 0.3, -0.12, 0.5);
+      fl.rotation.x = Math.sin(t * 6) * 0.15;
+      body.rotation.z = -sw * 0.08;
+    };
+  } else if (mid === 'napoleon') {
+    // 옆으로 쓴 이각모 + 남색 군복(금 견장) + 흰 바지 + 조끼 속 왼손
+    const h = humanoid({ coat: 0x1f2f6e, pants: 0xeeeeea, boots: 0x111111, cuff: 0xc0262e, wide: 0.25 });
+    body.add(h.fig);
+    mesh(h.torso, new THREE.BoxGeometry(0.155, 0.16, 0.09), M(0xf2f0e8), 0.006, 0.02, 0);   // 흰 조끼
+    for (const s of [-1, 1]) { const ep = mesh(h.torso, new THREE.CylinderGeometry(0.045, 0.045, 0.015, 10), gold, 0, 0.14, s * 0.12); void ep; }
+    const hat = new THREE.Group(); hat.position.set(-0.005, 0.07, 0); h.head.add(hat);
+    const hm = M(0x111114, { roughness: 0.6 });
+    mesh(hat, new THREE.SphereGeometry(0.11, 16, 8, 0, Math.PI * 2, 0, Math.PI / 2), hm, 0, -0.005, 0).scale.set(0.42, 0.75, 1.25);   // 옆으로 쓴 이각모 (반달 모양)
+    mesh(hat, new THREE.BoxGeometry(0.012, 0.012, 0.25), gold, 0.0, -0.002, 0);
+    mesh(hat, new THREE.SphereGeometry(0.02, 8, 6), M(0xc0262e), 0.045, 0.035, 0.03);   // 모표
+    for (const s of [-1, 1]) mesh(h.head, new THREE.BoxGeometry(0.008, 0.008, 0.026), M(0x1a1410), 0.064, 0.032, s * 0.024);
+    pose = (t, a) => {
+      const k = ease(Math.min(1, a * 1.7));
+      set(h.R, lerp(0.2, 1.6, k), lerp(-0.05, 0.08, k), lerp(0.35, 0.02, k));
+      set(h.L, 0.55, 0.3, 2.0);   // 조끼 속 손
+      h.head.rotation.z = lerp(0.08, 0.14, k) + Math.sin(t * 0.7) * 0.02; body.rotation.z = lerp(0, -0.05, k);
+    };
+  } else if (mid === 'joan') {
+    // 은빛 판금 갑옷 + 짧은 갈색 단발 + 백합 깃발(왼손) + 칼(오른손)
+    const steel = M(0xc8ccd4, { metalness: 0.85, roughness: 0.25 });
+    const h = humanoid({ coat: 0xc8ccd4, pants: 0x9aa0aa, boots: 0x6a6e76, gloves: 0x8a8e96, skirt: 0.15, skirtColor: 0x2a3e8a, wide: 0.23 });
+    body.add(h.fig);
+    h.torso.material = steel;
+    mesh(h.head, new THREE.SphereGeometry(0.073, 14, 8, 0, Math.PI * 2, 0, Math.PI / 1.7), M(0x6a3a1c, { roughness: 0.9 }), -0.006, 0.006, 0);   // 단발
+    for (const s of [-1, 1]) mesh(h.head, new THREE.BoxGeometry(0.06, 0.06, 0.012), M(0x6a3a1c, { roughness: 0.9 }), -0.01, -0.025, s * 0.068);
+    mesh(h.torso, new THREE.BoxGeometry(0.01, 0.1, 0.03), M(0xd8aa45), 0.08, 0.02, 0);   // 가슴 십자
+    mesh(h.torso, new THREE.BoxGeometry(0.01, 0.03, 0.08), M(0xd8aa45), 0.08, 0.04, 0);
+    const sword = new THREE.Group(); h.R.hand.add(sword);
+    mesh(sword, new THREE.BoxGeometry(0.008, 0.34, 0.025), M(0xf0f4f8, { metalness: 0.95, roughness: 0.15 }), 0, -0.2, 0);
+    mesh(sword, new THREE.BoxGeometry(0.012, 0.012, 0.09), gold, 0, -0.025, 0);
+    const banner = new THREE.Group(); h.L.hand.add(banner);
+    mesh(banner, new THREE.CylinderGeometry(0.006, 0.006, 0.7, 6), M(0x6a4a2a), 0, 0.1, 0);
+    const bf = mesh(banner, new THREE.PlaneGeometry(0.18, 0.13), new THREE.MeshStandardMaterial({ side: THREE.DoubleSide, map: canvasTex('joanflag', 54, 40, (g, w, hh) => { g.fillStyle = '#f4f1e6'; g.fillRect(0, 0, w, hh); g.fillStyle = '#d8aa45'; g.font = `bold ${hh * 0.8}px serif`; g.textAlign = 'center'; g.textBaseline = 'middle'; g.fillText('⚜', w / 2, hh / 2 + 2); }) }), 0, 0.37, 0.095);
+    bf.rotation.y = Math.PI / 2;
+    pose = (t, a) => {
+      const k = ease(Math.min(1, a * 1.6));
+      set(h.R, lerp(0.4, 3.05, k), lerp(0.05, -0.1, k), lerp(0.4, 0.0, k));
+      set(h.L, 0.3, -0.15, 0.3);
+      bf.rotation.x = Math.sin(t * 5) * 0.18;
+      h.head.rotation.z = lerp(0.03, 0.22, k);
+    };
+  } else if (mid === 'genghis') {
+    // 털모자 + 갈색 가죽 델(긴 옷) + 콧수염 + 짧은 각궁
+    const h = humanoid({ coat: 0x6a3a1a, pants: 0x3a2412, belt: 0xd8aa45, skirt: 0.18, skirtColor: 0x5a3014, boots: 0x2a1a10, wide: 0.27 });
+    body.add(h.fig);
+    mesh(h.head, new THREE.CylinderGeometry(0.075, 0.085, 0.09, 14), M(0x8a2a1e, { roughness: 0.8 }), 0, 0.08, 0);
+    mesh(h.head, new THREE.TorusGeometry(0.085, 0.025, 8, 18), M(0x5a4030, { roughness: 1 }), 0, 0.04, 0).rotation.x = Math.PI / 2;   // 털 테두리
+    mesh(h.head, new THREE.SphereGeometry(0.018, 8, 6), gold, 0, 0.13, 0);
+    for (const s of [-1, 1]) mesh(h.head, new THREE.BoxGeometry(0.008, 0.008, 0.05), M(0x141210), 0.068, -0.025, s * 0.025).rotation.x = s * 0.6;   // 콧수염
+    mesh(h.head, new THREE.ConeGeometry(0.015, 0.04, 6), M(0x141210), 0.062, -0.07, 0).rotation.z = Math.PI;
+    const bow = new THREE.Group(); h.L.hand.add(bow);
+    const limb = mesh(bow, new THREE.TorusGeometry(0.15, 0.008, 5, 16, 2.4), M(0x3a2010, { roughness: 0.5 }), 0, 0.15, 0); limb.rotation.z = -Math.PI / 2 - 1.2;
+    pose = (t, a) => {
+      const k = a > 0.75 ? ease((1 - a) / 0.25) : a > 0.3 ? 1 : ease(a / 0.3);
+      const pull = a > 0.4 && a <= 0.75 ? Math.abs(Math.sin((0.75 - a) / 0.35 * Math.PI * 3)) : 0;
+      set(h.L, lerp(0.35, 1.55, k), lerp(0, -0.1, k), lerp(0.3, 0, k));
+      set(h.R, lerp(0.3, 1.45, k), lerp(0.05, 0.3 + pull * 0.15, k), lerp(0.4, 2.6 + pull * 0.3, k));
+      body.rotation.y = lerp(0, -0.3, k); h.head.rotation.y = lerp(0, 0.3, k);
+    };
+  } else if (mid === 'alexander') {
+    // 황금 투구(붉은 깃 장식) + 청동 흉갑 + 붉은 망토 + 긴 장창(사리사)
+    const h = humanoid({ coat: 0xc89a4a, pants: 0xd9c9a8, boots: 0x6a4a2a, skirt: 0.16, skirtColor: 0x9a2a22, wide: 0.25 });
+    body.add(h.fig);
+    h.torso.material = M(0xc89a4a, { metalness: 0.8, roughness: 0.3 });
+    const helm = M(0xe0b450, { metalness: 0.85, roughness: 0.25 });
+    mesh(h.head, new THREE.SphereGeometry(0.08, 14, 8, 0, Math.PI * 2, 0, Math.PI / 1.8), helm, 0, 0.012, 0);
+    for (const s of [-1, 1]) mesh(h.head, new THREE.BoxGeometry(0.04, 0.07, 0.012), helm, 0.03, -0.03, s * 0.07);   // 볼 가리개
+    const crest = mesh(h.head, new THREE.BoxGeometry(0.17, 0.06, 0.02), M(0xc0262e, { roughness: 1 }), -0.01, 0.1, 0);
+    void crest;
+    const cape = mesh(h.fig, new THREE.BoxGeometry(0.02, 0.42, 0.26), M(0xa0222a, { roughness: 0.9 }), -0.09, 0.4, 0);
+    const spear = new THREE.Group(); h.R.hand.add(spear);
+    mesh(spear, new THREE.CylinderGeometry(0.006, 0.006, 0.9, 6), M(0x7a5a32), 0, -0.25, 0);
+    mesh(spear, new THREE.ConeGeometry(0.016, 0.07, 6), M(0xdfe6ea, { metalness: 0.9, roughness: 0.2 }), 0, -0.73, 0).rotation.z = Math.PI;
+    pose = (t, a) => {
+      const back = a > 0.7 ? ease((1 - a) / 0.3) : 0, thrust = a <= 0.7 && a > 0.25 ? ease(Math.min(1, (0.7 - a) / 0.12)) : a <= 0.25 ? a / 0.25 : 0;
+      set(h.R, 1.45 + Math.sin(t) * 0.02, 0.05, lerp(lerp(0.5, 1.4, back), 0.0, thrust));
+      set(h.L, 1.2, -0.2, 0.6);
+      body.rotation.z = lerp(0, -0.1, thrust) + back * 0.05; body.position.x = thrust * 0.05;
+      cape.rotation.z = Math.sin(t * 2) * 0.05 + thrust * 0.15;
+    };
+  } else if (mid === 'hannibal') {
+    // 청동 투구 + 보라 망토 + 검은 수염 + 짧은 칼
+    const h = humanoid({ coat: 0x5a2a6a, pants: 0x3a2a24, belt: 0xb8862e, skirt: 0.16, skirtColor: 0x4a2058, wide: 0.26 });
+    body.add(h.fig);
+    const helm = M(0xb8862e, { metalness: 0.8, roughness: 0.3 });
+    mesh(h.head, new THREE.SphereGeometry(0.081, 14, 8, 0, Math.PI * 2, 0, Math.PI / 1.9), helm, 0, 0.012, 0);
+    mesh(h.head, new THREE.ConeGeometry(0.02, 0.06, 8), helm, 0, 0.1, 0);
+    mesh(h.head, new THREE.BoxGeometry(0.04, 0.05, 0.11), M(0x141210, { roughness: 1 }), 0.045, -0.06, 0);   // 수염
+    const sword = new THREE.Group(); h.R.hand.add(sword);
+    mesh(sword, new THREE.BoxGeometry(0.01, 0.22, 0.03), M(0xdfe6ea, { metalness: 0.9, roughness: 0.2 }), 0, -0.13, 0);
+    mesh(sword, new THREE.BoxGeometry(0.014, 0.014, 0.07), helm, 0, -0.02, 0);
+    pose = (t, a) => {
+      const k = a > 0.5 ? ease((1 - a) / 0.5) : ease(a / 0.5);
+      const wave = Math.sin((1 - a) * Math.PI * 3) * (a > 0.2 ? 1 : 0);
+      set(h.R, lerp(0.3, 2.5, k), lerp(0.05, 0.4 + wave * 0.4, k), lerp(0.4, 0.2, k));
+      set(h.L, 0.3, -0.1, 0.4);
+      body.rotation.y = wave * 0.12 * k;
+    };
+  } else if (mid === 'julius') {
+    // 월계관 + 흰 토가(붉은 띠) + 붉은 망토
+    const h = humanoid({ coat: 0xf2eee4, pants: 0xe8e2d4, boots: 0x6a4a2a, skirt: 0.17, skirtColor: 0xf2eee4, wide: 0.25 });
+    body.add(h.fig);
+    mesh(h.torso, new THREE.BoxGeometry(0.16, 0.03, 0.27), M(0xa0222a), 0, 0.06, 0).rotation.x = 0.7;   // 비스듬한 붉은 띠
+    mesh(h.head, new THREE.SphereGeometry(0.07, 14, 8, 0, Math.PI * 2, 0, Math.PI / 2.4), M(0x8a7a6a, { roughness: 1 }), -0.004, 0.012, 0);   // 짧은 머리
+    const laurel = mesh(h.head, new THREE.TorusGeometry(0.072, 0.012, 6, 18), M(0x3a8a2a, { roughness: 0.8 }), 0, 0.035, 0); laurel.rotation.x = Math.PI / 2;
+    for (let i = 0; i < 10; i++) { const a2 = i / 10 * Math.PI * 2; mesh(h.head, new THREE.SphereGeometry(0.012, 6, 4), M(0x4aa03a), Math.cos(a2) * 0.075, 0.04, Math.sin(a2) * 0.075).scale.set(1.6, 0.6, 1); }
+    mesh(h.fig, new THREE.BoxGeometry(0.02, 0.44, 0.27), M(0xa0222a, { roughness: 0.9 }), -0.09, 0.4, 0);   // 망토
+    const pil = new THREE.Group(); h.R.hand.add(pil);
+    mesh(pil, new THREE.CylinderGeometry(0.005, 0.005, 0.4, 5), M(0x7a5a32), 0, -0.05, 0);
+    mesh(pil, new THREE.ConeGeometry(0.01, 0.08, 5), M(0xdfe6ea, { metalness: 0.9 }), 0, -0.28, 0).rotation.z = Math.PI;
+    pose = (t, a) => {
+      const back = a > 0.65 ? ease((1 - a) / 0.35) : 0, thr = a <= 0.65 ? ease(Math.min(1, (0.65 - a) / 0.12)) * Math.min(1, a / 0.2 + 0.001) : 0;
+      set(h.R, lerp(lerp(0.3, 2.6, back), 1.5, thr), 0.1, lerp(0.4, 0.1, thr));
+      set(h.L, 0.6, -0.2, 0.9);
+      pil.visible = a > 0.5 || a === 0;
+      body.rotation.z = back * 0.06 - thr * 0.08;
+    };
+  } else if (mid === 'washington') {
+    // 삼각모 + 남색 군복(담황색 안감) + 흰 머리 + 군도
+    const h = humanoid({ coat: 0x23356b, pants: 0xd9c79a, boots: 0x111111, cuff: 0xd9c79a, wide: 0.25 });
+    body.add(h.fig);
+    mesh(h.torso, new THREE.BoxGeometry(0.155, 0.17, 0.08), M(0xd9c79a), 0.004, 0.0, 0);
+    for (const s of [-1, 1]) mesh(h.torso, new THREE.BoxGeometry(0.05, 0.012, 0.06), gold, 0, 0.14, s * 0.11);
+    mesh(h.head, new THREE.SphereGeometry(0.072, 14, 8, 0, Math.PI * 2, 0, Math.PI / 1.8), M(0xf0f0ea, { roughness: 1 }), -0.006, 0.0, 0);   // 흰 머리
+    const hat = new THREE.Group(); hat.position.set(0, 0.07, 0); h.head.add(hat);
+    for (let i = 0; i < 3; i++) { const b = mesh(hat, new THREE.BoxGeometry(0.14, 0.04, 0.012), M(0x111114, { roughness: 0.6 }), 0, 0.01, 0); b.rotation.y = i * Math.PI * 2 / 3; b.position.set(Math.cos(i * 2.09) * 0.05, 0.01, Math.sin(i * 2.09) * 0.05); b.rotation.y = -i * 2.09 + Math.PI / 2; }
+    mesh(hat, new THREE.CylinderGeometry(0.065, 0.075, 0.04, 12), M(0x111114, { roughness: 0.6 }), 0, 0.0, 0);
+    const sword = new THREE.Group(); h.R.hand.add(sword);
+    mesh(sword, new THREE.BoxGeometry(0.006, 0.32, 0.02), M(0xe8eef2, { metalness: 0.9, roughness: 0.2 }), 0, -0.18, 0).rotation.x = 0.05;
+    mesh(sword, new THREE.TorusGeometry(0.02, 0.004, 5, 10, Math.PI), gold, 0, -0.01, 0);
+    pose = (t, a) => {
+      const k = ease(Math.min(1, a * 1.7));
+      set(h.R, lerp(0.35, 1.55, k), lerp(0.05, 0.0, k), lerp(0.4, 0.0, k));
+      set(h.L, 0.3, -0.1, 0.4);
+      h.head.rotation.z = lerp(0.04, 0.1, k) + Math.sin(t) * 0.02;
+    };
+  } else if (mid === 'saladin') {
+    // 흰 터번(초록 띠) + 초록 겉옷 + 수염 + 휘어진 시미터
+    const h = humanoid({ coat: 0x2e6a3a, pants: 0xe8e2d4, belt: 0xd8aa45, skirt: 0.18, skirtColor: 0x245a30, boots: 0x6a4a2a, wide: 0.26 });
+    body.add(h.fig);
+    mesh(h.head, new THREE.SphereGeometry(0.09, 14, 10), M(0xf4f2ea, { roughness: 1 }), -0.01, 0.06, 0).scale.set(1, 0.75, 1);
+    mesh(h.head, new THREE.TorusGeometry(0.083, 0.014, 6, 18), M(0x2e8a4a), -0.005, 0.04, 0).rotation.x = Math.PI / 2;
+    mesh(h.head, new THREE.SphereGeometry(0.016, 8, 6), M(0x2ec0a0, { emissive: 0x0a5040 }), 0.08, 0.06, 0);   // 보석
+    mesh(h.head, new THREE.BoxGeometry(0.035, 0.07, 0.1), M(0x2a1a10, { roughness: 1 }), 0.045, -0.055, 0);   // 수염
+    const sw = new THREE.Group(); h.R.hand.add(sw);
+    const blade = M(0xe8eef2, { metalness: 0.9, roughness: 0.2 });
+    for (let i = 0; i < 5; i++) { const sg = mesh(sw, new THREE.BoxGeometry(0.008, 0.07, 0.03 - i * 0.003), blade, i * i * 0.006, -0.05 - i * 0.065, 0); sg.rotation.z = i * 0.12; }
+    mesh(sw, new THREE.BoxGeometry(0.012, 0.012, 0.07), gold, 0, -0.01, 0);
+    pose = (t, a) => {
+      const k = a > 0.7 ? ease((1 - a) / 0.3) : a > 0.3 ? 1 : ease(a / 0.3);
+      const spinA = a <= 0.7 && a > 0.3 ? ease((0.7 - a) / 0.4) * Math.PI * 2 : 0;
+      set(h.R, lerp(0.4, 1.7, k), lerp(0.1, 0.9, k), lerp(0.4, 0.2, k));
+      set(h.L, lerp(0.3, 1.2, k), lerp(-0.1, -0.6, k), 0.3);
+      body.rotation.y = spinA;
+    };
   }
 
   // 공격 순간 몸짓이 크게 보이도록 act 1 → 0 으로 줄어듦 (game.js 가 fire 때 act = 1)
-  const muzzle = new THREE.Object3D(); muzzle.position.set(...({ monk: [0.25, 0.6], limbaegeun: [0.45, 0.75], leejunhak: [0.35, 1.1], simjaegwan: [0.12, 0.95], kimdeokhun: [0.66, 0.68] }[id] || [0.3, 0.9]), 0); yaw.add(muzzle);
+  const muzzle = new THREE.Object3D(); muzzle.position.set(...({ monk: [0.25, 0.6], limbaegeun: [0.45, 0.75], leejunhak: [0.35, 1.1], simjaegwan: [0.12, 0.95], kimdeokhun: [0.66, 0.68] }[mid] || [0.3, 0.9]), 0); yaw.add(muzzle);
   const animate = (dt, t) => {
     P.act = Math.max(0, P.act - dt * 0.9);
     pose(t + P.idle, P.act);
@@ -582,4 +852,23 @@ export function makeBuddha() {
     buddhaProto = g;
   }
   return buddhaProto.clone();
+}
+
+// 한니발 공격 때 날아드는 전투 코끼리 (회색 몸 + 머리 + 코 + 상아 + 다리 + 등 위 붉은 깔개)
+let elephantProto = null;
+export function makeElephant() {
+  if (!elephantProto) {
+    const g = new THREE.Group(), skin = new THREE.MeshStandardMaterial({ color: 0x9a948c, roughness: 0.8 }), ivory = new THREE.MeshStandardMaterial({ color: 0xf4efe0, roughness: 0.4 });
+    const m = (geo, mat, x, y, z) => { const o = new THREE.Mesh(geo, mat); o.position.set(x, y, z); g.add(o); return o; };
+    m(new THREE.SphereGeometry(0.22, 12, 8), skin, 0, 0.3, 0).scale.set(1.35, 1, 1);
+    m(new THREE.SphereGeometry(0.13, 12, 8), skin, 0.3, 0.38, 0);
+    for (const s of [-1, 1]) m(new THREE.SphereGeometry(0.1, 8, 6), skin, 0.26, 0.4, s * 0.12).scale.set(0.3, 1, 1);   // 귀
+    const tr = m(new THREE.CylinderGeometry(0.035, 0.025, 0.26, 8), skin, 0.42, 0.24, 0); tr.rotation.z = 0.35;   // 코
+    for (const s of [-1, 1]) { const t = m(new THREE.ConeGeometry(0.018, 0.14, 6), ivory, 0.4, 0.28, s * 0.06); t.rotation.z = -1.9; }
+    for (const [x, z] of [[0.17, 0.1], [0.17, -0.1], [-0.17, 0.1], [-0.17, -0.1]]) m(new THREE.CylinderGeometry(0.055, 0.06, 0.2, 8), skin, x, 0.1, z);
+    m(new THREE.BoxGeometry(0.28, 0.03, 0.34), new THREE.MeshStandardMaterial({ color: 0xa0222a }), -0.02, 0.5, 0);
+    g.userData.spinY = false;
+    elephantProto = g;
+  }
+  return elephantProto.clone();
 }

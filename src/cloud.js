@@ -3,7 +3,7 @@
 // 서버에 올리는 것: 저장한 게임(스테이지별), 지운 기록, 별 기록, 지휘관 이름·보급창
 const SDK = 'https://www.gstatic.com/firebasejs/10.14.1/';
 const load = (f) => import(SDK + f);   // 주소를 변수로 넘겨 빌드에 넣지 않고 필요할 때만 받음
-const K = { saves: 'gf_saves', del: 'gf_saves_del', progress: 'gf_progress', profile: 'gf_profile' };
+const K = { saves: 'gf_saves', del: 'gf_saves_del', progress: 'gf_progress', profile: 'gf_profile', codex: 'gf_codex' };
 const read = (k) => { try { return JSON.parse(localStorage.getItem(k) || '{}') || {}; } catch (e) { return {}; } };
 const write = (k, v) => { try { localStorage.setItem(k, JSON.stringify(v)); } catch (e) { /* 저장 불가 환경 */ } };
 
@@ -54,6 +54,9 @@ export const Cloud = {
     const prof = read(K.profile), rf = remote.profile || {};
     if ((rf.t || 0) > (prof.t || 0)) Object.assign(prof, { name: rf.name || prof.name || '', credits: rf.credits || 0, t: rf.t });   // 더 나중에 바뀐 쪽
     if (!prof.purchases) prof.purchases = [];
+    const cx = read(K.codex), rc = remote.codex || {};   // 무기도감: 발견한 조합은 양쪽 모두 합침
+    Object.keys(rc).forEach((k) => { cx[k] = Math.min(cx[k] || Infinity, rc[k]); });
+    write(K.codex, cx);
     write(K.saves, outS); write(K.del, outD); write(K.progress, prog); write(K.profile, prof);
   },
   async pull() {
@@ -73,7 +76,7 @@ export const Cloud = {
     if (!this.fb || !this.user) return;
     const { fs, db } = this.fb, prof = read(K.profile);
     await fs.setDoc(fs.doc(db, 'players', this.user.uid), {
-      saves: read(K.saves), del: read(K.del), progress: read(K.progress),
+      saves: read(K.saves), del: read(K.del), progress: read(K.progress), codex: read(K.codex),
       profile: { name: prof.name || '', credits: prof.credits || 0, t: prof.t || 0 }, updated: Date.now()
     });
   },
@@ -85,3 +88,4 @@ export const Cloud = {
   }
 };
 GF.cloudPush = () => Cloud.push();
+GF.Cloud = Cloud;   // 게임 쪽에서 로그인 여부 확인용 (웨이브 자동 저장)

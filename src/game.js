@@ -1,7 +1,8 @@
 // 전투 규칙 (v4 서울): 도로 밖 자유 배치 → 작전 개시 → 웨이브가 자동으로 이어짐 (다음 웨이브 ≫ 로 앞당기기)
 import * as THREE from 'three';
 import { getTower, getEnemy, getGhost, mat, ghostMat, ghostBad } from './models.js';
-import { makeHero, HEROES, HERO_IDS, GACHA, rollHero, COMBOS, makeBuddha } from './heroes.js';
+import { makeHero, HEROES, HERO_IDS, GACHA, rollHero, makeBuddha, makeElephant } from './heroes.js';
+import { RECIPES, Codex, comboRate, comboFee } from './codex.js';
 import { VFX } from './vfx.js';
 
 const V = (x = 0, y = 0, z = 0) => new THREE.Vector3(x, y, z);
@@ -57,13 +58,14 @@ export class Game {
     this.speed = 1;
     this.waveNo = 0; this.kills = 0;
     this.queue = []; this.clock = 0; this.nextT = 0;
-    this.combo = 0; this.comboT = 0; this.bestCombo = 0;
+    this.combo = 0; this.comboT = 0; this.bestCombo = 0; this.autoWave = 0;
     this.enemies = []; this.towers = []; this.shots = []; this.fx = []; this.zones = []; this.timers = []; this.fires = [];
     this.mode = null; this.cardSel = -1; this.selected = null;
     this.deck = GF.CARD_DECK.slice().sort(() => Math.random() - 0.5);
     this.hand = this.deck.splice(0, GF.HAND_SIZE);
     this.strat = {}; for (const [id, C] of Object.entries(GF.STRATEGIC)) this.strat[id] = { charges: this.stratOpen(id) ? C.start : 0 };
     this.stratSel = null;
+    this.comboReady = []; this.comboKeys = [];
     this.heroBench = []; this.heroBonus = {}; this.heroSel = null; this.luckyLeft = GACHA.luckyPerWave;
     this.computeSynergy();
     this.updateRemain();
@@ -177,7 +179,7 @@ export class Game {
   // 웨이브 도중에 저장하면 그 웨이브를 처음부터 다시 함 (그 웨이브 시작 보급·재보급은 빼고 저장)
   serialize() {
     if (this.state !== 'ready' && this.state !== 'battle') return null;
-    const mid = this.state === 'battle' && (this.queue.length > 0 || this.enemies.length > 0);
+    const mid = this.state === 'battle' && (this.queue.length > 0 || this.enemies.some((e) => !e.dead));   // 방금 쓰러진 적(정리 전)은 빼고
     const wave = mid ? this.waveNo - 1 : this.waveNo;
     let money = this.money;
     const strat = {};
@@ -224,8 +226,23 @@ export class Game {
     for (const id of Object.keys(this.strat)) if (d.strat && d.strat[id] != null) this.strat[id].charges = d.strat[id];
     this.heroBench = (d.heroBench || []).filter((id) => HEROES[id]); this.heroBonus = Object.assign({}, d.heroBonus || {});
     this.luckyLeft = d.lucky ?? this.luckyLeft;
+    this.autoWave = this.waveNo;
     this.quiet = false;
+    this.refreshCombos(true);
     this.ui().toast(`저장한 게임을 불러왔습니다 · 웨이브 ${this.waveNo + 1}부터`, '#8FF3FF', 4200);
+  }
+
+  // 자동 저장: 한 웨이브의 적을 모두 물리치면 저장 (구글 로그인한 사람만, 마지막 웨이브는 승리 화면이 대신함)
+  checkAutoSave() {
+    if (!GF.SETTINGS.autoSave || !GF.Cloud || !GF.Cloud.user) return;
+    let low = Infinity;
+    for (const q of this.queue) if (q.wave < low) low = q.wave;
+    for (const e of this.enemies) if (!e.dead && e.wave < low) low = e.wave;
+    const done = low === Infinity ? this.waveNo : low - 1;
+    if (done <= this.autoWave) return;
+    this.autoWave = done;
+    if (done >= this.S.waves.length || this.lives <= 0) return;
+    this.app.saveGame(false, true);
   }
 
   isOver() { return this.state === 'won' || this.state === 'lost' || this.state === 'title'; }
@@ -409,7 +426,7 @@ export class Game {
     const m = GF.WEAPONS[type].hero ? makeHero(GF.WEAPONS[type].hero) : getTower(type);
     const pos = V(x, 0, z);
     m.root.position.copy(pos);
-    m.root.scale.setScalar(m.hero ? HERO_SCALE : TOWER_SCALE);
+    m.root.scale.setScalar(m.hero ? HERO_SCALE : TOWER_SCALE * (GF.WEAPONS[type].parts ? 1.15 : 1));
     // 처음엔 가장 가까운 도로를 바라봄
     const ang = -Math.PI / 2;
     m.yaw.rotation.y = -ang;
@@ -426,7 +443,7 @@ export class Game {
   canGacha() { return this.state === 'ready' || this.state === 'battle'; }
   // 무기별 최대 강화 단계 (영웅 10강, 일반 무기 4강)
   maxLevel(tw) { return tw.W.hero ? GF.SETTINGS.heroMaxLevel : GF.SETTINGS.maxTowerLevel; }
-  // 영웅 모집: 7명 중 1명 무작위. 같은 영웅이 또 나와도 한 명 더 배치 대기열에 추가 (여러 명 출전 가능)
+  // 영웅 모집: 20명 중 1명 무작위. 같은 영웅이 또 나와도 한 명 더 배치 대기열에 추가 (여러 명 출전 가능)
   pullHero() {
     if (!this.canGacha()) return null;
     if (this.money < GACHA.heroCost) { this.snd('deny'); return { fail: '보급이 부족합니다 (영웅 모집 ' + GACHA.heroCost + ')' }; }
@@ -476,46 +493,80 @@ export class Game {
     this.city.labels.push(tw.label); this.ui().resetLabels();
     this.ui().toast(HEROES[id].legend ? `레전더리 영웅 ${HEROES[id].name} 출전! 비숑도 함께!` : `전설의 영웅 ${HEROES[id].name} 출전!`, '#FFD36A', 2600);
     this.cancelMode();
-    this.checkCombo(tw);
+    this.refreshCombos();
   }
   heroScale(tw) { return HERO_SCALE * (tw.W.big || 1) * (1 + 0.06 * (tw.level - 1)); }
 
-  // ---------- 영웅 조합 ----------
-  // 조합표(heroes.js COMBOS)의 두 영웅이 가까이 놓이면: 화면 연출(부처님 클로즈업 + 폭죽) 뒤 두 영웅이 사라지고 합체 영웅 등장
-  checkCombo(tw) {
-    const id = tw.W.hero;
-    for (const C of COMBOS) {
-      if (id !== C.a && id !== C.b) continue;
-      const other = id === C.a ? C.b : C.a;
-      const mate = this.towers.filter((t) => t.W.hero === other && !t.fusing).sort((p, q) => p.pos.distanceTo(tw.pos) - q.pos.distanceTo(tw.pos))[0];
-      if (mate && mate.pos.distanceTo(tw.pos) <= C.dist) { this.fuse(tw, mate, C); return true; }
+  // ---------- 조합 (📖 무기도감에서 이중엽이 조합) ----------
+  // 조합할 수 있는 짝: 영웅은 Lv.1부터, 일반 무기는 둘 다 Lv.4. 두 재료가 dist 안에 가까이 있어야 함
+  comboPairs() {
+    const out = [], top = GF.SETTINGS.maxTowerLevel;
+    for (const R of RECIPES) {
+      const ok = (t, id) => t.type === id && !t.fusing && (R.hero || t.level >= top);
+      const A = this.towers.filter((t) => ok(t, R.ta)), B = this.towers.filter((t) => ok(t, R.tb));
+      let best = null;
+      for (const a of A) for (const b of B) {
+        if (a === b) continue;
+        const d = a.pos.distanceTo(b.pos);
+        if (d <= R.dist && (!best || d < best.d)) best = { R, a, b, d };
+      }
+      if (best) out.push(best);
     }
-    return false;
+    return out;
   }
-  fuse(a, b, C) {
+  // 조합 가능 목록을 새로 계산. 새 짝이 생기면 알려 주고 도감 버튼을 반짝임
+  refreshCombos(quiet) {
+    const list = this.comboPairs(), keys = list.map((p) => p.R.key);
+    this.ui().codexReady(list.length);
+    const fresh = keys.filter((k) => !(this.comboKeys || []).includes(k));
+    this.comboReady = list; this.comboKeys = keys;
+    if (fresh.length && !quiet && !this.isOver()) {
+      const R = list.find((p) => p.R.key === fresh[0]).R;
+      this.ui().toast(Codex.has(R.key) ? `📖 ${R.name} 조합 가능! 무기도감에서 조합하세요` : '📖 무언가 조합할 수 있을 것 같아요! 무기도감을 열어 보세요', '#FFD36A', 3600);
+      this.snd('glint');
+    }
+  }
+  // 이중엽에게 조합 맡기기: 수수료를 내고 성공 여부를 정함 (화면 연출은 ui.js openCodex)
+  tryCombo(key) {
+    if (this.isOver()) return null;
+    const p = (this.comboReady || []).find((x) => x.R.key === key && this.towers.includes(x.a) && this.towers.includes(x.b));
+    if (!p) return { fail: '조합할 재료가 가까이 없습니다' };
+    const fee = comboFee(p.R);
+    if (this.money < fee) { this.snd('deny'); return { fail: `보급이 부족합니다 (조합 수수료 ${fee})` }; }
+    this.money -= fee;
+    const rate = comboRate(p.R), roll = Math.random();
+    return { pair: p, fee, rate, roll, ok: roll < rate };
+  }
+  // 조합 성공: 연출(조합 이름 + 폭죽) 뒤 두 재료가 사라지고 가운데에 조합 결과 등장
+  fuse(a, b, R, img) {
     a.fusing = b.fusing = true;
     const mid = a.pos.clone().add(b.pos).multiplyScalar(0.5), app = this.app;
     const wasPaused = app.paused; app.paused = true;
     this.snd('fanfare');
-    this.ui().playCombo(C.name, () => {
+    const into = GF.WEAPONS[R.into], monk = R.into === 'hero_monk';
+    this.ui().playCombo(R.title || R.name + ' 조합 성공', () => {
       for (const t of [a, b]) {
         if (t.label) { const i = this.city.labels.indexOf(t.label); if (i >= 0) this.city.labels.splice(i, 1); }
         this.unitGroup.remove(t.model.root);
         const i = this.towers.indexOf(t); if (i >= 0) this.towers.splice(i, 1);
         if (this.selected === t) this.select(null);
       }
-      const nt = this.addTower('hero_' + C.into, mid.x, mid.z);
-      nt.level = Math.min(this.maxLevel(nt), Math.max(a.level, b.level));
+      const nt = this.addTower(R.into, mid.x, mid.z);
       nt.invested = a.invested + b.invested; nt.dmgTotal = a.dmgTotal + b.dmgTotal; nt.kills = a.kills + b.kills;
-      nt.model.root.scale.setScalar(this.heroScale(nt));
-      nt.label = { text: '★ ' + HEROES[C.into].short, pos: V(mid.x, 3.2, mid.z), kind: 'hero' };
-      this.city.labels.push(nt.label); this.ui().resetLabels();
+      if (into.hero) {
+        nt.level = Math.min(this.maxLevel(nt), Math.max(a.level, b.level));
+        nt.model.root.scale.setScalar(this.heroScale(nt));
+        nt.label = { text: '★ ' + HEROES[into.hero].short, pos: V(mid.x, 3.2, mid.z), kind: 'hero' };
+        this.city.labels.push(nt.label); this.ui().resetLabels();
+      }
       this.spawnRing(mid, 3.2, 0xffd36a, 1.6); this.spawnRing(mid, 2.0, 0xffffff, 1.2); this.spawnRing(mid, 1.0, 0xffb0e8, 1.0);
       this.explodeFx(mid.clone().setY(1.2), 0.8);
-      nt.model.fire(); this.snd('moktak');
-      this.ui().toast(`${C.name}! ${HEROES[C.into].name} 출현`, '#FFD36A', 3600);
+      if (nt.model.fire) nt.model.fire();
+      if (monk) this.snd('moktak');
+      this.ui().toast(`조합 성공! ${R.name} 출현`, '#FFD36A', 3600);
       app.paused = wasPaused;
-    });
+      this.refreshCombos(true);
+    }, monk ? null : img);
   }
 
   stats(tw) {
@@ -572,7 +623,7 @@ export class Game {
     const model = getEnemy(type);
     const sc = E.final ? 2.6 : E.boss ? 2.4 : type === "inf" ? 1.6 : 1.85;
     model.root.scale.setScalar(sc);
-    const e = { type, E, hp, maxHp: hp, d: 0, air: !!E.air, off: E.boss ? 0 : (Math.random() - 0.5) * 0.9, wob: Math.random() * 10, stun: 0, slowMul: 1, dead: false, model, pos: V(), sc, si: 0, k: 0, rem: 1e9 };
+    const e = { type, wave, E, hp, maxHp: hp, d: 0, air: !!E.air, off: E.boss ? 0 : (Math.random() - 0.5) * 0.9, wob: Math.random() * 10, stun: 0, slowMul: 1, dead: false, model, pos: V(), sc, si: 0, k: 0, rem: 1e9 };
     if (e.air) {
       const pts = this.airPath(lane);
       e.fly = { pts, segs: [] }; e.len = 0;
@@ -699,6 +750,8 @@ export class Game {
     }
     this.updateFx(dt);
     if (this.isOver()) return;
+    this.comboScanT = (this.comboScanT || 0) - dt;
+    if (this.comboScanT <= 0) { this.comboScanT = 0.4; this.refreshCombos(); }
     if (this.comboT > 0) { this.comboT -= dt; if (this.comboT <= 0) this.endCombo(); }
 
     if (this.state === 'battle') {
@@ -714,6 +767,8 @@ export class Game {
       }
     }
 
+    if (this.state === 'battle') this.checkAutoSave();
+
     for (const tm of this.timers) { tm.t -= dt; if (tm.t <= 0) { tm.fn(); tm.done = true; } }
     this.timers = this.timers.filter((tm) => !tm.done);
 
@@ -723,15 +778,16 @@ export class Game {
     const radars = this.towers.filter((t) => t.W.buff);
     for (const tw of this.towers) {
       tw.buff = null;
-      if (tw.W.buff || tw.W.shot === 'aura') continue;
+      if ((tw.W.buff && !tw.W.hero) || tw.W.shot === 'aura') continue;
       for (const rd of radars) {
-        const rr = this.stats(rd).range;
+        if (rd === tw) continue;
+        const rr = rd.W.buffR ? rd.W.buffR * (1 + 0.04 * (rd.level - 1)) : this.stats(rd).range;   // 잔 다르크: 곁 5칸
         if (rd.pos.distanceToSquared(tw.pos) > rr * rr) continue;
-        const k = 1 + 0.25 * (rd.level - 1), b = { range: rd.W.buff.range * k, dmg: rd.W.buff.dmg * k };
+        const k = 1 + (rd.W.hero ? 0.1 : 0.25) * (rd.level - 1), b = { range: rd.W.buff.range * k, dmg: rd.W.buff.dmg * k };
         if (!tw.buff || b.range > tw.buff.range) tw.buff = b;
       }
     }
-    for (const rd of radars) { rd.pulse -= dt; if (rd.pulse <= 0) { rd.pulse = 2.2; this.spawnRing(rd.pos, this.stats(rd).range, 0x9cff8a, 1.2); } }
+    for (const rd of radars) { rd.pulse -= dt; if (rd.pulse <= 0) { rd.pulse = 2.2; this.spawnRing(rd.pos, rd.W.buffR ? rd.W.buffR * (1 + 0.04 * (rd.level - 1)) : this.stats(rd).range, rd.W.hero ? 0xfff2b0 : 0x9cff8a, 1.2); } }
     // 화염 지대 (TOS-1A): 안에 있는 지상 적이 계속 탐
     for (const f of this.fires) {
       f.t -= dt;
@@ -830,7 +886,8 @@ export class Game {
     } else if (W.shot === 'cannon') {
       this.vfx.muzzle(mz, tp.clone().sub(mz).normalize(), true);
       this.tracer(mz, tp, 0xffc46a);
-      this.explode(tp.clone().setY(0), W.splash, st.dmg, tw, true);
+      if (W.pierce) { this.hurt(e, st.dmg * 0.5, tw, { pierce: true }); this.explode(tp.clone().setY(0), W.splash, st.dmg * 0.5, tw, true); }   // 조합 K2: 목표는 장갑 무시
+      else this.explode(tp.clone().setY(0), W.splash, st.dmg, tw, true);
     } else if (W.shot === 'shell') {
       this.addShot('shell', mz, { to: tp.setY(0), speed: 9, arc: 1.5 + mz.distanceTo(tp) * 0.18, dmg: st.dmg, splash: W.splash, tw });
       this.vfx.muzzle(mz, V(0, 1, 0), true);
@@ -846,8 +903,12 @@ export class Game {
       }
     } else if (W.shot === 'drone') {
       // 무인기 출격: FPV는 목표에 그대로 자폭, TB2는 목표 위로 날아가 폭탄 투하
-      const fpv = W.drone === 'fpv';
-      this.addShot('missile', mz.clone().setY(mz.y + 0.2), { target: e, speed: fpv ? 7.5 : 6, dmg: st.dmg, tw, pierce: !!W.pierce, splash: W.splash || 0, mesh: this.droneMesh(W.drone), drone: true });
+      const fpv = W.drone === 'fpv', n = W.salvo || 1;
+      const list = n > 1 ? [e].concat(this.enemies.filter((x) => x !== e && !x.dead && !x.air && x.pos.distanceToSquared(tw.pos) <= st.range * st.range).sort((a, b) => a.rem - b.rem).slice(0, n - 1)) : [e];
+      for (let i = 0; i < n; i++) {
+        const x = list[i % list.length];
+        this.timers.push({ t: i * 0.12, fn: () => this.addShot('missile', mz.clone().setY(mz.y + 0.2), { target: x, speed: fpv ? 7.5 : 6, dmg: st.dmg, tw, pierce: !!W.pierce, splash: W.splash || 0, mesh: this.droneMesh(W.drone), drone: true }) });
+      }
     } else if (W.shot === 'laser') {
       // 레이저: 즉시 명중, 붉은 빛줄기가 잠깐 남음
       this.hurt(e, st.dmg, tw, { pierce: true });
@@ -1015,6 +1076,112 @@ export class Game {
         this.vfx.muzzle(from, dir.clone(), true); this.spawnPuff(from, 0xcfd2c4, 2, 0.16);
         if (hit.length >= 3) this.ui().floatText(c.clone().setY(1.6), `${Math.min(hit.length, W.salvo)}명 관통!`, '#FFF6C8');
       } });
+    } else if (W.shot === 'flood') {
+      // 살수 물벼락: 목표 자리에 강물이 터져 주변 적 피해 + 뒤로 밀어냄 (보스 제외)
+      this.timers.push({ t: 0.42, fn: () => {
+        this.snd('shell', 0.8);
+        const c = e.dead ? g0 : this.targetPoint(e).setY(0), r2 = W.splash * W.splash, push = W.salvo > 8 ? 3.2 : 2.2;
+        const list = this.enemies.filter((x) => !x.dead && !x.air && (x.pos.x - c.x) ** 2 + (x.pos.z - c.z) ** 2 <= r2).sort((a2, b2) => a2.rem - b2.rem).slice(0, W.salvo);
+        for (const x of list) {
+          this.hurt(x, st.dmg, tw, { pierce: true });
+          if (!x.E.boss && !x.dead) { x.d = Math.max(0, x.d - push); x.k = 0; x.stun = Math.max(x.stun, 0.25); this.placeEnemy(x, 0); }
+        }
+        for (let k = 0; k < 3; k++) this.timers.push({ t: k * 0.08, fn: () => this.spawnRing(c.clone().setY(0.15), W.splash * (0.4 + k * 0.3), k === 1 ? 0xffffff : 0x4fb4ff, 0.6) });
+        this.spawnPuff(c.clone().setY(0.3), 0x8fd0ff, 8, 0.3, 0.8);
+        this.ui().floatText(c.clone().setY(1.6), '살수!', '#8FD0FF');
+      } });
+    } else if (W.shot === 'arrowrain') {
+      // 귀주대첩 화살비: 목표 주변에 화살이 하늘에서 쏟아짐
+      this.timers.push({ t: 0.4, fn: () => {
+        this.snd('intercept', 0.7);
+        const c = e.dead ? g0 : this.targetPoint(e).setY(0);
+        for (let i = 0; i < W.salvo; i++) this.timers.push({ t: 0.25 + i * 0.05, fn: () => {
+          const a2 = Math.random() * Math.PI * 2, r = Math.sqrt(Math.random()) * W.splash, p = c.clone().add(V(Math.cos(a2) * r, 0, Math.sin(a2) * r));
+          this.tracer(p.clone().add(V(-0.8, 3.5, 0)), p.clone().setY(0.1), 0xd9c08a);
+          for (const x of this.enemies) if (!x.dead && W.hits.includes(x.air ? 'air' : 'ground') && (x.pos.x - p.x) ** 2 + (x.pos.z - p.z) ** 2 <= 0.9) { this.hurt(x, st.dmg, tw); break; }
+          this.spawnSpark(p.clone().setY(0.1), 0xffe2b0, 0.1, 0.12);
+        } });
+      } });
+    } else if (W.shot === 'grandbattery') {
+      // 대포병대: 대포 여러 문이 목표를 가로지르는 줄로 포탄을 떨어뜨림
+      const a2 = Math.random() * Math.PI, dir = V(Math.cos(a2), 0, Math.sin(a2));
+      for (let i = 0; i < W.salvo; i++) {
+        this.timers.push({ t: 0.35 + i * 0.07, fn: () => {
+          const to = g0.clone().addScaledVector(dir, (i - (W.salvo - 1) / 2) * 0.9);
+          this.addShot('shell', mz, { to, speed: 11, arc: 1.6 + mz.distanceTo(to) * 0.12, dmg: st.dmg, splash: W.splash, tw });
+          if (i % 2 === 0) { this.snd('cannon', 0.6); this.spawnPuff(mz, 0xe8e4da, 2, 0.2); }
+        } });
+      }
+    } else if (W.shot === 'holylight') {
+      // 성스러운 빛기둥: 하늘에서 목표로 빛이 내리꽂힘 (공중 포함)
+      this.timers.push({ t: 0.45, fn: () => {
+        this.snd('glint');
+        const c = e.dead ? tp : this.targetPoint(e), base = c.clone().setY(0.1);
+        this.beam(base.clone().setY(6), base, 0xfff2b0, 0.18, 0.45); this.beam(base.clone().setY(6), base, 0xffffff, 0.07, 0.45);
+        const r2 = W.splash * W.splash;
+        for (const x of this.enemies) if (!x.dead && (x.pos.x - c.x) ** 2 + (x.pos.z - c.z) ** 2 <= r2) { this.hurt(x, st.dmg, tw, { pierce: true }); this.vfx.impact(this.targetPoint(x), x.air); }
+        this.spawnRing(base, W.splash, 0xfff2b0, 0.6); this.spawnRing(base, W.splash * 0.5, 0xffffff, 0.4);
+      } });
+    } else if (W.shot === 'horsearrows') {
+      // 기마 궁수 속사: 서로 다른 적들에게 화살이 차례로
+      this.timers.push({ t: 0.3, fn: () => {
+        const list = near(W.salvo, true); if (!list.length) return;
+        this.snd('intercept', 0.6);
+        for (let i = 0; i < W.salvo; i++) { const x = list[i % list.length]; this.timers.push({ t: i * 0.06, fn: () => this.addShot('arrow', mz, { target: x, speed: 15, dmg: st.dmg, tw, pierce: false, splash: 0, arrow: true }) }); }
+      } });
+    } else if (W.shot === 'phalanx') {
+      // 팔랑크스 장창 돌격: 창끝 충격이 일직선으로 뻗어 줄 선 지상 적을 꿰뚫음
+      this.timers.push({ t: 0.42, fn: () => {
+        this.snd('whip');
+        const c = e.dead ? tp : this.targetPoint(e);
+        const dir = V(c.x - tw.pos.x, 0, c.z - tw.pos.z); if (dir.lengthSq() < 1e-6) dir.set(1, 0, 0); dir.normalize();
+        const reach = st.range + 1, hit = [];
+        for (const x of this.enemies) {
+          if (x.dead || x.air) continue;
+          const dx = x.pos.x - tw.pos.x, dz = x.pos.z - tw.pos.z, along = dx * dir.x + dz * dir.z;
+          if (along >= 0 && along <= reach && Math.abs(dx * dir.z - dz * dir.x) <= 1.0) hit.push([along, x]);
+        }
+        hit.sort((p, q) => p[0] - q[0]);
+        hit.slice(0, W.salvo).forEach(([, x]) => { this.hurt(x, st.dmg, tw, { pierce: true }); this.vfx.impact(this.targetPoint(x), false); });
+        const from = tw.pos.clone().setY(0.4), end = from.clone().addScaledVector(dir, reach);
+        this.beam(from, end, 0xffd36a, 0.12, 0.3);
+        for (let k = 1; k <= 5; k++) this.spawnSpark(from.clone().lerp(end, k / 5), 0xfff0b0, 0.16, 0.18);
+        if (hit.length >= 3) this.ui().floatText(c.clone().setY(1.6), `${Math.min(hit.length, W.salvo)}명 돌파!`, '#FFE08A');
+      } });
+    } else if (W.shot === 'elephant') {
+      // 전투 코끼리: 코끼리가 날아들어 쿵! 주변 지상 적 피해 + 잠깐 멈춤
+      this.timers.push({ t: 0.5, fn: () => {
+        this.snd('bark');
+        const to = e.dead ? g0.clone() : this.targetPoint(e).setY(0), el = makeElephant(); el.scale.setScalar(2.4);
+        el.rotation.y = -Math.atan2(to.z - tw.pos.z, to.x - tw.pos.x);
+        this.addShot('shell', mz.clone().setY(mz.y + 0.3), { to, speed: 8, arc: 2 + mz.distanceTo(to) * 0.1, dmg: 0, splash: 0, tw, mesh: el, onHit: (p) => {
+          const r2 = W.splash * W.splash;
+          for (const x of this.enemies) if (!x.dead && !x.air && (x.pos.x - p.x) ** 2 + (x.pos.z - p.z) ** 2 <= r2) { this.hurt(x, st.dmg, tw, { pierce: true }); if (!x.E.boss) x.stun = Math.max(x.stun, 0.8); }
+          this.explodeFx(p.clone().setY(0.3), 1.0); this.spawnRing(p.clone().setY(0.15), W.splash, 0xc9c3b8, 0.6); this.app.shake(0.22); this.snd('bigboom', 0.8);
+          this.ui().floatText(p.clone().setY(1.8), '쿵!', '#E8E0D0');
+        } });
+      } });
+    } else if (W.shot === 'pilum') {
+      // 로마 군단 투창: 서로 다른 지상 적에게 창이 포물선으로 꽂힘
+      this.timers.push({ t: 0.42, fn: () => {
+        const list = near(W.salvo, false); if (!list.length) return;
+        this.snd('whip');
+        list.forEach((x, i) => this.timers.push({ t: i * 0.06, fn: () => {
+          const to = this.targetPoint(x).setY(0), sp = new THREE.Mesh(G.arrow, this.pilumM || (this.pilumM = mat(0xb0b8c0, { metalness: 0.7 })));
+          sp.scale.set(1.6, 1.6, 1.6);
+          this.addShot('shell', mz, { to, speed: 11, arc: 1.2 + mz.distanceTo(to) * 0.1, dmg: st.dmg, splash: W.splash, tw, mesh: sp, orient: true });
+        } }));
+      } });
+    } else if (W.shot === 'scimitar') {
+      // 초승달 검기: 몸을 돌려 베면 주변 사거리 안 적들이 베임 (공중 포함)
+      this.timers.push({ t: 0.5, fn: () => {
+        this.snd('whip');
+        const list = near(W.salvo, true);
+        for (const x of list) { this.hurt(x, st.dmg, tw, { pierce: true }); this.vfx.impact(this.targetPoint(x), x.air); }
+        const c = tw.pos.clone().setY(0.4);
+        for (let k = 0; k < 3; k++) this.timers.push({ t: k * 0.07, fn: () => this.spawnRing(c, st.range * (0.4 + k * 0.3), k === 1 ? 0xffffff : 0x9fffd0, 0.4) });
+        if (list.length >= 3) this.ui().floatText(c.clone().setY(1.8), `${list.length}명 베기!`, '#BFFFE0');
+      } });
     } else if (W.shot === 'finest') {
       // V자 손짓 → 거대한 중포탄 한 발
       this.timers.push({ t: 0.45, fn: () => {
@@ -1070,6 +1237,9 @@ export class Game {
       if (d.lengthSq() > 0) s.mesh.quaternion.setFromUnitVectors(V(0, 1, 0), d.normalize());
       if (s.arrow) this.vfx.emit(this.vfx.glow, { x: s.pos.x, y: s.pos.y, z: s.pos.z, life: 0.18, s0: 0.14, s1: 0.04, c0: [2, 0.9, 0.3], tile: 2 });
       else if (!s.drone) this.vfx.trail(s.pos, prev, !!s.heavy, dt);
+    } else if (s.orient) {   // 투창: 날아가는 방향으로 기울임
+      const d = s.pos.clone().sub(prev);
+      if (d.lengthSq() > 0) s.mesh.quaternion.setFromUnitVectors(V(0, -1, 0), d.normalize());
     } else this.vfx.emit(this.vfx.glow, { x: s.pos.x, y: s.pos.y, z: s.pos.z, life: 0.08, s0: 0.12, c0: [2, 1.4, 0.6], tile: 2 });
   }
 

@@ -54,3 +54,35 @@ GF.WEAPONS = {
 GF.LOADOUT = Object.keys(GF.WEAPONS).map((id, i) => [id, i]).sort((a, b) => GF.WEAPONS[a[0]].cost - GF.WEAPONS[b[0]].cost || a[1] - b[1]).map((x) => x[0]);
 
 GF.wname = (id) => (GF.SETTINGS.useRealWeaponNames ? GF.WEAPONS[id].name : GF.WEAPONS[id].altName);
+
+// ---- 조합(합체) 무기: 두 무기를 둘 다 Lv.4로 만들고 가까이 두면 📖 무기도감에서 조합 (성공률 50%) ----
+//   parts: 재료 두 무기 / 하단 무기 칸에는 안 나오고 조합으로만 생김. cost 는 강화비·판매 계산용
+GF.COMBO_WEAPONS = {
+  chunmoo: { name: '천무 (K239)', altName: '천무-X 다연장', nation: '한국', role: '12연장 로켓 + 불바다', rarity: '조합', parts: ['k9', 'himars'],
+    cost: 380, range: 12, dmg: 90, rate: 0.35, hits: ['ground'], shot: 'rockets', splash: 1.9, salvo: 12, burn: { dps: 30, t: 2.5, r: 1.2 }, desc: 'K9 + 하이마스. 로켓 12발이 쏟아지고 떨어진 자리가 불탐' },
+  lsam: { name: 'L-SAM 다층 방공망', altName: '다층 방공망', nation: '한국', role: '공중 적 3연속 요격', rarity: '조합', parts: ['patriot', 'irondome'],
+    cost: 320, range: 13, dmg: 140, rate: 1.6, hits: ['air'], shot: 'intercept', salvo: 3, desc: '패트리엇 + 아이언돔. 요격탄 3발씩 빠르게, 헬기도 금방 떨어뜨림' },
+  cram: { name: 'C-RAM 팰렁스', altName: '팰렁스 근접방어', nation: '미국', role: '초고속 연사 · 지상+공중', rarity: '조합', parts: ['browning', 'gepard'],
+    cost: 180, range: 7, dmg: 22, rate: 16, hits: ['ground', 'air'], shot: 'bullet', sfx: 'gepard', desc: '브라우닝 + 게파르트. 1초에 16발, 드론 떼를 갈아 버림' },
+  k2: { name: 'K2 흑표 전차', altName: 'K2-X 블랙팬서', nation: '한국', role: '장갑 무시 120mm 직사', rarity: '조합', parts: ['javelin', 'type16'],
+    cost: 310, range: 8.5, dmg: 260, rate: 1.1, hits: ['ground'], shot: 'cannon', splash: 1.2, pierce: true, desc: '재블린 + 16식. 장갑을 무시하는 120mm 포를 빠르게 연속 직사' },
+  c4i: { name: '통합 지휘통제소', altName: 'C4I 지휘소', nation: '한국', role: '강한 감속 + 주변 무기 강화', rarity: '조합', parts: ['ewcar', 'radar'],
+    cost: 250, range: 6, dmg: 0, rate: 1, hits: ['ground', 'air'], shot: 'aura', slow: 0.55, airDps: 30, buff: { range: 0.3, dmg: 0.25 }, desc: '전자전 차량 + 레이더. 범위 안 적 속도 -55%, 아군 무기 사거리 +30%·피해 +25%' },
+  swarm: { name: '드론 군집', altName: '스웜 드론', nation: '우크라이나', role: '자폭 드론 4대 동시 출격', rarity: '조합', parts: ['fpv', 'tb2'],
+    cost: 330, range: 12, dmg: 160, rate: 0.6, hits: ['ground'], shot: 'drone', drone: 'fpv', salvo: 4, splash: 1.0, pierce: true, sfx: 'buzz', desc: 'FPV + TB2. 자폭 드론 4대가 서로 다른 적에게 날아가 장갑을 뚫고 폭발' },
+  hyunmoo5: { name: '현무-5', altName: '현무-X5', nation: '한국', role: '괴물 미사일 · 초장거리', rarity: '조합', parts: ['hyunmoo', 'railgun'],
+    cost: 640, range: 20, dmg: 1600, rate: 0.18, hits: ['ground'], shot: 'missile', splash: 3.2, heavy: true, desc: '현무-3 + 레일건. 화면 끝까지 닿는 초대형 탄두, 한 발에 행렬이 사라짐' },
+  laserdef: { name: '레이저 방공망', altName: '하이브리드 레이저', nation: '이스라엘', role: '고출력 레이저 · 공중+지상', rarity: '조합', parts: ['ironbeam', 'chungung'],
+    cost: 410, range: 11, dmg: 40, rate: 8, hits: ['air', 'ground'], shot: 'laser', sfx: 'laser', desc: '아이언빔 + 천궁. 더 멀리, 더 세게 지지는 레이저' },
+  thermo: { name: '열압력 포병대', altName: '열압력 포대', nation: '러시아', role: '불바다 포격', rarity: '조합', parts: ['tos', 'caesar'],
+    cost: 400, range: 11.5, dmg: 70, rate: 0.35, hits: ['ground'], shot: 'rockets', splash: 1.6, salvo: 10, burn: { dps: 45, t: 3.5, r: 1.5 }, desc: 'TOS-1A + 카이사르. 멀리서 10발을 쏟아 넓게 불태움' }
+};
+Object.assign(GF.WEAPONS, GF.COMBO_WEAPONS);
+// 조합 규칙 (성공률은 0~1)
+GF.COMBO_RULES = {
+  weaponRate: 0.5,     // 일반 무기 조합 성공률 50%
+  heroRate: 0.3,       // 영웅 조합 성공률 30%
+  dist: 3.6,           // 이 거리 안에 가까이 놓여 있어야 조합 가능
+  weaponFee: 0.25,     // 무기 조합 수수료 = 두 무기 값의 25% (실패해도 사라짐)
+  heroFee: 300         // 영웅 조합 수수료
+};
