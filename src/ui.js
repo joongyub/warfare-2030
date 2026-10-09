@@ -646,7 +646,7 @@ export class UI {
     if (t === 'hero') {
       const dps = (H) => Math.round(H.dmg * H.rate * (H.salvo || 1));
       body.innerHTML = `<div class="hr-wrap">
-        <div class="hr-grid">${Object.keys(HEROES).map((id) => { const H = HEROES[id]; return `<div class="hr${H.legend ? ' lg' : ''}" data-id="${id}">${H.legend ? '<i class="lg-tag">LEGENDARY</i>' : ''}<img src="${this.icons['hero_' + id]}"><b>${H.name}</b><em>${H.title}</em><span>${H.role} · DPS ${dps(H)} · ${H.combo ? '조합 전용' : '확률 ' + (heroChance(id) * 100).toFixed(1) + '%'}</span><small>몸짓: ${H.gesture}</small></div>`; }).join('')}</div>
+        <div class="hr-grid">${HERO_IDS.map((id) => { const H = HEROES[id]; return `<div class="hr${H.legend ? ' lg' : ''}" data-id="${id}">${H.legend ? '<i class="lg-tag">LEGENDARY</i>' : ''}<img src="${this.icons['hero_' + id]}"><b>${H.name}</b><em>${H.title}</em><span>${H.role} · DPS ${dps(H)} · 확률 ${(heroChance(id) * 100).toFixed(1)}%</span><small>몸짓: ${H.gesture}</small></div>`; }).join('')}</div>
         <div class="hr-side">
           <div class="hr-stage"><div class="hr-q">?</div></div>
           <div class="hr-res">${HERO_IDS.length}명 중 1명 무작위 (모두 ${(heroChance(HERO_IDS[0]) * 100).toFixed(1)}%) · 임배근+김덕훈을 가까이 두면 능인고 조합</div>
