@@ -7,7 +7,6 @@ import { layout, isTouch } from './layout.js';
 const APK_URL = 'https://github.com/joongyub/warfare-2030/releases/download/apk/warfare-2030.apk';
 const isApk = () => /W2030App/.test(navigator.userAgent);
 const isIOS = () => /iPhone|iPad|iPod/.test(navigator.userAgent) || (navigator.platform === 'MacIntel' && navigator.maxTouchPoints > 1);
-import { playInvasion } from './invasion.js';
 import { HEROES, HERO_IDS, GACHA, heroChance, heroTier, TIERS, cmdText } from './heroes.js';
 import { Saves, Clears } from './save.js';
 import { RECIPES, RECIPE_CATS, Codex, comboRate, comboFee } from './codex.js';
@@ -312,15 +311,33 @@ export class UI {
     const id = this.zoneSel || this.app.stage.id, k = GF.diffFor(GF.STAGES[id], GF.SETTINGS.difficulty);
     if (!this.unlocked(GF.STAGES[id])) { const P = this.prevStage(GF.STAGES[id]); this.toastAny(`🔒 ${P.name} 방어완료 후 열려요`); return; }
     if (cont == null) cont = !!Saves.get(id, k);
-    // 전투 진입 연출(약 3초): 도시 캐리커처 + 북한군 미사일 침공 → 끝나면 게임 (그 도시 장면이 있을 때만, 지금은 서울)
-    if (this.invading) return;
-    this.invading = true;
-    playInvasion(this.root, id, (n) => { if (this.app.sound) this.app.sound.play(n, 0.8); }, () => {
-      this.invading = false;
+    // 전투 진입 로딩 화면 (7초): 그 도시의 사진(img/loading/<도시 id>.jpg)을 띄운 채 뒤에서 맵을 지음 → 7초 뒤 게임
+    if (this.loadingEl) return;
+    this.showLoading(id, () => {
       if (cont && Saves.get(id, k)) { this.app.loadGame(id, k); return; }
       this.app.selectStage(id);
       this.app.startGame();
     });
+  }
+  // 로딩 사진은 도시 id 와 같은 이름의 파일만 씀 (서울 = seoul.jpg …). 사진이 없거나 못 읽으면 어두운 화면 + 도시 이름
+  loadingSrc(id) { return 'img/loading/' + id + '.jpg'; }
+  showLoading(id, start) {
+    const X = GF.STAGES[id], MS = 7000;
+    const o = this.loadingEl = h('div', 'loading', `<div class="ld-img"></div><div class="ld-shade"></div>
+      <div class="ld-info"><small>STAGE ${X.no} · ${X.nameEn}</small><b>${GF.SETTINGS.useCityAlias ? X.alias : X.name}</b><em>${X.title}</em>
+      <div class="ld-bar"><i></i></div><span class="ld-tip">작전 지역으로 진입하는 중…</span></div>`, this.root);
+    const img = new Image();
+    img.onload = () => { o.querySelector('.ld-img').style.backgroundImage = `url("${img.src}")`; o.classList.add('ok'); };
+    img.src = this.loadingSrc(id);
+    const bar = o.querySelector('.ld-bar i'), t0 = performance.now();
+    const tick = () => { if (!o.isConnected) return; bar.style.width = Math.min(100, (performance.now() - t0) / MS * 100) + '%'; requestAnimationFrame(tick); };
+    requestAnimationFrame(tick);
+    // 사진이 화면에 뜬 뒤 뒤에서 맵을 지음 (도시를 짓는 동안 잠깐 멈춰도 로딩 화면이 가려 줌)
+    setTimeout(() => { if (o.isConnected) start(); }, 400);
+    setTimeout(() => {
+      o.classList.add('out');
+      setTimeout(() => { o.remove(); if (this.loadingEl === o) this.loadingEl = null; const f = this.afterLoading; this.afterLoading = null; if (f) f(); }, 450);
+    }, MS);
   }
   // 맵 모양 썸네일: 도로(본 도로·갈래 길), 랜드마크, 강, 적 입구, 지휘부를 위에서 본 그림으로
   drawMap(cv, S) {
@@ -397,6 +414,7 @@ export class UI {
     this.roarT = setTimeout(end, 7000);
   }
   playIntro() {
+    if (this.loadingEl) { this.afterLoading = () => this.playIntro(); return; }   // 로딩 사진이 끝난 뒤 자막
     this.intro?.remove(); clearTimeout(this.introT);
     const S = this.app.stage, city = GF.SETTINGS.useCityAlias ? S.alias : S.name;
     const last = city.charCodeAt(city.length - 1), batchim = last >= 0xac00 && last <= 0xd7a3 && (last - 0xac00) % 28 !== 0;
