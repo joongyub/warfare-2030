@@ -309,6 +309,7 @@ export class City {
     this.buildGateBase();
     this.buildStreetFront();
     this.buildTrees();
+    if (stage.maze) this.buildMazeGrid();
   }
 
   mats() {
@@ -442,6 +443,42 @@ export class City {
       }
     }
     const m = new THREE.Matrix4(), q = new THREE.Quaternion(), one = V(1, 1, 1);
+    this.chev.count = Math.min(600, this.chevPts.length);
+    for (let i = 0; i < this.chev.count; i++) {
+      const c = this.chevPts[i];
+      q.setFromAxisAngle(V(0, 1, 0), -c.ang);
+      m.compose(V(c.x, 0.1, c.z), q, V(1.25, 1, 1.25));
+      this.chev.setMatrixAt(i, m);
+    }
+    this.chev.instanceMatrix.needsUpdate = true;
+  }
+
+  // ---------- 길 만들기 (부산): 전투 구역 전체 바둑판 칸 ----------
+  buildMazeGrid() {
+    const S = this.S, b = S.bounds, C = S.maze.cell || 2, nx = Math.round((b.x1 - b.x0) / C), nz = Math.round((b.z1 - b.z0) / C);
+    const c = document.createElement('canvas'); c.width = c.height = 128;
+    const g = c.getContext('2d');
+    g.fillStyle = '#d4d8db'; g.fillRect(0, 0, 128, 128);
+    const rnd = makeRng('mazetile');
+    for (let i = 0; i < 420; i++) { g.fillStyle = `rgba(${rnd() < 0.5 ? '0,0,0' : '255,255,255'},${0.03 + rnd() * 0.05})`; g.fillRect(rnd() * 128, rnd() * 128, 2 + rnd() * 3, 2 + rnd() * 3); }
+    g.strokeStyle = '#7d868e'; g.lineWidth = 6; g.strokeRect(3, 3, 122, 122);
+    g.strokeStyle = 'rgba(255,255,255,0.55)'; g.lineWidth = 2; g.strokeRect(9, 9, 110, 110);
+    const t = new THREE.CanvasTexture(c); t.colorSpace = THREE.SRGBColorSpace; t.wrapS = t.wrapT = THREE.RepeatWrapping; t.repeat.set(nx, nz); t.anisotropy = 4;
+    const m = new THREE.Mesh(new THREE.PlaneGeometry(nx * C, nz * C), new THREE.MeshStandardMaterial({ map: t, roughness: 0.92, polygonOffset: true, polygonOffsetFactor: -1, polygonOffsetUnits: -1 }));
+    m.rotation.x = -Math.PI / 2; m.position.set(b.x0 + nx * C / 2, 0.02, b.z0 + nz * C / 2); m.receiveShadow = true;
+    this.group.add(m);
+  }
+  // 지금 적이 따라갈 길(칸 중심을 잇는 선)을 빨간 화살표로 보여 줌. 진입로 + 칸 길
+  showMazePath(maze, path = maze.path) {
+    const line = this.steps[0].opts[0].pts.slice(0, -1).map(([x, z]) => [x, z]).concat(path.map((k) => maze.center(k)));
+    this.chevPts = [];
+    let carry = 0.8;
+    for (let i = 0; i < line.length - 1; i++) {
+      const [ax, az] = line[i], [bx, bz] = line[i + 1], L = Math.hypot(bx - ax, bz - az), ang = Math.atan2(bz - az, bx - ax);
+      for (let d = carry; d < L; d += 2.2) this.chevPts.push({ x: ax + (bx - ax) * d / L, z: az + (bz - az) * d / L, ang });
+      carry = ((carry - L) % 2.2 + 2.2) % 2.2;
+    }
+    const m = new THREE.Matrix4(), q = new THREE.Quaternion();
     this.chev.count = Math.min(600, this.chevPts.length);
     for (let i = 0; i < this.chev.count; i++) {
       const c = this.chevPts[i];

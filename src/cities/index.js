@@ -8,6 +8,7 @@ import rio from './rio.js';
 import beijing from './beijing.js';
 import moscow from './moscow.js';
 import sydney from './sydney.js';
+import busan from './busan.js';
 
-export const CITY_KITS = { tokyo, london, berlin, cairo, rio, beijing, moscow, sydney };
+export const CITY_KITS = { tokyo, london, berlin, cairo, rio, beijing, moscow, sydney, busan };
 for (const K of Object.values(CITY_KITS)) { Object.assign(FIELD, K.field || {}); Object.assign(EDGE, K.edge || {}); }
