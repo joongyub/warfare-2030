@@ -16,6 +16,20 @@ import { Look } from './look.js';
 import { Backdrop, exportGuide } from './backdrop.js';
 import { TitleScene } from './titlescene.js';
 
+// 도시를 바꿀 때 이전 도시가 쓰던 GPU 자원을 모두 풂. 다른 곳에서 같은 재질을 다시 쓰면 three.js 가 다시 올림
+function disposeTree(root) {
+  const mats = new Set(), tex = new Set();
+  root.traverse((o) => {
+    if (o.geometry) o.geometry.dispose();
+    if (o.material) [].concat(o.material).forEach((m) => mats.add(m));
+  });
+  for (const m of mats) {
+    for (const k in m) { const v = m[k]; if (v && v.isTexture) tex.add(v); }
+    m.dispose();
+  }
+  for (const t of tex) t.dispose();
+}
+
 class App {
   constructor() {
     if (GF.SETTINGS.foldScreen == null) GF.SETTINGS.foldScreen = looksFolded();   // 처음 열 때 펼친 폴드면 꽉 채우기
@@ -149,7 +163,7 @@ class App {
     this.stage = S;
     try { localStorage.setItem('gf_stage', id); } catch (e) { /* 저장 불가 환경 */ }
     this.scene.remove(this.city.group);
-    this.city.group.traverse((o) => { if (o.geometry) o.geometry.dispose(); });
+    disposeTree(this.city.group);   // 이전 도시의 모양·재질·그림(텍스처)까지 GPU에서 비움 (도시를 여러 번 바꾸면 메모리가 쌓여 버벅이던 문제)
     this.city = new City(this.scene, S);
     this.game.city = this.city; this.game.S = S;
     this.ui.resetLabels();
@@ -444,6 +458,7 @@ class App {
     } else {
       if (this.city.shadowDirty) { this.renderer.shadowMap.needsUpdate = true; this.city.shadowDirty = false; }
       this.look.render();
+      if (!document.hidden) this.look.governor(real);   // 느리면 해상도 자동으로 낮춤 (폴드 큰 화면 렉 대응)
     }
     this.autoQuality(real);
     this.ui.update(dt || 0);
