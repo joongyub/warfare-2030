@@ -2,7 +2,7 @@
 window.GF = window.GF || {};
 
 GF.SETTINGS = {
-  version: '0.43.0 (베타 · 12개 도시)',
+  version: '0.44.0 (베타 · 12개 도시)',
   // true: 실제 무기 이름 (K9 썬더, 재블린 …) / false: 살짝 바꾼 이름 (K9-X 썬더, 재블런스 …)
   // 출시 직전 상표 검토 후 결정 (문서 10번 2장 참고)
   useRealWeaponNames: true,
@@ -29,6 +29,7 @@ GF.SETTINGS = {
   shadows: true,            // 그림자 (느린 컴퓨터는 false)
   graphics: 'ultra',        // 그래픽 품질 기본 = 최고 (2026-10-08 사용자 요청). 'auto'(느리면 자동으로 낮춤) / 'ultra' / 'high' / 'medium' / 'low'. 사용자가 바꾸면 gf_prefs 에 기억
   foldScreen: null,         // 폴드7·폴드8 울트라 펼친 화면 꽉 채우기 (null = 처음 열 때 펼친 폴드처럼 보이면 자동으로 켬). 설정에서 체크
+  lockStages: true,         // 도시 잠금: 서울부터 순서대로 방어완료해야 다음 도시가 열림 (false 면 모두 열림)
   difficulty: 'easy',       // 난이도 기본값 (전투지역 화면에서 고름, gf_prefs 에 기억)
   comboWindow: 2.5,         // 이 시간(초) 안에 연속으로 처치하면 연쇄 격파 보너스
   homeBg: 'img/home_bg.jpg',

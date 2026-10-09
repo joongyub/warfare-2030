@@ -245,14 +245,16 @@ export class UI {
     if (GF.SETTINGS.homeBg) z.style.setProperty('--home-bg', `url("${GF.SETTINGS.homeBg}")`);
     const list = this.stageList();
     z.innerHTML = `<div class="zn-head"><button class="zn-back">← 홈</button><div><b>전투지역</b><span>지킬 도시를 고르고 전투시작을 누르세요</span></div></div>
-      <div class="zn-grid">${list.map((X) => `<button class="zn-card" data-id="${X.id}"><canvas width="228" height="176"></canvas><div class="zn-n"><small>${X.no}</small><b>${GF.SETTINGS.useCityAlias ? X.alias : X.name}</b><i>${this.stars(this.best(X.id))}</i></div>${this.zoneStatus(X)}</button>`).join('')}</div>
+      <div class="zn-grid">${list.map((X) => { const ok = this.unlocked(X), P = this.prevStage(X); return `<button class="zn-card${ok ? '' : ' lock'}" data-id="${X.id}"><canvas width="228" height="176"></canvas>${ok ? '' : `<div class="zn-lock"><b>🔒</b><span>${P ? P.name : ''} 방어완료 시 열림</span></div>`}<div class="zn-n"><small>${X.no}</small><b>${GF.SETTINGS.useCityAlias ? X.alias : X.name}</b><i>${this.stars(this.best(X.id))}</i></div>${ok ? this.zoneStatus(X) : '<div class="zn-st new"><div class="zn-dcs"><i class="dc">🔒 잠김</i></div><div class="zn-bar"><i style="width:0%"></i></div></div>'}</button>`; }).join('')}</div>
       <div class="zn-side"></div>`;
     z.querySelectorAll('.zn-card').forEach((b) => {
       this.drawMap(b.querySelector('canvas'), GF.STAGES[b.dataset.id]);
       b.onclick = () => this.zonePick(b.dataset.id);
     });
     z.querySelector('.zn-back').onclick = () => this.closeZone();
-    this.zonePick(this.app.stage.id);
+    // 처음 고른 도시: 지금 도시가 잠겨 있으면 열린 도시 중 아직 못 깬 첫 도시
+    const open = list.filter((X) => this.unlocked(X));
+    this.zonePick(this.unlocked(this.app.stage) ? this.app.stage.id : (open.find((X) => !this.best(X.id)) || open[open.length - 1]).id);
   }
   closeZone() { if (!this.zone) return; this.zone.remove(); this.zone = null; if (this.title) this.title.style.display = ''; }
   stars(n) { return '★'.repeat(n) + '☆'.repeat(3 - n); }
@@ -294,7 +296,7 @@ export class UI {
       <p>${X.briefing}</p>
       <div class="zn-meta">웨이브 ${X.waves.length} · 기지 체력 ${X.lives} · 적 진입로 ${1 + (X.branches || []).length}곳 · 최고 기록 <b>${this.stars(this.best(id))}</b></div>
       <div class="zn-legend">${X.maze ? '<b class="lg-mz">특별 작전 · 길 만들기</b> 칸에 무기를 놓아 적의 길을 직접 만들어요 <span class="lg-g"></span>적 입구 <span class="lg-h"></span>연합 지휘부' : '<span class="lg-r"></span>본 도로 <span class="lg-b"></span>갈래 길 <span class="lg-g"></span>적 입구 <span class="lg-h"></span>연합 지휘부'}</div>
-      <div class="zn-ms"><div class="zn-ms-t">난이도별 작전 <small>난이도마다 진행과 저장이 따로예요</small></div>${GF.diffsFor(X).map(row).join('')}</div>`;
+      ${this.unlocked(X) ? `<div class="zn-ms"><div class="zn-ms-t">난이도별 작전 <small>난이도마다 진행과 저장이 따로예요</small></div>${GF.diffsFor(X).map(row).join('')}</div>` : `<div class="zn-locked">🔒 잠긴 도시<small>STAGE ${this.prevStage(X).no} ${this.prevStage(X).name}을(를) 어느 난이도로든 방어완료하면 열려요</small></div>`}`;
     this.drawMap(side.querySelector('.zn-big'), X);
     side.querySelectorAll('.ms').forEach((r) => {
       const k = r.dataset.d;
@@ -308,6 +310,7 @@ export class UI {
   // 고른 난이도로 시작. cont = 그 난이도의 저장에서 이어하기 (Enter 키는 저장 있으면 이어하기)
   zoneStart(cont) {
     const id = this.zoneSel || this.app.stage.id, k = GF.diffFor(GF.STAGES[id], GF.SETTINGS.difficulty);
+    if (!this.unlocked(GF.STAGES[id])) { const P = this.prevStage(GF.STAGES[id]); this.toastAny(`🔒 ${P.name} 방어완료 후 열려요`); return; }
     if (cont == null) cont = !!Saves.get(id, k);
     // 전투 진입 연출(약 3초): 도시 캐리커처 + 북한군 미사일 침공 → 끝나면 게임 (그 도시 장면이 있을 때만, 지금은 서울)
     if (this.invading) return;
@@ -420,6 +423,14 @@ export class UI {
   }
   best(id = this.app.stage.id) { let b = 0; try { b = JSON.parse(localStorage.getItem('gf_progress') || '{}')[id] || 0; } catch (e) { /* 저장 불가 환경 */ } Object.values(Clears.get(id)).forEach((c) => { b = Math.max(b, (c && c.stars) || 0); }); return b; }
   stageList() { return Object.values(GF.STAGES).sort((a, b) => a.no - b.no); }
+  // 도시 잠금 (2026-10-09 사용자 요청): 서울부터 순서대로, 앞 도시를 어느 난이도로든 방어완료하면 다음 도시가 열림
+  //   이미 그 도시에 저장·완료 기록이 있으면(예전부터 하던 사람) 열어 둠. GF.SETTINGS.lockStages = false 면 모두 열림
+  prevStage(X) { const L = this.stageList(), i = L.indexOf(X); return i > 0 ? L[i - 1] : null; }
+  unlocked(X) {
+    if (GF.SETTINGS.lockStages === false) return true;
+    const P = this.prevStage(X);
+    return !P || this.best(P.id) > 0 || this.best(X.id) > 0 || Object.keys(Saves.of(X.id)).length > 0;
+  }
   resetLabels() { for (const { e } of this.labelEls) e.remove(); this.labelEls = []; }
 
   // ---------- 전투 화면 ----------
@@ -1076,7 +1087,7 @@ export class UI {
         ${won ? `<div class="stars">${'★'.repeat(stars) + '☆'.repeat(3 - stars)}</div><div class="rs-badge">${D.name} 완료${saved && saved.first ? ' · 첫 완료!' : saved && saved.best ? ' · 최고 기록 갱신!' : ''}</div>` : ''}
         <div class="rs-grid">${stat.map(([k, v]) => `<div><small>${k}</small><b>${v}</b></div>`).join('')}</div>
         ${rec.mvp ? `<p class="rs-mvp">최고 활약 <b>${rec.mvp.name}</b> · 누적 피해 ${rec.mvp.dmg.toLocaleString('ko-KR')}</p>` : ''}
-        <p class="s">${won ? '전투지역 화면의 도시 카드에 난이도별 완료가 기록됐어요' : '굽이 사이 공원에 무기를 모으고, 우회로를 열어 적을 더 오래 붙잡아 보세요'}</p>
+        <p class="s">${won ? (() => { const L = this.stageList(), nx = L[L.indexOf(this.app.stage) + 1]; return nx ? `🔓 다음 도시 STAGE ${nx.no} ${nx.name} 이(가) 열렸어요! 전투지역에서 출격하세요` : '전투지역 화면의 도시 카드에 난이도별 완료가 기록됐어요'; })() : '굽이 사이 공원에 무기를 모으고, 우회로를 열어 적을 더 오래 붙잡아 보세요'}</p>
         <div class="row"><button class="again">다시 하기</button><button class="home">처음 화면</button></div>
       </div>`, this.root);
     r.querySelector('.again').onclick = () => { this.clearResult(); this.app.startGame(); };

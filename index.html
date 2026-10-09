@@ -268,6 +268,14 @@
   .zn-card canvas { display: block; width: 228px; height: 176px; background: #142028; }
   .zn-card.on { border-color: var(--gold); box-shadow: 0 0 22px rgba(242,193,78,.35); background: rgba(48,40,18,.9); }
   .zn-card:hover { filter: brightness(1.12); }
+  .zn-card { position: relative; }
+  .zn-card.lock canvas { filter: grayscale(1) brightness(.45); }
+  .zn-card.lock .zn-n b { color: #8a96a0; }
+  .zn-lock { position: absolute; left: 0; top: 0; width: 100%; height: 176px; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 6px; pointer-events: none; }
+  .zn-lock b { font-size: 54px; line-height: 1; filter: drop-shadow(0 4px 6px rgba(0,0,0,.7)); }
+  .zn-lock span { font-size: 13px; font-weight: 800; color: #ffe2a0; background: rgba(0,0,0,.6); padding: 3px 10px; border-radius: 10px; }
+  .zn-locked { margin-top: 14px; padding: 18px; border-radius: 14px; background: rgba(0,0,0,.45); border: 2px dashed rgba(255,226,160,.5); font-size: 24px; font-weight: 900; color: #ffe2a0; text-align: center; }
+  .zn-locked small { display: block; margin-top: 6px; font-size: 15px; font-weight: 700; color: #d4e0e8; }
   .zn-n { display: flex; align-items: center; gap: 8px; padding: 10px 12px 4px; }
   .zn-n small { min-width: 24px; height: 24px; line-height: 24px; text-align: center; border-radius: 6px; background: rgba(255,255,255,.1); color: #8fb1c2; font-size: 13px; font-weight: 700; }
   .zn-n b { font-size: 24px; color: #fff; flex: 1; white-space: nowrap; } .zn-n i { font-style: normal; color: var(--gold); font-size: 15px; letter-spacing: 1px; }
@@ -532,7 +540,7 @@
   .mobile .brief.home { top: 430px; } .mobile .home-cta { font-size: 14px; } .mobile .brief.home .go { width: 380px; }
   .mobile .zn-head { left: 30px; top: 18px; gap: 14px; } .mobile .zn-head b { font-size: 34px; } .mobile .zn-head span { font-size: 13px; } .mobile .zn-back { height: 40px; font-size: 16px; padding: 0 14px; }
   .mobile .zn-grid { left: 30px; top: 98px; width: 830px; grid-template-columns: repeat(5, 158px); gap: 9px; }
-  .mobile .zn-card { border-radius: 12px; padding-bottom: 7px; } .mobile .zn-card canvas { width: 158px; height: 118px; }
+  .mobile .zn-card { border-radius: 12px; padding-bottom: 7px; } .mobile .zn-card canvas { width: 158px; height: 118px; } .mobile .zn-lock { height: 118px; } .mobile .zn-lock b { font-size: 38px; } .mobile .zn-lock span { font-size: 11px; padding: 2px 6px; }
   .mobile .zn-n { padding: 6px 8px 2px; gap: 5px; } .mobile .zn-n small { min-width: 18px; height: 18px; line-height: 18px; font-size: 10px; } .mobile .zn-n b { font-size: 17px; } .mobile .zn-n i { font-size: 10px; }
   .mobile .zn-st { padding: 0 6px; } .mobile .zn-st span { font-size: 10px; margin-bottom: 3px; } .mobile .zn-dcs { gap: 2px; margin-bottom: 3px; } .mobile .zn-dcs .dc { font-size: 8.5px; padding: 1px 3px; border-radius: 4px; }
   .mobile .zn-side { right: 20px; top: 18px; width: 384px; padding: 12px 14px 14px; border-radius: 14px; } .mobile .zn-big { width: 342px; height: 180px; }
