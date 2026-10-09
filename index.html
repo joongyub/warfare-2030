@@ -126,6 +126,10 @@
   /* 시작 화면 */
   .title-screen { position: absolute; inset: 0; background: linear-gradient(90deg, rgba(10,18,26,.88) 0%, rgba(10,18,26,.7) 46%, rgba(10,18,26,0) 70%); }
   .title-screen.has-bg { background: linear-gradient(90deg, rgba(8,12,20,.82) 0%, rgba(8,12,20,.55) 40%, rgba(8,12,20,0) 62%), var(--home-bg) center right / cover no-repeat, #0a0e16; }
+  /* 움직이는 홈 배경: 캔버스(열병식 장면) 위에 왼쪽 어둡게 그라데이션 → 그 위에 글자·버튼 */
+  .title-screen.has-bg.anim { background: #0a0e16; isolation: isolate; }
+  .title-screen .home-anim { position: absolute; inset: 0; width: 100%; height: 100%; z-index: -2; pointer-events: none; }
+  .title-screen .home-shade { position: absolute; inset: 0; z-index: -1; pointer-events: none; background: linear-gradient(90deg, rgba(8,12,20,.82) 0%, rgba(8,12,20,.55) 40%, rgba(8,12,20,0) 62%); }
   .brand { position: absolute; left: 90px; top: 70px; }
   .brand span { font-weight: 700; letter-spacing: 8px; color: var(--gold); font-size: 26px; }
   .brand h1 { margin: 6px 0 8px; font-size: 92px; letter-spacing: -2px; text-shadow: 0 6px 24px rgba(0,0,0,.4); }

@@ -5,6 +5,7 @@ import { Cloud } from './cloud.js';
 import { layout, isTouch } from './layout.js';
 import { HEROES, HERO_IDS, GACHA, heroChance } from './heroes.js';
 import { Saves } from './save.js';
+import { HomeAnim } from './homeanim.js';
 // 화면 글자·위치가 바뀔 때만 실제로 씀 (매 프레임 다시 쓰면 휴대폰에서 끊김)
 const putCache = new WeakMap();
 function put(o, k, v) {
@@ -68,6 +69,8 @@ export class UI {
     const t = this.title = h('div', 'title-screen', null, this.root);
     // 홈 배경 그림 (settings.homeBg). 없으면 뒤의 3D 전장이 보임
     if (GF.SETTINGS.homeBg) { t.classList.add('has-bg'); t.style.setProperty('--home-bg', `url("${GF.SETTINGS.homeBg}")`); }
+    // 움직이는 홈 배경 (열병식 장면). 그래픽 '낮음'이면 그림만
+    if (GF.SETTINGS.homeBg && GF.SETTINGS.graphics !== 'low') t.classList.add('anim');
     t.innerHTML = `
       <div class="brand"><span>MODERN WAR TOWER DEFENSE</span><h1>2030 Warfare 1</h1><p>부카니스탄이 세계 50개 도시를 침공했다. 연합군 지휘관으로서 도시를 지켜라.</p></div>
       <div class="profile-card">
@@ -87,6 +90,7 @@ export class UI {
         <div class="help">조작: 마우스 끌기·방향키 지도 이동 · 휠 확대·축소 · 오른쪽 버튼 끌기 또는 [ ] 키 시점 회전 · R 기본 시점 · 1~0 무기(Shift+1~0 아랫줄) · Q W E 작전 카드 · Z ICBM · X 전략핵 · 스페이스 일시정지 · N 다음 웨이브</div>
         <div class="disc">이 게임은 가상의 이야기입니다. 실제 국가·단체·사건과 관계없습니다. · v${GF.SETTINGS.version}</div>
       </div>`;
+    if (t.classList.contains('anim')) { this.homeAnim = new HomeAnim(t, GF.SETTINGS.homeBg); h('div', 'home-shade', null, t); t.prepend(t.lastChild); t.prepend(this.homeAnim.cv); }
     t.querySelector('.go').onclick = () => this.openZone();
     this.bindFold(t);
     t.querySelector('.pc-gq select').onchange = (e) => { GF.SETTINGS.graphics = e.target.value; this.app.applySettings(); this.toastAny('그래픽: ' + e.target.selectedOptions[0].textContent); };
