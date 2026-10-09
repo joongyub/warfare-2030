@@ -46,7 +46,7 @@
   .strat { position: absolute; right: 14px; bottom: 14px; width: 304px; display: flex; gap: 8px; }
   .sb { position: relative; flex: 1 1 0; min-width: 0; overflow: hidden; height: 62px; border-radius: 14px; background: rgba(60,20,22,.82); border: 2px solid rgba(255,90,80,.3); padding: 6px 8px 0 30px; box-sizing: border-box; cursor: pointer; opacity: .82; filter: saturate(.6); }
   .sb i { position: absolute; left: 9px; top: 6px; font-style: normal; font-weight: 800; color: #ff8a8e; }
-  .sb b { display: block; font-size: 15px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; } .sb span { font-size: 12px; color: #e6b3b3; }
+  .sb b { display: block; font-size: 14px; letter-spacing: -.4px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; } .sb span { font-size: 12px; color: #e6b3b3; }
   .sb.ready { opacity: 1; filter: none; border-color: #ff5a4a; box-shadow: 0 0 16px rgba(255,80,60,.5); animation: sbpulse 1.4s infinite; }
   .sb.sel { border-color: #fff; }
   @keyframes sbpulse { 50% { box-shadow: 0 0 26px rgba(255,80,60,.85); } }
@@ -299,6 +299,21 @@
   .zn-start { color: #062a2e; background: linear-gradient(#6af0ea, #2cb9bd); box-shadow: 0 0 0 4px rgba(120,250,245,.35), 0 10px 30px rgba(0,0,0,.35); }
   .zn-cont { display: flex; flex-direction: column; align-items: center; justify-content: center; color: #3a2600; background: linear-gradient(#ffd96a, #f2a33a); font-size: 28px !important; }
   .zn-cont small { font-size: 15px; opacity: .8; } .zn-go .zn-cont + .zn-start { font-size: 26px; }
+  /* 난이도별 작전 칸 (도시 × 난이도마다 진행·저장 따로) */
+  .zn-ms { margin-top: 14px; display: flex; flex-direction: column; gap: 8px; }
+  .zn-ms-t { font-size: 17px; font-weight: 800; color: #e8f0f4; } .zn-ms-t small { font-size: 13px; font-weight: 500; color: #8fa3b1; margin-left: 8px; }
+  .ms { display: flex; align-items: center; gap: 12px; padding: 9px 12px; border-radius: 14px; border: 2px solid rgba(255,255,255,.14); background: rgba(10,20,30,.55); cursor: pointer; }
+  .ms.on { border-color: #8ff3ff; background: rgba(40,90,110,.45); }
+  .ms-n { width: 74px; flex: none; font-size: 21px; font-weight: 800; text-align: center; padding: 6px 0; border-radius: 10px; }
+  .ms-n i { font-style: normal; color: #7ff0a0; margin-left: 3px; }
+  .ms.d-easy .ms-n { background: rgba(60,160,100,.35); } .ms.d-normal .ms-n { background: rgba(190,140,30,.35); } .ms.d-hard .ms-n { background: rgba(190,40,50,.4); }
+  .ms-s { flex: 1; min-width: 0; font-size: 15px; color: #c9d6de; line-height: 1.3; } .ms-s b { font-size: 17px; margin-right: 6px; } .ms-s small { display: block; font-size: 12.5px; color: #8fa3b1; }
+  .ms-done { color: #7ff0a0; } .ms-run { color: #ffd36a; } .ms-none { color: #9fb2c0; }
+  .ms-b { display: flex; gap: 6px; flex: none; }
+  .ms-b button { height: 46px; padding: 0 16px; border: 0; border-radius: 11px; font-size: 18px; font-weight: 800; cursor: pointer; white-space: nowrap; }
+  .ms-start { color: #062a2e; background: linear-gradient(#6af0ea, #2cb9bd); } .ms.done .ms-start { color: #e8f0f4; background: rgba(255,255,255,.14); }
+  .ms-cont { color: #3a2600; background: linear-gradient(#ffd96a, #f2a33a); } .ms-new { color: #e8f0f4; background: rgba(255,255,255,.14); padding: 0 12px !important; }
+  .sv-d { font-style: normal; font-size: 12px; font-weight: 800; padding: 1px 6px; border-radius: 6px; vertical-align: 2px; } .sv-d.d-easy { background: rgba(60,160,100,.45); } .sv-d.d-normal { background: rgba(190,140,30,.45); } .sv-d.d-hard { background: rgba(190,40,50,.5); }
 
   /* 웨이브 절반 방송 (7초): 홈 그림의 여자 캐릭터만 + 하단 자막 */
   .taunt { position: absolute; inset: 0; z-index: 55; pointer-events: auto; animation: tn-bg 7s forwards; }
@@ -352,9 +367,9 @@
   .cgrid { flex: 1; min-width: 0; display: grid; grid-template-columns: repeat(10, minmax(0, 1fr)); grid-template-rows: 1fr 1fr; gap: 6px; }
   .card { position: relative; min-width: 0; min-height: 0; overflow: hidden; border-radius: 14px; border: 2px solid rgba(255,255,255,.12); background: rgba(255,255,255,.05); display: flex; flex-direction: column; align-items: center; justify-content: flex-start; cursor: pointer; transition: transform .1s; }
   .card:hover { transform: translateY(-3px); border-color: var(--line); }
-  .card img { width: 64px; height: 64px; margin-top: 0; }
+  .card img { width: 58px; height: 58px; margin-top: 0; }
   .card .txt { text-align: center; line-height: 1.1; }
-  .card .txt { max-width: 100%; padding: 0 3px; box-sizing: border-box; } .card .txt b { display: block; font-size: 14px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; } .card .txt span { display: block; font-size: 10px; color: #9fb2c0; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+  .card .txt { max-width: 100%; padding: 0 3px; box-sizing: border-box; } .card .txt b { display: block; font-size: 14px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; } .card .txt span { display: -webkit-box; -webkit-box-orient: vertical; -webkit-line-clamp: 2; font-size: 10px; line-height: 1.12; color: #9fb2c0; white-space: normal; word-break: keep-all; overflow: hidden; }   /* 긴 설명은 두 줄로 (잘림 방지) */
   .card .cost { position: absolute; right: 4px; top: 4px; background: rgba(0,0,0,.55); border-radius: 999px; padding: 1px 7px 1px 20px; font-size: 13px; font-weight: 700; color: var(--gold); }
   .card .cost::before { content: ''; position: absolute; left: 6px; top: 4px; width: 11px; height: 13px; background: linear-gradient(135deg, #ffe17a, #e9a316); clip-path: polygon(50% 0, 100% 25%, 100% 75%, 50% 100%, 0 75%, 0 25%); }
   .card i { position: absolute; left: 6px; top: 3px; font-style: normal; font-weight: 800; color: var(--teal); font-size: 13px; }
@@ -467,19 +482,19 @@
   .mobile .pill { height: 44px; min-width: 0; padding: 0 12px; gap: 6px; font-size: 21px; border-radius: 12px; } .mobile .pill span { display: none; }
   .mobile .sq { height: 44px; min-width: 46px; font-size: 18px; border-radius: 12px; } .mobile .sq.gear { font-size: 24px; } .mobile .sq.speed { padding: 0 8px; font-size: 15px; }
   .mobile .bar { left: 8px; right: 236px; bottom: 8px; height: 168px; gap: 6px; padding: 6px; border-radius: 16px; } .mobile .cgrid { gap: 4px; }
-  .mobile .card { border-radius: 10px; } .mobile .card img { width: 50px; height: 50px; } .mobile .card .txt b { font-size: 11px; } .mobile .card .txt span, .mobile .card i { display: none; }
+  .mobile .card { border-radius: 10px; } .mobile .card img { width: 42px; height: 42px; } .mobile .card .txt b { font-size: 10.5px; line-height: 1.1; white-space: normal; word-break: keep-all; display: -webkit-box; -webkit-box-orient: vertical; -webkit-line-clamp: 2; text-overflow: clip; } .mobile .card .txt span, .mobile .card i { display: none; }
   .mobile .card .cost { right: 2px; top: 2px; font-size: 11px; padding: 0 5px 0 16px; } .mobile .card .cost::before { left: 5px; top: 3px; width: 9px; height: 11px; }
   .mobile .ops { flex: 0 0 214px; gap: 3px; padding-left: 5px; } .mobile .ops-title { display: none; }
   .mobile .op { height: 27px; padding: 0 28px 0 8px; } .mobile .op i, .mobile .op span { display: none; } .mobile .op b { font-size: 14px; } .mobile .op em { width: 21px; height: 21px; }
   .mobile .cpbar .seg { height: 9px; }
   .mobile .nextwave { right: 8px; bottom: 66px; width: 220px; height: 54px; border-radius: 16px; gap: 1px; } .mobile .nextwave b, .mobile .nextwave.busy b { font-size: 22px; } .mobile .nextwave small { font-size: 11px; }
-  .mobile .strat { right: 8px; bottom: 8px; width: 220px; gap: 6px; } .mobile .sb { height: 52px; padding: 4px 4px 0 22px; border-radius: 12px; } .mobile .sb i { left: 6px; top: 4px; font-size: 13px; } .mobile .sb b { font-size: 13px; } .mobile .sb span { display: block; font-size: 11px; white-space: nowrap; overflow: hidden; }
+  .mobile .strat { right: 8px; bottom: 8px; width: 220px; gap: 6px; } .mobile .sb { height: 52px; padding: 4px 2px 0 20px; border-radius: 12px; } .mobile .sb i { left: 6px; top: 4px; font-size: 13px; } .mobile .sb b { font-size: 10.5px; letter-spacing: -.6px; } .mobile .sb span { display: block; font-size: 9.5px; letter-spacing: -.3px; white-space: nowrap; overflow: hidden; }
   .mobile .hint { left: 160px; right: 240px; bottom: 182px; font-size: 14px; }
   .mobile .tip { font-size: 15px; padding: 5px 10px; }
   .mobile .toast { top: 76px; font-size: 22px; } .mobile .combo { top: 110px; font-size: 28px; } .mobile .combo b { font-size: 52px; }
   .mobile .paused { top: 300px; font-size: 56px; }
   .mobile .lm { font-size: 13px; padding: 2px 8px; } .mobile .lm.enemy, .mobile .lm.base { font-size: 15px; }
-  .mobile .tpanel { width: 300px; padding: 12px; } .mobile .tpanel .pt { font-size: 20px; } .mobile .tpanel .pi { font-size: 13px; margin: 4px 0 6px; } .mobile .tpanel .pi small { display: none; }
+  .mobile .tpanel { width: 300px; padding: 12px; } .mobile .tpanel .pt { font-size: 20px; } .mobile .tpanel .pi { font-size: 13px; margin: 4px 0 6px; } .mobile .tpanel .pi small { display: block; font-size: 11px; line-height: 1.35; color: #9fb2c0; }
   .mobile .tpanel button { height: 44px; font-size: 15px; }
   .mobile .settings { right: 8px; top: 56px; width: 340px; padding: 14px; font-size: 18px; } .mobile .settings input { width: 24px; height: 24px; } .mobile .settings button { height: 48px; }
   .mobile .result .box { width: 680px; padding: 24px; } .mobile .result h2 { font-size: 52px; } .mobile .result .stars { font-size: 44px; } .mobile .result p { font-size: 17px; } .mobile .result button { width: 260px; height: 60px; font-size: 22px; }
@@ -508,6 +523,10 @@
   .mobile .zn-side p { font-size: 12px; margin: 3px 0 5px; } .mobile .zn-meta { font-size: 12px; } .mobile .zn-legend { font-size: 11px; margin-top: 5px; }
   .mobile .zn-diff { margin-top: 6px; gap: 5px; } .mobile .zn-diff > span { font-size: 11px; } .mobile .zn-diff button { font-size: 14px; padding: 4px 2px; border-radius: 9px; } .mobile .zn-diff button small { font-size: 9px; }
   .mobile .zn-go { margin-top: 10px; gap: 8px; } .mobile .zn-go button { height: 58px; font-size: 24px; border-radius: 12px; } .mobile .zn-cont { font-size: 19px !important; } .mobile .zn-cont small { font-size: 11px; } .mobile .zn-go .zn-cont + .zn-start { font-size: 18px; }
+  .mobile .zn-ms { margin-top: 6px; gap: 4px; } .mobile .zn-ms-t { font-size: 12px; } .mobile .zn-ms-t small { font-size: 9.5px; margin-left: 4px; }
+  .mobile .ms { gap: 6px; padding: 4px 6px; border-radius: 9px; } .mobile .ms-n { width: 46px; font-size: 13px; padding: 4px 0; border-radius: 7px; }
+  .mobile .ms-s { font-size: 10.5px; } .mobile .ms-s b { font-size: 11.5px; margin-right: 3px; } .mobile .ms-s small { font-size: 9px; }
+  .mobile .ms-b { gap: 4px; } .mobile .ms-b button { height: 30px; padding: 0 9px; font-size: 12px; border-radius: 8px; } .mobile .ms-new { padding: 0 7px !important; }
   .mobile .in-chars { left: 20px; width: 340px; height: 290px; background-size: 917px 516px; background-position: -307px -22px; }
   .mobile .in-box { left: 350px; right: 30px; bottom: 30px; padding: 14px 18px; } .mobile .in-box small { font-size: 12px; } .mobile .in-box p { font-size: 22px; min-height: 62px; }
   /* 상점 */

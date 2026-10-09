@@ -43,7 +43,11 @@ export const Cloud = {
 
   // 서버 기록과 이 기기 기록을 합침: 스테이지마다 더 나중에 저장(또는 삭제)한 쪽, 별은 큰 쪽
   merge(remote) {
-    const saves = read(K.saves), del = read(K.del), rs = remote.saves || {}, rd = remote.del || {};
+    // 예전 저장 키(도시 이름만)는 도시:난이도 키로 맞춤 (save.js 와 같은 규칙)
+    const nk = (k, d) => (k.includes(':') ? k : k + ':' + (GF.STAGES[k] && GF.diffFor ? GF.diffFor(GF.STAGES[k], (d && d.diff) || 'normal') : (d && d.diff) || 'normal'));
+    const fixS = (o) => { const r = {}; Object.keys(o).forEach((k) => { const d = o[k], n = nk(k, d); if (d && d.diff == null) d.diff = n.split(':')[1]; if (!r[n] || ((r[n] || {}).time || 0) < ((d || {}).time || 0)) r[n] = d; }); return r; };
+    const fixD = (o) => { const r = {}; Object.keys(o).forEach((k) => { const n = nk(k, null); r[n] = Math.max(r[n] || 0, o[k] || 0); }); return r; };
+    const saves = fixS(read(K.saves)), del = fixD(read(K.del)), rs = fixS(remote.saves || {}), rd = fixD(remote.del || {});
     const ids = new Set([...Object.keys(saves), ...Object.keys(del), ...Object.keys(rs), ...Object.keys(rd)]);
     const outS = {}, outD = {};
     ids.forEach((id) => {
