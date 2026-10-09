@@ -53,7 +53,7 @@ export class Game {
     this.fxGroup.clear(); this.vfx.clear();
     this.city.resetRoutes(); this.city.resetTrees();
     this.money = S.startMoney; this.lives = S.lives;
-    this.diffId = GF.DIFF[SET.difficulty] ? SET.difficulty : 'easy'; this.diff = GF.DIFF[this.diffId];
+    this.diffId = GF.diffFor(S, SET.difficulty); this.diff = GF.DIFF[this.diffId];
     this.cp = SET.cpStart; this.cpT = 0;
     this.speed = 1;
     this.waveNo = 0; this.kills = 0;
