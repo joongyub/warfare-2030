@@ -732,9 +732,16 @@
   .zone-screen .zn-locked { border-radius: 2px; background: rgba(10,10,6,.55); border: 1px dashed rgba(242,181,60,.55); color: var(--mil-amber); }
   .zone-screen .zn-locked small { color: #d0c8ab; }
   .mobile .zone-screen .zn-head b::after { display: none; } .mobile .zone-screen .zn-lock b, .mobile .zone-screen .zn-lock b svg { width: 38px; height: 38px; }
+  /* 시작 화면 (v0.50.0) */
+  #boot { position: fixed; inset: 0; z-index: 9999; display: flex; align-items: center; justify-content: center; background: #06120b; transition: opacity .45s; }
+  #boot img { width: min(46vmin, 420px); height: min(46vmin, 420px); border-radius: 18%; box-shadow: 0 0 60px rgba(255,150,40,.25), 0 10px 40px rgba(0,0,0,.6); animation: bootin .6s ease-out; }
+  #boot.off { opacity: 0; pointer-events: none; }
+  @keyframes bootin { from { opacity: 0; transform: scale(.92); } }
 </style>
 </head>
 <body>
+<!-- 처음 켤 때 게임 파일을 받는 동안 보이는 시작 화면 (2030 엠블럼). 게임이 준비되면 main.js 가 사라지게 함 -->
+<div id="boot"><img src="icons/emblem.jpg" alt="2030 Warfare"></div>
 <div id="view"></div>
 <div id="hud"></div>
 

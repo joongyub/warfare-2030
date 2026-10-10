@@ -1,8 +1,14 @@
-2030 Warfare 1 — 세계 12개 도시 베타 (v0.49.0)
+2030 Warfare 1 — 세계 12개 도시 베타 (v0.50.0)
 =================================================
 
 ▶ 온라인 주소 (휴대폰·PC 크롬)
   https://joongyub.github.io/warfare-2030/   ← main 에 올리면 자동으로 최신판
+
+▶ v0.50.0 앱 아이콘·시작 화면 엠블럼 교체 (사용자 첨부 그림: 패트리엇 발사대 + 2030)
+  - 원본: /mnt/project-files/tower-defense/icon/emblem_src.png (1254x1254).
+  - 웹: icons/icon-512·192·180.png(꽉 찬 그림), icons/icon-maskable-512.png(안드로이드 크롬 설치용, 82% + 짙은 녹색 #06120B), icons/emblem.jpg(시작 화면).
+  - 웹 시작 화면: index.html #boot (게임 파일 받는 동안 엠블럼, main.js 가 첫 화면 뒤 걷음). 단일 HTML 은 emblem.jpg 를 data URI 로.
+  - 안드로이드 앱: 적응형 아이콘(mipmap-anydpi-v26/ic_launcher.xml, 전경 drawable-xxxhdpi/ic_launcher_fg.png), 안드로이드 12+ 시스템 시작 화면(values-v31/themes.xml splash_icon), 11 이하는 windowBackground launch_bg. 웹 화면은 사이트가 다 뜰 때까지 숨겨 엠블럼이 보이게(MainActivity reveal, 최대 8초). android/ 바뀌어서 APK 새로 빌드됨 → 앱을 새 APK 로 덮어 설치해야 아이콘이 바뀜.
 
 ▶ v0.49.0 홈 화면 렉 · 자동 저장
   - 홈·전투지역 화면이 화면을 다 가리는 동안 뒤의 3D 전투 장면(TitleScene)을 그리지 않음 (main.js frame). 화면에 안 보이는데 매 프레임 그리던 것이 홈 렉의 가장 큰 원인.

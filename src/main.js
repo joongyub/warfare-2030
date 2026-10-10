@@ -469,3 +469,8 @@ class App {
 }
 
 new App();
+// 시작 화면(2030 엠블럼) 걷기: 첫 화면이 그려진 뒤 부드럽게 사라짐
+requestAnimationFrame(() => requestAnimationFrame(() => {
+  const b = document.getElementById('boot'); if (!b) return;
+  b.classList.add('off'); setTimeout(() => b.remove(), 500);
+}));

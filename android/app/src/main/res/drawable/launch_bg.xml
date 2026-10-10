@@ -1,0 +1,6 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- 앱을 켤 때 웹 화면이 뜨기 전까지 보이는 시작 화면: 짙은 녹색 바탕 + 가운데 2030 엠블럼 -->
+<layer-list xmlns:android="http://schemas.android.com/apk/res/android">
+    <item android:drawable="@color/emblem_bg" />
+    <item android:gravity="center"><bitmap android:src="@drawable/splash_logo" android:gravity="center" /></item>
+</layer-list>
