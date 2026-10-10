@@ -18,12 +18,18 @@ const EYES = { kim: [[812, 162, 24, 9, 0.05], [884, 170, 22, 9, 0.08]], girl: [[
 function poly(ctx, pts) { ctx.beginPath(); pts.forEach(([x, y], i) => (i ? ctx.lineTo(x, y) : ctx.moveTo(x, y))); ctx.closePath(); }
 function canvas(w = IW, h = IH) { const c = document.createElement('canvas'); c.width = w; c.height = h; return c; }
 // 그림에서 다각형 모양으로 오려 냄 (가장자리는 흐리게)
+// 조각 캔버스는 그 조각 크기(+흐림 여백)만큼만 만듦: 예전엔 조각마다 그림 전체 크기라 매 프레임 큰 그림을 5장씩 그렸음 (v0.49.0)
 function cut(img, pts, feather = 6, minus = []) {
-  const c = canvas(), g = c.getContext('2d');
+  const pad = feather * 3, xs = pts.map((p) => p[0]), ys = pts.map((p) => p[1]);
+  const x0 = Math.max(0, Math.floor(Math.min(...xs) - pad)), y0 = Math.max(0, Math.floor(Math.min(...ys) - pad));
+  const x1 = Math.min(IW, Math.ceil(Math.max(...xs) + pad)), y1 = Math.min(IH, Math.ceil(Math.max(...ys) + pad));
+  const c = canvas(x1 - x0, y1 - y0), g = c.getContext('2d');
+  g.translate(-x0, -y0);
   g.filter = `blur(${feather}px)`; g.fillStyle = '#000'; poly(g, pts); g.fill();
   g.globalCompositeOperation = 'destination-out';
   for (const m of minus) { poly(g, m); g.fill(); }
   g.filter = 'none'; g.globalCompositeOperation = 'source-in'; g.drawImage(img, 0, 0);
+  c.ox = x0; c.oy = y0;
   return c;
 }
 const R = (a, b) => a + Math.random() * (b - a);
@@ -59,13 +65,19 @@ export class HomeAnim {
   loop(now) {
     if (!this.host.isConnected) return;   // 홈 화면을 닫으면 멈춤
     requestAnimationFrame((n) => this.loop(n));
-    const dt = Math.min(0.05, (now - (this.last || now)) / 1000); this.last = now;
-    if (document.hidden) return;
+    if (document.hidden || this.host.style.display === 'none') { this.last = now; return; }   // 전투지역 화면이 덮고 있으면 쉼
+    // 배경 그림이라 초당 30번이면 충분 (휴대폰 배터리·발열·렉)
+    if (this.last && now - this.last < 1000 / 31) return;
+    const dt = Math.min(0.1, (now - (this.last || now)) / 1000); this.last = now;
     this.t += dt;
     this.draw(dt);
   }
   fit() {
-    const r = this.host.getBoundingClientRect(), dpr = Math.min(window.devicePixelRatio || 1, 1.5);
+    // 크기는 1초에 한 번만 다시 잼(매 프레임 레이아웃 계산 피함). 그리는 픽셀은 최대 약 2M
+    if (!this.rect || this.t - (this.rectT || 0) > 1) { this.rect = this.host.getBoundingClientRect(); this.rectT = this.t; }
+    const r = this.rect;
+    let dpr = Math.min(window.devicePixelRatio || 1, 1.5);
+    dpr = Math.min(dpr, Math.sqrt(2e6 / Math.max(1, r.width * r.height)));
     const W = Math.max(2, Math.round(r.width * dpr)), H = Math.max(2, Math.round(r.height * dpr));
     if (this.cv.width !== W || this.cv.height !== H) { this.cv.width = W; this.cv.height = H; }
     const s = Math.max(W / IW, H / IH);
@@ -78,9 +90,10 @@ export class HomeAnim {
     g.setTransform(s, 0, 0, s, ox, oy);
     g.drawImage(this.img, 0, 0);
     // 깃발 펄럭임: 세로 띠마다 물결
-    for (let x = 600; x < 1240; x += 6) {
+    const F = P.flag;
+    for (let x = 600; x < 1240; x += 8) {
       const k = (x - 600) / 640, dy = Math.sin(x * 0.018 - t * 2.6) * 6 * k + Math.sin(x * 0.041 - t * 4.1) * 2 * k;
-      g.drawImage(P.flag, x, 0, 6, 420, x, dy, 6.5, 420);
+      g.drawImage(F, x - F.ox, 0, 8, F.height, x, F.oy + dy, 8.6, F.height);
     }
     this.lights(g, t);
     this.fireworks(g, dt);
@@ -101,7 +114,7 @@ export class HomeAnim {
   }
   part(g, c, [px, py], rot, sy, dx, dy) {
     g.save(); g.translate(px + dx, py + dy); g.rotate(rot); g.scale(1, sy); g.translate(-px, -py);
-    g.drawImage(c, 0, 0); g.restore();
+    g.drawImage(c, c.ox, c.oy); g.restore();
   }
   blink(g, who, [px, py], rot, dy, dt) {
     this.blinkT[who] -= dt;
