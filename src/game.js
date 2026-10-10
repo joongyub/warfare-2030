@@ -255,7 +255,7 @@ export class Game {
     const done = low === Infinity ? this.waveNo : low - 1, N = this.S.waves.length;
     if (done <= this.autoWave) return;
     this.autoWave = done;
-    const save = () => { if (GF.SETTINGS.autoSave && GF.Cloud && GF.Cloud.user && done < N && this.lives > 0 && !this.isOver()) this.app.saveGame(false, true); };
+    const save = () => { if (GF.SETTINGS.autoSave && done < N && this.lives > 0 && !this.isOver()) this.app.saveGame(false, true); };
     if (!this.halfDone && done >= Math.floor(N / 2) && done < N && this.lives > 0) { this.halfDone = true; this.halfStrike(save); return; }
     save();
   }

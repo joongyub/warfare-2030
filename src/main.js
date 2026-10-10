@@ -152,7 +152,7 @@ class App {
     if (!d) { if (!auto) this.ui.toast('지금은 저장할 수 없습니다'); return false; }
     if (!Saves.put(d)) { this.ui.toast('저장 실패: 브라우저 저장 공간을 쓸 수 없습니다', '#FF8A8E'); return false; }
     if (exit) { this.paused = false; this.toTitle(); this.ui.toastAny(`저장 완료 · ${this.stage.name} 웨이브 ${d.wave + 1}부터 이어하기`); }
-    else if (auto) this.ui.toast(`☁ 자동 저장 · 웨이브 ${d.wave} 완료`, '#8FF3FF', 2400);
+    else if (auto) this.ui.toast(`💾 자동 저장 · 웨이브 ${d.wave} 완료`, '#8FF3FF', 2400);
     else this.ui.toast(`저장 완료 · 웨이브 ${d.wave + 1}부터 이어할 수 있어요`, '#8FF3FF', 3000);
     return true;
   }
@@ -453,6 +453,9 @@ class App {
     this.updateCamera(real);
     this.look.update(this.cam.dist);
     if (this.game.state === 'title') {   // 처음 화면: 서울 맵 대신 전투 장면
+      // 홈 그림(움직이는 열병식)이나 전투지역 화면이 화면을 다 가리면 뒤의 3D 장면은 그리지 않음 (v0.49.0: 홈 화면 렉)
+      const T = this.ui.title, Z = this.ui.zone;
+      if ((T && T.classList.contains('has-bg')) || (Z && Z.classList.contains('has-bg'))) { this.ui.update(dt || 0); return; }
       if (!this.title) { this.title = new TitleScene(this.renderer); this.title.resize(this.W, this.H); }
       this.title.update(real); this.title.render();
     } else {
