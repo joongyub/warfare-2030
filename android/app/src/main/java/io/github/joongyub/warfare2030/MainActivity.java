@@ -25,6 +25,9 @@ public class MainActivity extends Activity {
         if (Build.VERSION.SDK_INT >= 28) getWindow().getAttributes().layoutInDisplayCutoutMode = WindowManager.LayoutParams.LAYOUT_IN_DISPLAY_CUTOUT_MODE_SHORT_EDGES;
         web = new WebView(this);
         web.setBackgroundColor(Color.BLACK);
+        // 사이트가 다 뜰 때까지 웹 화면을 숨겨 시작 화면(2030 엠블럼, themes.xml launch_bg)이 보이게 함
+        web.setVisibility(View.INVISIBLE);
+        web.postDelayed(this::reveal, 8000);   // 느린 네트워크에서도 8초 뒤엔 보여 줌
         WebSettings s = web.getSettings();
         s.setJavaScriptEnabled(true);
         s.setDomStorageEnabled(true);
@@ -33,6 +36,7 @@ public class MainActivity extends Activity {
         s.setCacheMode(WebSettings.LOAD_DEFAULT);
         s.setUserAgentString(s.getUserAgentString() + " W2030App");
         web.setWebViewClient(new WebViewClient() {
+            @Override public void onPageFinished(WebView v, String url) { v.postDelayed(MainActivity.this::reveal, 300); }
             // 게임 사이트 안은 앱에서, 다른 주소(구글 로그인 등)는 기기 브라우저로
             @Override public boolean shouldOverrideUrlLoading(WebView v, WebResourceRequest r) {
                 Uri u = r.getUrl();
@@ -46,6 +50,7 @@ public class MainActivity extends Activity {
         immersive();
         if (b != null) web.restoreState(b); else web.loadUrl(SITE);
     }
+    void reveal() { if (web.getVisibility() != View.VISIBLE) web.setVisibility(View.VISIBLE); }
     void immersive() {
         web.setSystemUiVisibility(View.SYSTEM_UI_FLAG_IMMERSIVE_STICKY | View.SYSTEM_UI_FLAG_FULLSCREEN | View.SYSTEM_UI_FLAG_HIDE_NAVIGATION
             | View.SYSTEM_UI_FLAG_LAYOUT_FULLSCREEN | View.SYSTEM_UI_FLAG_LAYOUT_HIDE_NAVIGATION | View.SYSTEM_UI_FLAG_LAYOUT_STABLE);

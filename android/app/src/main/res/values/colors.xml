@@ -1,0 +1,5 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <!-- 앱 아이콘·시작 화면 바탕 (엠블럼 그림 가장자리의 짙은 녹색) -->
+    <color name="emblem_bg">#06120B</color>
+</resources>
