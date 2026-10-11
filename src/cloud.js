@@ -58,7 +58,7 @@ export const Cloud = {
     const prog = read(K.progress), rp = remote.progress || {};
     Object.keys(rp).forEach((id) => { prog[id] = Math.max(prog[id] || 0, rp[id] || 0); });
     const prof = read(K.profile), rf = remote.profile || {};
-    if ((rf.t || 0) > (prof.t || 0)) Object.assign(prof, { name: rf.name || prof.name || '', credits: rf.credits || 0, t: rf.t });   // 더 나중에 바뀐 쪽
+    if ((rf.t || 0) > (prof.t || 0)) Object.assign(prof, rf, { name: rf.name || prof.name || '', purchases: prof.purchases });   // 더 나중에 바뀐 쪽 (훈장·모집권·영웅·편성 포함)
     if (!prof.purchases) prof.purchases = [];
     const cx = read(K.codex), rc = remote.codex || {};   // 무기도감: 발견한 조합은 양쪽 모두 합침
     Object.keys(rc).forEach((k) => { cx[k] = Math.min(cx[k] || Infinity, rc[k]); });
@@ -86,7 +86,7 @@ export const Cloud = {
     const { fs, db } = this.fb, prof = read(K.profile);
     await fs.setDoc(fs.doc(db, 'players', this.user.uid), {
       saves: read(K.saves), del: read(K.del), progress: read(K.progress), codex: read(K.codex), clears: read(K.clears),
-      profile: { name: prof.name || '', credits: prof.credits || 0, t: prof.t || 0 }, updated: Date.now()
+      profile: JSON.parse(JSON.stringify(Object.assign({}, prof, { purchases: undefined, name: prof.name || '', t: prof.t || 0 }))), updated: Date.now()
     });
   },
   // 저장할 때마다 부름 (잠깐 모았다가 한 번에 올림)
