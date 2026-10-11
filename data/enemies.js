@@ -10,5 +10,5 @@ GF.ENEMIES = {
   heli:  { name: '공격 헬기',       hp: 320,  speed: 2.0, armor: 0.2, reward: 20,  leak: 2,  gap: 1.8,  air: true },
   boss:  { name: '중전차 "티탄"',   hp: 4200, speed: 1.0, armor: 0.5, reward: 300, leak: 12, gap: 2,    boss: true },
   // 최종 보스: 모든 도시 마지막 웨이브 끝에 나옴 (game.js waveTokens)
-  kim:   { name: '최종 보스 김정은',   hp: 7000, speed: 0.9, armor: 0.5, reward: 800, leak: 20, gap: 2,    boss: true, final: true }
+  leader: { name: '최종 보스 부카니스탄 총통',   hp: 7000, speed: 0.9, armor: 0.5, reward: 800, leak: 20, gap: 2,    boss: true, final: true }
 };
