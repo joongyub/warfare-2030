@@ -182,6 +182,17 @@
   .hr-pull:disabled, .lk-pull:disabled { filter: grayscale(1) brightness(.7); cursor: default; font-size: 19px; }
   .hr-place { height: 52px; border: 0; border-radius: 14px; font-size: 20px; font-weight: 900; color: #062a2e; background: linear-gradient(#6af0ea, #2cb9bd); cursor: pointer; }
   .hr-note { font-size: 13px; color: #a9b7c2; line-height: 1.45; }
+  /* v0.51 영웅 본부: 확률표 · 출격 편성 · 상점 */
+  .odds { width: 100%; border-collapse: collapse; margin: 8px 0 12px; font-size: 15px; }
+  .odds th, .odds td { padding: 7px 10px; border-bottom: 1px solid rgba(255,255,255,.1); text-align: left; } .odds th { color: #9fb2c0; font-weight: 600; font-size: 13px; } .odds tr.off td { color: #6c7780; }
+  .sq-top { display: flex; align-items: center; gap: 10px; flex-wrap: wrap; margin-bottom: 12px; } .sq-top b { font-size: 18px; color: var(--gold); } .sq-top small { flex-basis: 100%; color: #a9b7c2; font-size: 13px; }
+  .sq-slot { display: inline-flex; align-items: center; gap: 6px; min-width: 150px; height: 46px; padding: 0 10px; border: 2px dashed rgba(255,255,255,.25); border-radius: 10px; color: #8a96a0; font-size: 15px; }
+  .sq-slot.on { border: 2px solid var(--gold); color: #fff; background: rgba(242,193,78,.12); } .sq-slot img { width: 38px; height: 38px; object-fit: contain; }
+  .hr.own { cursor: pointer; } .hr.insq { outline: 3px solid var(--gold); } .hr.own b small { color: var(--gold); }
+  .tier-empty { padding: 10px 12px; color: #8a96a0; font-size: 14px; border: 1px dashed rgba(255,255,255,.15); border-radius: 10px; } .tier-empty.big { margin: 40px auto; max-width: 560px; text-align: center; font-size: 18px; padding: 24px; }
+  .st-items { margin-bottom: 14px; } .st-items .pk b { font-size: 20px; } .st-items .pk small { height: auto; min-height: 40px; font-size: 13px; line-height: 1.4; } .pk.soon { opacity: .55; } .pk button:disabled { opacity: .5; }
+  .tpanel .spec { display: none; gap: 6px; } .tpanel .spec button { flex: 1; height: auto; padding: 6px 4px; line-height: 1.25; } .tpanel .spec button small { display: block; font-size: 11px; font-weight: 500; opacity: .85; }
+  .tpanel .spec button[data-k="fire"] { border-color: #ff8a5a; } .tpanel .spec button[data-k="speed"] { border-color: #5ad0ff; }
   .lk-slot { flex: 1; display: flex; flex-direction: column; align-items: center; justify-content: center; border-radius: 22px; background: radial-gradient(circle, #24384a, #0d151d 75%); border: 3px solid rgba(255,255,255,.12); }
   .lk-num { font-size: 150px; font-weight: 900; color: #f2c14e; font-variant-numeric: tabular-nums; } .lk-slot small { font-size: 20px; color: #9fb0bc; }
   .lk-slot.win { border-color: #7fe0a8; } .lk-slot.lose .lk-num { color: #9aa4ab; }

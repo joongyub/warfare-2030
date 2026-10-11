@@ -7,7 +7,7 @@ import { layout, isTouch } from './layout.js';
 const APK_URL = 'https://github.com/joongyub/warfare-2030/releases/download/apk/warfare-2030.apk';
 const isApk = () => /W2030App/.test(navigator.userAgent);
 const isIOS = () => /iPhone|iPad|iPod/.test(navigator.userAgent) || (navigator.platform === 'MacIntel' && navigator.maxTouchPoints > 1);
-import { HEROES, HERO_IDS, GACHA, heroChance, heroTier, TIERS, cmdText } from './heroes.js';
+import { HEROES, HERO_IDS, GACHA, heroTier, TIERS, cmdText, RECRUIT, heroOdds } from './heroes.js';
 import { Saves, Clears } from './save.js';
 import { RECIPES, RECIPE_CATS, Codex, comboRate, comboFee } from './codex.js';
 import { HomeAnim } from './homeanim.js';
@@ -129,7 +129,7 @@ export class UI {
       <div class="profile-card">
         <div class="pc-pop pc-saves"></div>
         <div class="pc-pop pc-set"><div class="pc-title">⚙ 화면 설정</div><label class="pc-gq"><span>그래픽</span>${this.gqSelect()}</label>${this.foldBox()}</div>
-        <div class="pc-head"><span class="pc-title">지휘관 프로필</span><span class="pc-c">보급창 <b class="pc-cred"></b></span></div>
+        <div class="pc-head"><span class="pc-title">지휘관 프로필</span><span class="pc-c">훈장 <b class="pc-med"></b> · 모집권 <b class="pc-tk"></b></span></div>
         <div class="pc-cloud"></div>
         <div class="pc-row"><input class="pc-name" maxlength="12" placeholder="이름을 정하세요" value=""><button class="pc-save">저장</button></div>
         <div class="pc-btns">
@@ -152,7 +152,7 @@ export class UI {
     const saveName = () => { Profile.setName(inp.value); this.toastAny('지휘관 이름 저장: ' + Profile.name); };
     t.querySelector('.pc-save').onclick = saveName;
     inp.onkeydown = (e) => { if (e.key === 'Enter') saveName(); };
-    t.querySelector('.pc-shop').onclick = () => this.openShop('charge');
+    t.querySelector('.pc-shop').onclick = () => this.openShop('store');
     t.querySelector('.pc-hero').onclick = () => this.openShop('hero');
     t.querySelector('.pc-fs').onclick = () => this.fullscreen();
     // 저장 목록·화면 설정은 버튼을 누르면 프로필 칸 위로 펼침 (홈 그림 캐릭터를 가리지 않게 평소엔 접어 둠)
@@ -167,6 +167,7 @@ export class UI {
     if (this.L.mobile) t.querySelector('.help').textContent = '조작: 무기 카드 터치 → 회색 공간 터치로 배치 · 한 손가락 끌기 이동 · 두 손가락 벌리기 확대 · 시점 각도는 오른쪽 위 ⟲ ⟳ ▲ ▼ 버튼 · 무기 터치로 강화 · 같은 카드 다시 터치하면 취소';
     this.renderCloud(true);
     this.refreshProfile();
+    const mo = Profile.dailyMonthly(); if (mo) { this.refreshProfile(); this.toastAny(`월정액 보급: 오늘의 훈장 +${mo}`, 2600); }
   }
   // 구글 로그인 칸: 로그인하면 어느 기기에서든 같은 저장을 불러옴
   renderCloud(first) {
@@ -468,13 +469,12 @@ export class UI {
     const hud = this.hud = h('div', 'hud-layer', null, this.root);
     h('div', 'tl', `<div class="logo">2030 Warfare 1</div><div class="sub">${GF.SETTINGS.useCityAlias ? this.cityName() + ' 방어전' : S.nameEn + ' · ' + S.title}</div>`, hud);
     // 내 프로필 바 (작게)
-    const pb = h('div', 'pbar', `<span class="pb-ava"></span><b class="pb-name"></b><span class="pb-cred"></span><button class="pb-shop">＋ 충전</button>`, hud);
-    pb.querySelector('.pb-shop').onclick = () => this.openShop('charge');
+    const pb = h('div', 'pbar', `<span class="pb-ava"></span><b class="pb-name"></b><span class="pb-cred"></span>`, hud);
     this.eKills = h('div', 'kills', '', hud);
     const tr = h('div', 'tr', null, hud);
     this.bCodex = h('button', 'sq cdx-btn', ICO.codex + '<b>무기도감</b><i></i>', tr); this.bCodex.title = '무기도감 · 조합 (C 키)'; this.bCodex.onclick = () => this.openCodex();
     this.bCodexN = this.bCodex.querySelector('i');
-    const hq = h('button', 'sq hq', ICO.hero + '<b>영웅 · 뽑기</b>', tr); hq.title = '영웅 모집 · 보급 뽑기 · 보급 충전 (H 키)'; hq.onclick = () => this.openShop('hero');
+    const hq = h('button', 'sq hq', ICO.hero + '<b>영웅 본부</b>', tr); hq.title = '영웅 모집 · 편성 · 보급 뽑기 (H 키)'; hq.onclick = () => this.openShop('hero');
     this.bench = h('div', 'hbench', '', hud); this.benchKey = null;
     this.eLives = h('div', 'pill lives', '', tr);
     this.eMoney = h('div', 'pill money', '', tr);
@@ -533,8 +533,9 @@ export class UI {
 
     // 무기 정보 창
     this.panel = h('div', 'tpanel', '', hud);
-    this.panel.innerHTML = `<b class="pt"></b><div class="pi"></div><button class="up"></button><button class="all"></button><div class="row"><button class="move">✥ 이동</button><button class="sell"></button><button class="close">닫기</button></div>`;
+    this.panel.innerHTML = `<b class="pt"></b><div class="pi"></div><button class="up"></button><div class="spec"><button data-k="fire"></button><button data-k="speed"></button></div><button class="all"></button><div class="row"><button class="move">✥ 이동</button><button class="sell"></button><button class="close">닫기</button></div>`;
     this.panel.querySelector('.up').onclick = () => g.upgradeTower(g.selected);
+    this.panel.querySelectorAll('.spec button').forEach((b) => { b.onclick = () => g.specTower(g.selected, b.dataset.k); });
     this.panel.querySelector('.all').onclick = () => g.upgradeAll(g.selected.type);
     this.panel.querySelector('.sell').onclick = () => g.sellTower(g.selected);
     this.panel.querySelector('.move').onclick = () => g.startMove(g.selected);
@@ -681,7 +682,7 @@ export class UI {
     g.heroBench.forEach((id) => { cnt[id] = (cnt[id] || 0) + 1; });
     if (this.benchKey !== bk) {
       this.benchKey = bk;
-      this.bench.innerHTML = g.heroBench.length ? '<div class="hb-t">배치 대기 영웅</div>' + Object.keys(cnt).map((id) => `<button class="hb${HEROES[id].legend ? ' lg' : ''}${g.mode === 'hero' && g.heroSel === id ? ' sel' : ''}" data-id="${id}"><img src="${this.icons['hero_' + id]}"><b>${HEROES[id].short}${cnt[id] > 1 ? ' ×' + cnt[id] : ''}</b><small>Lv.${1 + (g.heroBonus[id] || 0)} · 눌러 배치</small></button>`).join('') : '';
+      this.bench.innerHTML = g.heroBench.length ? `<div class="hb-t">출격 영웅 · 배치 보급 ${GACHA.heroCost}</div>` + Object.keys(cnt).map((id) => `<button class="hb${HEROES[id].legend ? ' lg' : ''}${g.mode === 'hero' && g.heroSel === id ? ' sel' : ''}" data-id="${id}"><img src="${this.icons['hero_' + id]}"><b>${HEROES[id].short}${cnt[id] > 1 ? ' ×' + cnt[id] : ''}</b><small>${Profile.stars(id) ? '★'.repeat(Profile.stars(id)) + ' · ' : ''}눌러 배치</small></button>`).join('') : '';
       this.bench.querySelectorAll('.hb').forEach((b) => { b.onclick = () => g.pickHero(b.dataset.id); });
     }
     if (this.shopEl) { const m = this.shopEl.querySelector('.sh-money'); if (m) put(m, 'textContent', Math.floor(g.money).toLocaleString('ko-KR')); }
@@ -731,6 +732,9 @@ export class UI {
       const up = this.panel.querySelector('.up'), all = this.panel.querySelector('.all');
       put(up, 'textContent', max ? `최대 강화 (Lv.${top})` : `강화 Lv.${tw.level + 1}/${top}  (${g.upgradeCost(tw)})`);
       up.disabled = max || g.money < g.upgradeCost(tw);
+      const canSp = g.canSpec(tw), spEl = this.panel.querySelector('.spec');
+      put(spEl.style, 'display', canSp ? 'flex' : 'none'); put(up.style, 'display', canSp ? 'none' : '');
+      if (canSp) spEl.querySelectorAll('button').forEach((b) => { const S = GF.SETTINGS.weaponSpec[b.dataset.k]; put(b, 'innerHTML', `${S.name}<small>${b.dataset.k === 'fire' ? '피해 +40%' : '연사 +30% · 사거리 +10%'} · ${g.specCost(tw)}</small>`); b.disabled = g.money < g.specCost(tw); });
       const n = g.bulkList(tw.type).length, bc = g.bulkCost(tw.type);
       put(all, 'textContent', n ? `같은 무기 ${n}대 모두 강화  (${bc})` : '같은 무기 모두 최대 강화');
       all.disabled = !n || g.money < bc;
@@ -777,6 +781,7 @@ export class UI {
     const top = g.maxLevel(tw), pw = top > 4 ? 8 : 18;
     const pips = Array.from({ length: top }, (_, k) => `<span style="display:inline-block;width:${pw}px;height:7px;margin-right:${top > 4 ? 2 : 3}px;border-radius:2px;background:${k < tw.level ? '#f2c14e' : 'rgba(255,255,255,.18)'}"></span>`).join('');
     let line = `강화 ${pips} Lv.${tw.level}/${top}<br>DPS <b>${dps(st)}</b> · 사거리 <b>${st.range.toFixed(1)}</b>`;
+    if (tw.spec) line += ` <span style="color:${tw.spec === 'fire' ? '#ff9a6a' : '#7fd8ff'}">· ${GF.SETTINGS.weaponSpec[tw.spec].name}</span>`;
     if (!max) { const nx = g.statsAt(tw, tw.level + 1); line += ` <span style="color:#7ff0a0">→ DPS ${dps(nx)} · 사거리 ${nx.range.toFixed(1)}</span>`; }
     return line + '<br>';
   }
@@ -784,22 +789,24 @@ export class UI {
   // ---------- 프로필 · 상점 ----------
   refreshProfile() {
     const r = this.root;
-    r.querySelectorAll('.pc-cred').forEach((e) => { e.textContent = Profile.credits.toLocaleString('ko-KR'); });
+    r.querySelectorAll('.pc-med').forEach((e) => { e.textContent = Profile.medals.toLocaleString('ko-KR'); });
+    r.querySelectorAll('.pc-tk').forEach((e) => { e.textContent = Profile.tickets; });
     r.querySelectorAll('.pb-name').forEach((e) => { e.textContent = Profile.name; });
     r.querySelectorAll('.pb-ava').forEach((e) => { e.textContent = Profile.name.slice(0, 1); });
-    r.querySelectorAll('.pb-cred').forEach((e) => { e.textContent = '보급창 ' + Profile.credits.toLocaleString('ko-KR'); });
-    if (this.shopEl) this.shopEl.querySelector('.sh-cred').textContent = Profile.credits.toLocaleString('ko-KR');
+    r.querySelectorAll('.pb-cred').forEach((e) => { e.textContent = `훈장 ${Profile.medals.toLocaleString('ko-KR')} · 모집권 ${Profile.tickets}`; });
+    if (this.shopEl) { this.shopEl.querySelector('.sh-med').textContent = Profile.medals.toLocaleString('ko-KR'); this.shopEl.querySelector('.sh-tk').textContent = Profile.tickets; }
   }
   toastAny(msg, color, ms) { if (typeof color === 'number') { ms = color; color = undefined; } if (this.hud && this.eToast) this.toast(msg, color, ms); else { const t = h('div', 'toast lobby', msg, this.root); t.style.opacity = 1; setTimeout(() => t.remove(), ms || 1800); } }
-  // 작전 본부 창: 영웅 모집 · 보급 뽑기 · 보급 충전(상점) 탭
+  // 작전 본부 창 (v0.51 과금 구조): 영웅 모집(모집권·훈장) · 보유 영웅 편성 · 보급 뽑기(전투 중) · 상점(전투 밖)
   openShop(tab = 'hero') {
+    if (tab === 'charge') tab = 'store';
     if (this.shopEl) { this.shopTab(tab); return; }
     const g = this.g, inBattle = !!(g && g.canGacha && g.canGacha());
     if (inBattle && !this.app.paused && g.state === 'battle') { this.app.togglePause(); this.shopPaused = true; }
     const el = this.shopEl = h('div', 'shop', '', this.root);
     el.innerHTML = `<div class="sh-box">
-      <div class="sh-head"><b>작전 본부</b>${inBattle ? '<span>전투 보급 <b class="sh-money"></b></span>' : ''}<span>보급창 <b class="sh-cred"></b></span><button class="sh-x">✕</button></div>
-      <div class="sh-tabs"><button data-t="hero">🎖 영웅 모집</button><button data-t="lucky">🎲 보급 뽑기</button><button data-t="charge">🛒 보급 충전</button></div>
+      <div class="sh-head"><b>작전 본부</b>${inBattle ? '<span>전투 보급 <b class="sh-money"></b></span>' : ''}<span>훈장 <b class="sh-med"></b></span><span>모집권 <b class="sh-tk"></b></span><button class="sh-x">✕</button></div>
+      <div class="sh-tabs"><button data-t="hero">🎖 영웅 모집</button><button data-t="squad">🪖 보유 영웅 · 편성</button><button data-t="lucky">🎲 보급 뽑기</button><button data-t="store">🛒 상점</button></div>
       <div class="sh-body"></div>
     </div>`;
     el.querySelector('.sh-x').onclick = () => this.closeShop();
@@ -814,44 +821,31 @@ export class UI {
     el.querySelectorAll('.sh-tabs button').forEach((b) => b.classList.toggle('on', b.dataset.t === t));
     clearInterval(this.spinT);
     const snd = (n) => { if (this.app.sound) this.app.sound.play(n); };
+    const dps = (id) => { const W = GF.WEAPONS['hero_' + id] || HEROES[id]; return Math.round(W.dmg * W.rate * (W.salvo || 1)); };
+    const ofTier = (x) => Object.keys(HEROES).filter((id) => heroTier(id) === x);
     if (t === 'hero') {
-      const dps = (H) => Math.round(H.dmg * H.rate * (H.salvo || 1));
-      // 일반 / 레전더리 구분해서 작은 카드로 (필터는 기억)
-      // 등급별: 일반·레전더리는 모집, 신화·GOAT 는 📖 무기도감 조합으로만 (발견 전에는 실루엣 + ???)
-      const legend = HERO_IDS.filter((id) => heroTier(id) === 'legend'), normal = HERO_IDS.filter((id) => heroTier(id) === 'normal');
-      const ofTier = (t) => Object.keys(HEROES).filter((id) => heroTier(id) === t), myth = ofTier('myth'), goat = ofTier('goat');
-      const found = (id) => RECIPES.some((R) => R.into === 'hero_' + id && Codex.has(R.key));
-      if (!this.heroFilter) this.heroFilter = 'all';
-      const card = (id) => {
-        const H = HEROES[id], t = heroTier(id), cmb = t === 'myth' || t === 'goat', seen = !cmb || t === 'myth' || found(id);   // 신화는 처음부터 공개 (2026-10-09 사용자 요청), GOAT 만 발견 전 가림
-        const how = t === 'goat' ? '신화 영웅 + 조합 무기' : '레전더리 영웅 2명';
-        return `<div class="hr${H.legend ? ' lg' : ''}${cmb ? ' cmb ' + t : ''}${seen ? '' : ' hid'}" data-id="${id}" title="${seen ? '몸짓: ' + H.gesture : ''}"><img src="${this.icons['hero_' + id]}">${cmb ? `<i class="hr-only">조합 전용</i>` : ''}<b>${seen ? H.name : '???'}</b><em>${seen ? H.title : how + ' 조합으로 탄생'}</em><span>${seen ? `${H.role} · DPS ${dps(H)}` : '📖 무기도감에서 발견'}</span>${seen && H.cmd ? `<u class="hr-cmd">🎖 지휘 ${cmdText(H.cmd)}</u>` : ''}</div>`;
-      };
-      const sec = (f, label, ids) => `<div class="hr-sec" data-f="${f}"><div class="hr-sec-t${f === 'normal' ? '' : ' lgt ' + f}">${label} <small>${ids.length}명</small></div><div class="hr-cards">${ids.map(card).join('')}</div></div>`;
+      const odds = heroOdds(), legends = ofTier('legend').length, pity = Profile.data.pity || 0;
       body.innerHTML = `<div class="hr-wrap">
         <div class="hr-main">
-          <div class="hr-filter">${[['all', '전체', HERO_IDS.length + myth.length + goat.length], ['normal', '일반 영웅', normal.length], ['legend', '레전더리 영웅', legend.length], ['myth', '신화 영웅', myth.length], ['goat', 'GOAT', goat.length]].map(([f, n, c]) => `<button data-f="${f}" class="${f === this.heroFilter ? 'on' : ''}${f === 'normal' || f === 'all' ? '' : ' lgf ' + f}">${n} <small>${c}</small></button>`).join('')}</div>
-          <div class="hr-grid">${sec('goat', '🐐 GOAT', goat)}${sec('myth', '✦ 신화 영웅', myth)}${sec('legend', '★ 레전더리 영웅', legend)}${sec('normal', '일반 영웅', normal)}</div>
+          <div class="hr-sec-t">모집 확률표 <small>게임산업법에 따른 확률 공개</small></div>
+          <table class="odds"><tr><th>등급</th><th>등급 확률</th><th>영웅 수</th><th>영웅 1명당</th></tr>${odds.map(([n, p, c, each]) => `<tr${c ? '' : ' class="off"'}><td>${n}</td><td>${p.toFixed(1)}%</td><td>${c}명</td><td>${c ? each.toFixed(2) + '%' : '-'}</td></tr>`).join('')}</table>
+          <div class="hr-note">· 천장: 모집 ${RECRUIT.pity}번 안에 레전더리 영웅 1명 확정 ${legends ? `(지금 ${pity}/${RECRUIT.pity})` : '(레전더리 영웅이 추가되면 적용)'}<br>· 신화·GOAT 영웅은 모집에 나오지 않고 📖 무기도감 조합으로만 얻습니다<br>· 같은 영웅이 또 나오면 계급 ★ +1 (최대 ★${RECRUIT.starMax}, ★마다 피해 +${Math.round(RECRUIT.starDmg * 100)}%)<br>· 레전더리·신화·GOAT 영웅: 다음 업데이트에서 새로 추가됩니다</div>
         </div>
         <div class="hr-side">
           <div class="hr-stage"><div class="hr-q">?</div></div>
-          <div class="hr-res">${HERO_IDS.length}명 중 1명 무작위 (모두 ${(heroChance(HERO_IDS[0]) * 100).toFixed(1)}%) · 가까이 두면 합체하는 영웅들이 있어요 · 📖 무기도감</div>
-          <button class="hr-pull" ${inBattle ? '' : 'disabled'}>${inBattle ? `영웅 모집 <small>보급 ${GACHA.heroCost}</small>` : '전투 중에 모집할 수 있어요'}</button>
-          <button class="hr-place" style="display:none"></button>
-          <div class="hr-note">뽑을 때마다 영웅이 한 명씩 늘어납니다 (같은 영웅도 여러 명 배치 가능). 배치한 영웅은 보급으로 Lv.10까지 강화. 일반 무기 최고 DPS는 약 80</div>
+          <div class="hr-res">모집한 영웅은 계정에 영구 보관되고, 출격 편성(최대 ${GF.SETTINGS.squadSize}명)한 영웅만 전투에 나갑니다</div>
+          <button class="hr-pull"></button>
+          <button class="hr-place" style="display:none">🪖 편성 보러 가기 ▶</button>
         </div></div>`;
-      const applyFilter = () => {
-        body.querySelectorAll('.hr-filter button').forEach((b) => b.classList.toggle('on', b.dataset.f === this.heroFilter));
-        body.querySelectorAll('.hr-sec').forEach((x) => { x.style.display = this.heroFilter === 'all' || this.heroFilter === x.dataset.f ? '' : 'none'; });
-      };
-      body.querySelectorAll('.hr-filter button').forEach((b) => { b.onclick = () => { this.heroFilter = b.dataset.f; applyFilter(); snd('click'); }; });
-      applyFilter();
-      const pull = body.querySelector('.hr-pull'), stage = body.querySelector('.hr-stage'), res = body.querySelector('.hr-res'), place = body.querySelector('.hr-place');
+      const pull = body.querySelector('.hr-pull'), stage = body.querySelector('.hr-stage'), res = body.querySelector('.hr-res'), go = body.querySelector('.hr-place');
+      const label = () => { pull.innerHTML = Profile.tickets > 0 ? `영웅 모집 <small>모집권 1장 (보유 ${Profile.tickets})</small>` : `영웅 모집 <small>훈장 ${RECRUIT.medalCost}</small>`; };
+      label();
+      go.onclick = () => this.shopTab('squad');
       pull.onclick = () => {
-        const r = g.pullHero();
-        if (!r) return;
-        if (r.fail) { res.innerHTML = `<span class="bad">${r.fail}</span>`; return; }
-        pull.disabled = true; place.style.display = 'none'; stage.classList.remove('got');
+        const r = Profile.recruit();
+        if (r.fail) { res.innerHTML = `<span class="bad">${r.fail}</span> · 🛒 상점 탭이나 전투 승리로 훈장을 모을 수 있어요`; snd('deny'); return; }
+        this.refreshProfile();
+        pull.disabled = true; go.style.display = 'none'; stage.classList.remove('got');
         let i = 0;
         this.spinT = setInterval(() => {
           const id = HERO_IDS[i++ % HERO_IDS.length];
@@ -859,15 +853,22 @@ export class UI {
           if (i > 18) {
             clearInterval(this.spinT);
             const H = HEROES[r.id];
-            stage.innerHTML = `<img src="${this.icons['hero_' + r.id]}"><div class="hr-name">${H.name}</div>`; stage.classList.add('got'); stage.classList.toggle('lg', !!H.legend);
-            res.innerHTML = r.count > 1 ? `<b>${H.short}</b> 한 명 더! (${r.count}번째) 배치하면 함께 싸웁니다` : `전설의 영웅 <b>${H.name}</b> 획득!`;
-            snd('win');
-            pull.disabled = false;
-            if (g.heroBench.includes(r.id)) { place.style.display = 'block'; place.textContent = `${H.short} 지금 배치하기 ▶`; place.onclick = () => { this.closeShop(); g.pickHero(r.id); }; }
-            this.benchKey = null;
+            stage.innerHTML = `<img src="${this.icons['hero_' + r.id]}"><div class="hr-name">${H.name}${r.stars ? ' ' + '★'.repeat(r.stars) : ''}</div>`; stage.classList.add('got'); stage.classList.toggle('lg', !!H.legend);
+            res.innerHTML = r.isNew ? `새 영웅 <b>${H.name}</b> 획득!${Profile.squad.includes(r.id) ? ' 출격 편성에 넣었어요' : ''}` : `<b>${H.short}</b> 중복 → 계급 ★${r.stars}${r.stars >= RECRUIT.starMax ? ' (최대)' : ''}`;
+            snd('win'); pull.disabled = false; label(); go.style.display = 'block';
           }
         }, 70);
       };
+    } else if (t === 'squad') {
+      const sq = Profile.squad;
+      const card = (id) => {
+        const H = HEROES[id], own = Profile.owns(id), st = Profile.stars(id), on = sq.includes(id);
+        return `<div class="hr${H.legend ? ' lg' : ''}${own ? ' own' : ' hid'}${on ? ' insq' : ''}" data-id="${id}" title="${own ? '몸짓: ' + H.gesture : '영웅 모집으로 얻을 수 있어요'}"><img src="${this.icons['hero_' + id]}">${on ? '<i class="hr-only">출격</i>' : ''}<b>${H.name}${st ? ' <small>' + '★'.repeat(st) + '</small>' : ''}</b><em>${H.title}</em><span>${H.role} · DPS ${dps(id)}</span>${H.cmd ? `<u class="hr-cmd">🎖 지휘 ${cmdText(H.cmd)}</u>` : ''}</div>`;
+      };
+      const sec = (f, label) => { const ids = ofTier(f).sort((a, b) => Profile.owns(b) - Profile.owns(a)); return `<div class="hr-sec"><div class="hr-sec-t${f === 'normal' ? '' : ' lgt ' + f}">${label} <small>${ids.filter((id) => Profile.owns(id)).length}/${ids.length}명</small></div>${ids.length ? `<div class="hr-cards">${ids.map(card).join('')}</div>` : '<div class="tier-empty">준비 중 · 다음 업데이트에서 새 영웅이 추가됩니다</div>'}</div>`; };
+      body.innerHTML = `<div class="sq-top"><b>출격 편성</b>${Array.from({ length: GF.SETTINGS.squadSize }, (_, k) => sq[k] ? `<span class="sq-slot on"><img src="${this.icons['hero_' + sq[k]]}">${HEROES[sq[k]].short}</span>` : '<span class="sq-slot">빈 칸</span>').join('')}<small>보유한 영웅 카드를 눌러 넣고 빼요. 전투마다 편성한 영웅만 보급 ${GACHA.heroCost}으로 배치${inBattle ? ' · 지금 바꾸면 다음 전투부터 적용' : ''}</small></div>
+        <div class="hr-grid">${sec('goat', '🐐 GOAT')}${sec('myth', '✦ 신화 영웅')}${sec('legend', '★ 레전더리 영웅')}${sec('normal', '일반 영웅')}</div>`;
+      body.querySelectorAll('.hr.own').forEach((c) => { c.onclick = () => { Profile.toggleSquad(c.dataset.id); snd('click'); this.shopTab('squad'); }; });
     } else if (t === 'lucky') {
       body.innerHTML = `<div class="lk-wrap">
         <div class="lk-slot"><div class="lk-num">?</div><small>받는 보급</small></div>
@@ -875,7 +876,7 @@ export class UI {
           <div class="lk-odds">${GACHA.lucky.map(([a, p]) => `<div><b>+${a}</b><span>${p}%</span></div>`).join('')}</div>
           <button class="lk-pull" ${inBattle ? '' : 'disabled'}>${inBattle ? `보급 뽑기 <small>보급 ${GACHA.luckyCost}</small>` : '전투 중에 뽑을 수 있어요'}</button>
           <div class="lk-left"></div>
-          <div class="hr-note">보급 ${GACHA.luckyCost}을 걸고 30~600을 받습니다. 평균은 조금 이득이지만 손해 볼 때도 있어요. 웨이브마다 ${GACHA.luckyPerWave}번까지.</div>
+          <div class="hr-note">전투 보급 ${GACHA.luckyCost}을 걸고 30~600을 받습니다. 평균은 조금 이득이지만 손해 볼 때도 있어요. 웨이브마다 ${GACHA.luckyPerWave}번까지. 현금·훈장은 쓰지 않습니다.</div>
         </div></div>`;
       const pull = body.querySelector('.lk-pull'), num = body.querySelector('.lk-num'), left = body.querySelector('.lk-left'), slot = body.querySelector('.lk-slot');
       const showLeft = () => { if (inBattle) left.textContent = `이번 웨이브 남은 횟수 ${g.luckyLeft} / ${GACHA.luckyPerWave}`; };
@@ -899,24 +900,34 @@ export class UI {
         }, 60);
       };
     } else {
-      body.innerHTML = `<div class="sh-packs">${GF.SHOP.packs.map((p) => `<div class="pk" data-id="${p.id}">${p.tag ? `<em>${p.tag}</em>` : ''}<div class="pk-ico">📦</div><b>보급 ${p.amount.toLocaleString('ko-KR')}</b><small>${p.bonus ? '보너스 ' + p.bonus : '기본'}</small><button>${won(p.price)}</button></div>`).join('')}</div>
-      ${inBattle ? `<div class="sh-wd"><span>보급창 → 이번 전투 보급으로 꺼내기</span>${GF.SHOP.withdrawSteps.map((n) => `<button data-n="${n}">+${n.toLocaleString('ko-KR')}</button>`).join('')}</div>` : ''}
-      <div class="sh-note">${GF.SHOP.testMode ? '⚠ 테스트 모드: 실제 결제는 일어나지 않고 보급이 바로 지급됩니다. 출시 때 Google Play·Steam 결제로 연결합니다.' : '결제는 스토어 계정으로 진행됩니다.'}</div>`;
-      body.querySelectorAll('.pk button').forEach((b) => {
+      // 상점: 전투 중에는 열지 않음 (구매는 홈·전투지역 화면에서만)
+      if (inBattle) { body.innerHTML = '<div class="tier-empty big">🛒 상점은 전투가 끝난 뒤 홈·전투지역 화면에서 이용할 수 있어요</div>'; return; }
+      const SH = GF.SHOP, bought = Profile.data.perks.bought || (Profile.data.perks.bought = {}), mo = Profile.data.perks.monthly;
+      body.innerHTML = `<div class="sh-packs st-items">${SH.items.map((p) => { const done = p.once && bought[p.id]; return `<div class="pk${p.soon ? ' soon' : ''}" data-id="${p.id}">${p.tag ? `<em>${p.tag}</em>` : ''}<b>${p.name}</b><small>${p.desc}${p.id === 'monthly' && mo && mo.until >= new Date().toISOString().slice(0, 10) ? `<br>이용 중 · ${mo.until}까지` : ''}</small><button ${p.soon || done ? 'disabled' : ''}>${p.soon ? '준비 중' : done ? '구매 완료' : won(p.price)}</button></div>`; }).join('')}</div>
+        <div class="hr-sec-t">훈장</div>
+        <div class="sh-packs">${SH.medals.map((p) => `<div class="pk" data-m="${p.id}">${p.tag ? `<em>${p.tag}</em>` : ''}<div class="pk-ico">🎖</div><b>훈장 ${p.amount.toLocaleString('ko-KR')}</b><small>모집 ${Math.floor(p.amount / RECRUIT.medalCost)}회분</small><button>${won(p.price)}</button></div>`).join('')}</div>
+        <div class="sh-note">${SH.testMode ? '⚠ 테스트 모드: 실제 결제는 일어나지 않고 바로 지급됩니다. 출시 때 Google Play·Steam 결제로 연결합니다.' : '결제는 스토어 계정으로 진행됩니다.'} · 훈장은 무료로도 모을 수 있어요 (도시 첫 완료 50~120, 승리할 때마다 15)</div>`;
+      const ok = (b, label) => { this.refreshProfile(); snd('coin'); b.textContent = '지급 완료 ✓'; setTimeout(() => { b.textContent = label; }, 900); };
+      body.querySelectorAll('.pk[data-id] button').forEach((b) => {
         b.onclick = () => {
-          const p = GF.SHOP.packs.find((x) => x.id === b.parentElement.dataset.id);
-          if (!GF.SHOP.testMode) return;   // 실제 결제 연결 자리
-          Profile.addCredits(p.amount, won(p.price) + ' 충전(테스트)');
-          this.refreshProfile(); snd('coin');
-          b.textContent = '충전 완료 ✓'; setTimeout(() => { b.textContent = won(p.price); }, 900);
+          const p = SH.items.find((x) => x.id === b.parentElement.dataset.id);
+          if (!SH.testMode || p.soon || (p.once && bought[p.id])) return;   // 실제 결제 연결 자리
+          const G = p.give, memo = won(p.price) + ' ' + p.name + '(테스트)';
+          if (p.once) bought[p.id] = Date.now();
+          if (G.noAds) Profile.data.perks.noAds = true;
+          if (G.monthly) { const d = new Date(Math.max(Date.now(), mo && mo.until >= new Date().toISOString().slice(0, 10) ? Date.parse(mo.until) : 0)); d.setDate(d.getDate() + G.monthly); Profile.data.perks.monthly = { until: d.toISOString().slice(0, 10), last: (mo && mo.last) || '' }; Profile.dailyMonthly(); }
+          if (G.tickets) Profile.addTickets(G.tickets);
+          Profile.addMedals(G.medals || 0, memo);
+          ok(b, p.once ? '구매 완료' : won(p.price));
+          if (p.once || G.monthly) setTimeout(() => this.shopTab('store'), 950);
         };
       });
-      body.querySelectorAll('.sh-wd button').forEach((b) => {
+      body.querySelectorAll('.pk[data-m] button').forEach((b) => {
         b.onclick = () => {
-          const n = +b.dataset.n;
-          if (!Profile.spend(n)) { b.textContent = '보급창 부족'; setTimeout(() => { b.textContent = '+' + n.toLocaleString('ko-KR'); }, 900); return; }
-          g.money += n; this.refreshProfile(); snd('coin');
-          this.toast(`보급창에서 보급 +${n} 투입`, '#F2C14E');
+          const p = SH.medals.find((x) => x.id === b.parentElement.dataset.m);
+          if (!SH.testMode) return;   // 실제 결제 연결 자리
+          Profile.addMedals(p.amount, won(p.price) + ' 훈장(테스트)');
+          ok(b, won(p.price));
         };
       });
     }
@@ -1114,6 +1125,7 @@ export class UI {
         <h2>${won ? this.cityName() + ' 방어 성공!' : '방어선 붕괴'}</h2>
         ${won ? `<div class="stars">${'★'.repeat(stars) + '☆'.repeat(3 - stars)}</div><div class="rs-badge">${D.name} 완료${saved && saved.first ? ' · 첫 완료!' : saved && saved.best ? ' · 최고 기록 갱신!' : ''}</div>` : ''}
         <div class="rs-grid">${stat.map(([k, v]) => `<div><small>${k}</small><b>${v}</b></div>`).join('')}</div>
+        ${rec.medals ? `<p class="rs-mvp">보상 <b>🎖 훈장 +${rec.medals}</b> · 영웅 본부에서 영웅 모집에 쓸 수 있어요</p>` : ''}
         ${rec.mvp ? `<p class="rs-mvp">최고 활약 <b>${rec.mvp.name}</b> · 누적 피해 ${rec.mvp.dmg.toLocaleString('ko-KR')}</p>` : ''}
         <p class="s">${won ? (() => { const L = this.stageList(), nx = L[L.indexOf(this.app.stage) + 1]; return nx ? `🔓 다음 도시 STAGE ${nx.no} ${nx.name} 이(가) 열렸어요! 전투지역에서 출격하세요` : '전투지역 화면의 도시 카드에 난이도별 완료가 기록됐어요'; })() : '굽이 사이 공원에 무기를 모으고, 우회로를 열어 적을 더 오래 붙잡아 보세요'}</p>
         <div class="row"><button class="again">다시 하기</button><button class="home">처음 화면</button></div>

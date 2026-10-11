@@ -1,10 +1,11 @@
 // 전투 규칙 (v4 서울): 도로 밖 자유 배치 → 작전 개시 → 웨이브가 자동으로 이어짐 (다음 웨이브 ≫ 로 앞당기기)
 import * as THREE from 'three';
 import { getTower, getEnemy, getGhost, mat, ghostMat, ghostBad } from './models.js';
-import { makeHero, HEROES, HERO_IDS, GACHA, rollHero, makeBuddha, makeElephant, makeMoney, CMD_R, cmdHits } from './heroes.js';
+import { makeHero, HEROES, GACHA, makeElephant, CMD_R, cmdHits, RECRUIT } from './heroes.js';
 import { RECIPES, Codex, comboRate, comboFee } from './codex.js';
 import { VFX } from './vfx.js';
 import { Clears, Saves } from './save.js';
+import { Profile } from './profile.js';
 import { Maze } from './maze.js';
 
 const V = (x = 0, y = 0, z = 0) => new THREE.Vector3(x, y, z);
@@ -68,7 +69,7 @@ export class Game {
     this.strat = {}; for (const [id, C] of Object.entries(GF.STRATEGIC)) this.strat[id] = { charges: this.stratOpen(id) ? C.start : 0 };
     this.stratSel = null;
     this.comboReady = []; this.comboKeys = [];
-    this.heroBench = []; this.heroBonus = {}; this.heroSel = null; this.luckyLeft = GACHA.luckyPerWave;
+    this.heroBench = Profile.squad.slice(); this.heroBonus = {}; this.heroSel = null;   // 출격 편성한 영웅(최대 2명)이 배치 대기 this.luckyLeft = GACHA.luckyPerWave;
     this.computeSynergy();
     this.updateRemain();
     // 길 만들기 스테이지(부산): 바둑판 칸 + 길찾기
@@ -182,6 +183,7 @@ export class Game {
       towers: this.towers.filter((t) => !t.W.hero).length, heroes: this.towers.filter((t) => t.W.hero).length, fused: this.fused || 0,
       mvp: mvp ? { name: mvp.W.hero ? HEROES[mvp.W.hero].name : GF.wname(mvp.type), dmg: Math.round(mvp.dmgTotal) } : null, at: Date.now()
     };
+    if (won) rec.medals = Profile.winMedals(!Clears.get(this.S.id)[this.diffId], this.diffId);   // 승리 보상 훈장 (첫 완료 50~120, 그 뒤 15)
     const saved = won ? Clears.add(this.S.id, this.diffId, rec) : null;
     if (won && Saves.get(this.S.id, this.diffId)) Saves.remove(this.S.id, this.diffId);   // 그 난이도 작전 끝: 진행중 저장은 지움 (다른 난이도 저장은 그대로)
     if (won && GF.cloudPush) GF.cloudPush();
@@ -207,7 +209,7 @@ export class Game {
     return {
       v: 1, stage: this.S.id, time: Date.now(), diff: this.diffId,
       wave, money: Math.max(0, Math.floor(money)), lives: this.lives, kills: this.kills, cp: this.cp, bestCombo: this.bestCombo, fused: this.fused || 0, halfDone: !!this.halfDone,
-      towers: this.towers.map((t) => ({ type: t.type, x: +t.pos.x.toFixed(2), z: +t.pos.z.toFixed(2), level: t.level, invested: t.invested, dmg: Math.round(t.dmgTotal), kills: t.kills })),
+      towers: this.towers.map((t) => ({ type: t.type, x: +t.pos.x.toFixed(2), z: +t.pos.z.toFixed(2), level: t.level, invested: t.invested, dmg: Math.round(t.dmgTotal), kills: t.kills, spec: t.spec, star: t.star })),
       detours: this.city.steps.map((st, i) => (st.open ? i : -1)).filter((i) => i >= 0),
       deck: this.deck.slice(), hand: this.hand.slice(), strat,
       heroBench: this.heroBench.slice(), heroBonus: Object.assign({}, this.heroBonus), lucky: this.luckyLeft
@@ -224,13 +226,14 @@ export class Game {
       const tw = this.addTower(s.type, s.x, s.z);
       tw.invested = s.invested; tw.dmgTotal = s.dmg || 0; tw.kills = s.kills || 0;
       if (tw.W.hero) {
-        tw.level = s.level;
+        tw.level = s.level; tw.star = s.star || 0;
         tw.model.root.scale.setScalar(this.heroScale(tw));
         tw.label = { text: '★ ' + HEROES[tw.W.hero].short, pos: V(s.x, 2.5, s.z), kind: 'hero' };
         this.city.labels.push(tw.label);
       } else {
         this.money = 1e12;
         while (tw.level < s.level && this.upgradeTower(tw, true));
+        if (s.spec) this.specTower(tw, s.spec, true);
       }
     }
     this.ui().resetLabels();
@@ -556,18 +559,8 @@ export class Game {
   canGacha() { return this.state === 'ready' || this.state === 'battle'; }
   // 무기별 최대 강화 단계 (영웅 10강, 일반 무기 4강)
   maxLevel(tw) { return tw.W.hero ? GF.SETTINGS.heroMaxLevel : GF.SETTINGS.maxTowerLevel; }
-  // 영웅 모집: 21명 중 1명 무작위. 같은 영웅이 또 나와도 한 명 더 배치 대기열에 추가 (여러 명 출전 가능)
-  pullHero() {
-    if (!this.canGacha()) return null;
-    if (this.money < GACHA.heroCost) { this.snd('deny'); return { fail: '보급이 부족합니다 (영웅 모집 ' + GACHA.heroCost + ')' }; }
-    this.money -= GACHA.heroCost;
-    const id = rollHero();
-    const owned = this.towers.filter((t) => t.W.hero === id).length + this.heroBench.filter((x) => x === id).length;
-    this.heroBench.push(id);
-    const result = { id, count: owned + 1 };
-    this.snd('upgrade');
-    return result;
-  }
+  // 전투에 배치할 수 있는 영웅 수 = 출격 편성 수 (지금 나와 있는 영웅 + 대기 영웅)
+  heroCount() { return this.towers.filter((t) => t.W.hero).length; }
   pullLucky() {
     if (!this.canGacha()) return null;
     if (this.luckyLeft <= 0) { this.snd('deny'); return { fail: '이번 웨이브 보급 뽑기를 다 썼습니다 (다음 웨이브에 다시 ' + GACHA.luckyPerWave + '번)' }; }
@@ -595,7 +588,11 @@ export class Game {
   clickHero(p) {
     const id = this.heroSel, why = this.placeReason(p.x, p.z);
     if (why) { this.ui().toast(why); return; }
+    if (this.heroCount() >= GF.SETTINGS.squadSize) { this.ui().toast(`영웅은 한 전투에 ${GF.SETTINGS.squadSize}명까지 배치할 수 있어요`); this.snd('deny'); return; }
+    if (this.money < GACHA.heroCost) { this.ui().toast(`영웅 배치에 보급 ${GACHA.heroCost}이 필요합니다`); this.snd('deny'); return; }
+    this.money -= GACHA.heroCost;
     const tw = this.addTower('hero_' + id, p.x, p.z);
+    tw.star = Profile.stars(id);   // 계급 ★: 같은 영웅을 또 뽑을 때마다 피해 +8%
     const bonus = this.heroBonus[id] || 0;
     tw.level = Math.min(this.maxLevel(tw), 1 + bonus); delete this.heroBonus[id];
     tw.model.root.scale.setScalar(this.heroScale(tw));
@@ -605,7 +602,7 @@ export class Game {
     tw.model.fire();
     tw.label = { text: '★ ' + HEROES[id].short, pos: V(p.x, 2.5, p.z), kind: 'hero' };
     this.city.labels.push(tw.label); this.ui().resetLabels();
-    if (!HEROES[id].roar) this.ui().toast(HEROES[id].legend ? `레전더리 영웅 ${HEROES[id].name} 출전!` : `전설의 영웅 ${HEROES[id].name} 출전!`, '#FFD36A', 2600);
+    if (!HEROES[id].roar) this.ui().toast(`${HEROES[id].legend ? '레전더리 영웅' : '영웅'} ${HEROES[id].name}${tw.star ? ' ' + '★'.repeat(tw.star) : ''} 출전!`, '#FFD36A', 2600);
     this.cancelMode();
     this.refreshCombos();
   }
@@ -675,7 +672,7 @@ export class Game {
     const mid = this.maze ? a.pos.clone() : a.pos.clone().add(b.pos).multiplyScalar(0.5), app = this.app;   // 길 만들기 맵은 첫 재료 칸에
     const wasPaused = app.paused; app.paused = true;
     this.snd('fanfare');
-    const into = GF.WEAPONS[R.into], monk = R.into === 'hero_monk';
+    const into = GF.WEAPONS[R.into];
     this.ui().playCombo(R.title || R.name + ' 조합 성공', () => {
       for (const t of [a, b]) {
         if (t.label) { const i = this.city.labels.indexOf(t.label); if (i >= 0) this.city.labels.splice(i, 1); }
@@ -694,12 +691,11 @@ export class Game {
       this.spawnRing(mid, 3.2, 0xffd36a, 1.6); this.spawnRing(mid, 2.0, 0xffffff, 1.2); this.spawnRing(mid, 1.0, 0xffb0e8, 1.0);
       this.explodeFx(mid.clone().setY(1.2), 0.8);
       if (nt.model.fire) nt.model.fire();
-      if (monk) this.snd('moktak');
       this.ui().toast(`조합 성공! ${R.name} 출현`, '#FFD36A', 3600);
       this.fused = (this.fused || 0) + 1;
       app.paused = wasPaused;
       this.refreshCombos(true);
-    }, monk ? null : img);
+    }, img);
   }
 
   stats(tw) {
@@ -712,8 +708,10 @@ export class Game {
     if (this.syn.usSet && tw.W.nation.indexOf('미국') >= 0) rate *= 1.05;
     const bf = tw.buff || { range: 0, dmg: 0 };   // 레이더 기지 범위 안이면 사거리·피해 +
     const cm = tw.cmd || { dmg: 0, rate: 0, range: 0 };   // 영웅 지휘 버프
-    const dmg = tw.W.dmg * U.dmg[i] * (1 + bf.dmg) * (1 + cm.dmg), r = rate * U.rate[i] * (1 + cm.rate);
-    return { dmg, range: tw.W.range * U.range[i] * (1 + bf.range) * (1 + cm.range), rate: r, dps: (dmg || 0) * r * (tw.W.salvo || 1), mul: U.dmg[i] };
+    const sp = (!tw.W.hero && tw.spec && GF.SETTINGS.weaponSpec[tw.spec]) || {};   // 무기 특화 (Lv.4 다음)
+    const star = 1 + (tw.star || 0) * RECRUIT.starDmg;   // 영웅 계급 ★
+    const dmg = tw.W.dmg * U.dmg[i] * (1 + bf.dmg) * (1 + cm.dmg) * (1 + (sp.dmg || 0)) * star, r = rate * U.rate[i] * (1 + cm.rate) * (1 + (sp.rate || 0));
+    return { dmg, range: tw.W.range * U.range[i] * (1 + bf.range) * (1 + cm.range) * (1 + (sp.range || 0)), rate: r, dps: (dmg || 0) * r * (tw.W.salvo || 1), mul: U.dmg[i] * (1 + (sp.dmg || 0)) };
   }
   upgradeCost(tw) { return Math.round(tw.W.cost * 0.75 * tw.level); }
   upgradeTower(tw, quiet) {
@@ -730,6 +728,23 @@ export class Game {
     this.snd('upgrade');
     return true;
   }
+  // 무기 특화: Lv.4(최대) 일반 무기에 화력(fire) 또는 속사(speed) 하나를 고름
+  canSpec(tw) { return tw && !tw.W.hero && !tw.W.parts && tw.W.shot !== 'aura' && tw.level >= this.maxLevel(tw) && !tw.spec; }
+  specCost(tw) { return Math.round(tw.W.cost * 0.75 * GF.SETTINGS.maxTowerLevel * GF.SETTINGS.weaponSpec.costMul); }
+  specTower(tw, kind, quiet) {
+    if (!tw || tw.W.hero || tw.spec || !GF.SETTINGS.weaponSpec[kind]) return false;
+    if (!quiet) {
+      if (!this.canSpec(tw)) return false;
+      const c = this.specCost(tw);
+      if (this.money < c) { this.ui().toast('보급이 부족합니다'); this.snd('deny'); return false; }
+      this.money -= c; tw.invested += c;
+    }
+    tw.spec = kind;
+    const mark = new THREE.Mesh(new THREE.BoxGeometry(0.2, 0.05, 0.2), mat(kind === 'fire' ? 0xff6a3a : 0x5ad0ff, { emissive: kind === 'fire' ? 0x7a2000 : 0x004a7a }));
+    mark.position.set(-0.3, 0.1, 0.3); tw.model.root.add(mark); tw.marks.push(mark);
+    if (!quiet) { if (this.selected === tw) this.select(tw); this.spawnRing(tw.pos, 1.1, kind === 'fire' ? 0xff6a3a : 0x5ad0ff); this.snd('upgrade'); this.ui().toast(GF.wname(tw.type) + ' ' + GF.SETTINGS.weaponSpec[kind].name + '!', '#F2C14E'); }
+    return true;
+  }
   bulkList(type) { return this.towers.filter((x) => x.type === type && x.level < this.maxLevel(x)); }
   bulkCost(type) { return this.bulkList(type).reduce((s, x) => s + this.upgradeCost(x), 0); }
   upgradeAll(type) {
@@ -742,6 +757,7 @@ export class Game {
   sellTower(tw) {
     if (tw.label) { this.city.labels.splice(this.city.labels.indexOf(tw.label), 1); this.ui().resetLabels(); }
     this.money += Math.round(tw.invested * GF.SETTINGS.sellRefund);
+    if (tw.W.hero && !tw.W.combo && Profile.owns(tw.W.hero)) this.heroBench.push(tw.W.hero);   // 영웅 귀환: 대기열로 돌아가 다시 배치 가능
     this.unitGroup.remove(tw.model.root);
     this.towers.splice(this.towers.indexOf(tw), 1);
     this.select(null);
@@ -1168,125 +1184,6 @@ export class Game {
           const x = list[i % list.length];
           this.timers.push({ t: i * 0.1, fn: () => this.addShot('missile', mz, { target: x, speed: x.air ? 11 : 8, dmg: st.dmg, tw, pierce: true, splash: x.air ? 0 : W.splash }) });
         }
-      } });
-    } else if (W.shot === 'fighters') {
-      // 손짓 한 번에 F-15K 편대: 서로 다른 적(공중·지상) 3곳으로 날아가 미사일을 꽂음
-      const list = near(W.salvo, true); if (!list.length) return;
-      this.timers.push({ t: 0.25, fn: () => this.snd('airstrike') });
-      list.forEach((x, i) => {
-        this.timers.push({ t: 0.3 + i * 0.16, fn: () => {
-          if (x.dead) return;
-          const p = x.pos.clone().setY(0);
-          this.flyJet(p, { color: 0x5d6670, from: tw.pos, scale: 1.25 });
-          this.timers.push({ t: 0.55, fn: () => {
-            if (x.dead) return;
-            const from = x.pos.clone().add(V(-3.5, 6.5, 2.5));
-            this.addShot('missile', from, { target: x, speed: 18, dmg: st.dmg, tw, pierce: true, splash: x.air ? 0 : W.splash });
-          } });
-        } });
-      });
-    } else if (W.shot === 'bark') {
-      // 비숑이 왈왈 두 번 짖음: 음파 고리가 목표까지 날아가 주변 적들에게 피해 + 잠깐 멈춤
-      for (let b = 0; b < 2; b++) {
-        this.timers.push({ t: 0.32 + b * 0.2, fn: () => {
-          this.snd('bark');
-          const from = m.muzzle.getWorldPosition(V()), to = this.targetPoint(e);
-          for (let k = 1; k <= 4; k++) this.timers.push({ t: k * 0.04, fn: () => {
-            const p = from.clone().lerp(to, k / 4);
-            this.spawnRing(p, 0.5 + k * 0.25, 0xffffff, 0.35); this.spawnSpark(p, 0xfff4d0, 0.12, 0.15);
-          } });
-          this.timers.push({ t: 0.18, fn: () => {
-            const c = e.dead ? to : this.targetPoint(e), r2 = W.splash * W.splash;
-            const list = this.enemies.filter((x) => !x.dead && (x.pos.x - c.x) ** 2 + (x.pos.z - c.z) ** 2 <= r2).sort((a, b2) => a.rem - b2.rem).slice(0, W.salvo);
-            for (const x of list) { this.hurt(x, st.dmg / 2, tw, { pierce: true }); if (!x.E.boss) x.stun = Math.max(x.stun, 0.35); this.vfx.impact(this.targetPoint(x), x.air); }
-            this.spawnRing(c, W.splash, 0xfff0c8, 0.5); this.spawnRing(c, W.splash * 0.6, 0xffb0e8, 0.4);
-            if (b === 0) this.ui().floatText(c.clone().setY(1.6), '왈!', '#FFFFFF');
-          } });
-        } });
-      }
-    } else if (W.shot === 'belt') {
-      // 바지 벨트를 풀어 휘두름: 짝! 짝! 두 번. 벨트 끝 충격파가 목표 주변 적들에게 피해 + 잠깐 멈춤 (임배근과 같은 공격력)
-      for (let b = 0; b < 2; b++) {
-        this.timers.push({ t: 0.42 + b * 0.24, fn: () => {
-          this.snd('whip');
-          const from = m.muzzle.getWorldPosition(V()), c = e.dead ? g0 : this.targetPoint(e), r2 = W.splash * W.splash;
-          this.tracer(from, c, 0xc89a5a);
-          for (let k = 1; k <= 3; k++) this.spawnSpark(from.clone().lerp(c, k / 3), 0xffe2b0, 0.14, 0.12);
-          const list = this.enemies.filter((x) => !x.dead && (x.pos.x - c.x) ** 2 + (x.pos.z - c.z) ** 2 <= r2).sort((a2, b2) => a2.rem - b2.rem).slice(0, W.salvo);
-          for (const x of list) { this.hurt(x, st.dmg / 2, tw, { pierce: true }); if (!x.E.boss) x.stun = Math.max(x.stun, 0.35); this.vfx.impact(this.targetPoint(x), x.air); }
-          this.spawnRing(c, W.splash, 0xffd6a0, 0.4); this.spawnRing(c, W.splash * 0.5, 0xffffff, 0.3);
-          this.ui().floatText(c.clone().setY(1.6), b ? '찰싹!' : '짝!', '#FFE2B0');
-        } });
-      }
-    } else if (W.shot === 'moktak') {
-      // 목탁을 똑! 똑! 두 번: 두드릴 때마다 금빛 부처님이 날아가 목표 주변 적들에게 피해 + 잠깐 멈춤
-      for (let b = 0; b < 2; b++) {
-        this.timers.push({ t: 0.18 + b * 0.3, fn: () => {
-          this.snd('moktak');
-          const from = m.muzzle.getWorldPosition(V()), to = e.dead ? g0.clone() : this.targetPoint(e);
-          this.spawnRing(from, 0.6, 0xffe08a, 0.35);
-          const bud = makeBuddha(); bud.scale.setScalar(2.2);
-          this.addShot('shell', from.clone().setY(from.y + 0.4), { to, speed: 9, arc: 1.4 + from.distanceTo(to) * 0.12, dmg: 0, splash: 0, tw, mesh: bud, onHit: (p) => {
-            const r2 = W.splash * W.splash;
-            const list = this.enemies.filter((x) => !x.dead && (x.pos.x - p.x) ** 2 + (x.pos.z - p.z) ** 2 <= r2).sort((a2, b2) => a2.rem - b2.rem).slice(0, W.salvo);
-            for (const x of list) { this.hurt(x, st.dmg / 2, tw, { pierce: true }); if (!x.E.boss) x.stun = Math.max(x.stun, 0.4); this.vfx.impact(this.targetPoint(x), x.air); }
-            this.spawnRing(p.clone().setY(0.2), W.splash, 0xffd36a, 0.5); this.spawnRing(p.clone().setY(0.2), W.splash * 0.5, 0xffffff, 0.4);
-            this.explodeFx(p.clone().setY(0.4), 0.5);
-            if (b === 0) this.ui().floatText(p.clone().setY(1.8), '나무아미타불', '#FFE08A');
-          } });
-        } });
-      }
-    } else if (W.shot === 'glasses') {
-      // 뿔테안경 번쩍: 두 줄기 광선이 목표로 → 주변 적 8명을 두 번 태우고 잠깐 멈춤 (임배근과 같은 공격력)
-      for (let b = 0; b < 2; b++) {
-        this.timers.push({ t: 0.4 + b * 0.22, fn: () => {
-          this.snd('glint');
-          const from = m.muzzle.getWorldPosition(V()), c = e.dead ? g0 : this.targetPoint(e), r2 = W.splash * W.splash;
-          for (const dz of [-0.06, 0.06]) this.tracer(from.clone().add(V(0, 0, dz)), c, 0x9fe8ff);
-          this.spawnSpark(from, 0xffffff, 0.3, 0.15);
-          const list = this.enemies.filter((x) => !x.dead && (x.pos.x - c.x) ** 2 + (x.pos.z - c.z) ** 2 <= r2).sort((a2, b2) => a2.rem - b2.rem).slice(0, W.salvo);
-          for (const x of list) { this.hurt(x, st.dmg / 2, tw, { pierce: true }); if (!x.E.boss) x.stun = Math.max(x.stun, 0.35); this.vfx.impact(this.targetPoint(x), x.air); }
-          this.spawnRing(c, W.splash, 0x9fe8ff, 0.4); this.spawnRing(c, W.splash * 0.5, 0xffffff, 0.3);
-          if (b === 0) this.ui().floatText(c.clone().setY(1.6), '번쩍!', '#BFF0FF');
-        } });
-      }
-    } else if (W.shot === 'money') {
-      // 돈다발을 머리 위로 휘둘러 휙! 두 번 던짐: 떨어진 자리 주변 적 8명에게 피해 + 잠깐 멈춤, 지폐가 흩날림 (다른 레전더리와 같은 공격력)
-      for (let b = 0; b < 2; b++) {
-        this.timers.push({ t: 0.4 + b * 0.26, fn: () => {
-          this.snd('coin');
-          const from = m.muzzle.getWorldPosition(V()), to = e.dead ? g0.clone() : this.targetPoint(e);
-          const cash = makeMoney(); cash.scale.setScalar(2);
-          this.addShot('shell', from, { to, speed: 10, arc: 1 + from.distanceTo(to) * 0.1, dmg: 0, splash: 0, tw, mesh: cash, onHit: (q) => {
-            const r2 = W.splash * W.splash;
-            const list = this.enemies.filter((x) => !x.dead && (x.pos.x - q.x) ** 2 + (x.pos.z - q.z) ** 2 <= r2).sort((a2, b2) => a2.rem - b2.rem).slice(0, W.salvo);
-            for (const x of list) { this.hurt(x, st.dmg / 2, tw, { pierce: true }); if (!x.E.boss) x.stun = Math.max(x.stun, 0.35); this.vfx.impact(this.targetPoint(x), x.air); }
-            this.spawnRing(q.clone().setY(0.2), W.splash, 0x7fd06a, 0.45); this.spawnRing(q.clone().setY(0.2), W.splash * 0.5, 0xffd34a, 0.35);
-            for (let k = 0; k < 8; k++) this.spawnSpark(q.clone().add(V((Math.random() - 0.5) * 2.4, 0.4 + Math.random() * 1.4, (Math.random() - 0.5) * 2.4)), k % 2 ? 0x7fd06a : 0xffd34a, 0.16, 0.5);
-            if (b === 0) this.ui().floatText(q.clone().setY(1.7), '돈벼락!', '#9CFF8A');
-          } });
-        } });
-      }
-    } else if (W.shot === 'snipe') {
-      // Kar98 저격: 한 발이 영웅 → 목표 방향 일직선으로 사거리 끝까지 날아가며 줄 선 적들을 모두 관통
-      this.timers.push({ t: 0.28, fn: () => {
-        this.snd('snipe');
-        const from = m.muzzle.getWorldPosition(V()), c = e.dead ? tp : this.targetPoint(e);
-        const dir = V(c.x - tw.pos.x, 0, c.z - tw.pos.z); if (dir.lengthSq() < 1e-6) dir.set(1, 0, 0); dir.normalize();
-        const reach = st.range + 1.5, end = tw.pos.clone().addScaledVector(dir, reach).setY(c.y);
-        const hit = [];
-        for (const x of this.enemies) {
-          if (x.dead || !W.hits.includes(x.air ? 'air' : 'ground')) continue;
-          const dx = x.pos.x - tw.pos.x, dz = x.pos.z - tw.pos.z, along = dx * dir.x + dz * dir.z;
-          if (along < 0 || along > reach) continue;
-          if (Math.abs(dx * dir.z - dz * dir.x) <= 0.75 + (x.E.boss ? 0.6 : 0)) hit.push([along, x]);
-        }
-        hit.sort((p, q) => p[0] - q[0]);
-        if (!hit.some(([, x]) => x === e) && !e.dead) hit.unshift([0, e]);
-        hit.slice(0, W.salvo).forEach(([, x]) => { this.hurt(x, st.dmg, tw, { pierce: true }); this.vfx.impact(this.targetPoint(x), x.air); });
-        this.tracer(from, end, 0xfff6c8); this.tracer(from.clone().setY(from.y + 0.02), end, 0xffffff);
-        this.vfx.muzzle(from, dir.clone(), true); this.spawnPuff(from, 0xcfd2c4, 2, 0.16);
-        if (hit.length >= 3) this.ui().floatText(c.clone().setY(1.6), `${Math.min(hit.length, W.salvo)}명 관통!`, '#FFF6C8');
       } });
     } else if (W.shot === 'flood') {
       // 살수 물벼락: 목표 자리에 강물이 터져 주변 적 피해 + 뒤로 밀어냄 (보스 제외)
