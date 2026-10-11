@@ -145,7 +145,7 @@ export class Game {
     if (early) msg += ` · 조기 투입 +${early}`;
     this.ui().toast(msg, tok.some((x) => GF.ENEMIES[x] && GF.ENEMIES[x].boss) ? '#FF8A8E' : '#ffffff');
     this.snd('wave');
-    if (tok.includes('kim')) this.timers.push({ t: 2.2, fn: () => { this.ui().toast('최종 웨이브! 최종 보스 김정은 출현', '#FF4A3D', 4200); this.snd('siren'); } });
+    if (tok.includes('leader')) this.timers.push({ t: 2.2, fn: () => { this.ui().toast('최종 웨이브! 최종 보스 부카니스탄 총통 출현', '#FF4A3D', 4200); this.snd('siren'); } });
     // 전략 무기 재보급
     for (const [id, C] of Object.entries(GF.STRATEGIC)) {
       const st = this.strat[id];
@@ -158,11 +158,11 @@ export class Game {
     this.nextT = 0;
   }
 
-  // 웨이브 적 목록 [종류, 수, ...]: 난이도만큼 수를 늘리고(보스 제외), 마지막 웨이브 끝에 최종 보스 김정은
+  // 웨이브 적 목록 [종류, 수, ...]: 난이도만큼 수를 늘리고(보스 제외), 마지막 웨이브 끝에 최종 보스 부카니스탄 총통
   waveTokens(n) {
     const tok = this.S.waves[n - 1].trim().split(/\s+/), m = this.diff ? this.diff.cnt : 1;
     for (let i = 1; i < tok.length; i += 2) if (!GF.ENEMIES[tok[i - 1]].boss) tok[i] = String(Math.round(parseInt(tok[i], 10) * m));
-    if (n === this.S.waves.length) tok.push('kim', '1');
+    if (n === this.S.waves.length) tok.push('leader', '1');
     return tok;
   }
 
@@ -1386,7 +1386,7 @@ export class Game {
     if (!e.air && e.type !== 'inf') this.wreck(e);
     if (e.air) this.fallDebris(e);
     if (reward >= 10) this.ui().floatText(e.pos.clone().setY(1), '+' + reward, '#F2C14E');
-    if (e.E.boss) { this.app.shake(e.E.final ? 0.9 : 0.5); this.ui().toast(e.E.final ? '최종 보스 김정은 격파!' : '보스 "티탄" 격파!', '#7FE0A8', e.E.final ? 4200 : undefined); }
+    if (e.E.boss) { this.app.shake(e.E.final ? 0.9 : 0.5); this.ui().toast(e.E.final ? '최종 보스 부카니스탄 총통 격파!' : '보스 "티탄" 격파!', '#7FE0A8', e.E.final ? 4200 : undefined); }
     // 연쇄 격파
     this.combo++; this.comboT = GF.SETTINGS.comboWindow;
     if (this.combo >= 10 && this.combo % 10 === 0) { this.ui().combo(this.combo); this.snd('combo'); }
