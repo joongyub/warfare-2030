@@ -15,6 +15,7 @@ import { makeHero, HEROES, HERO_IDS, registerHeroes } from './heroes.js';
 import { Look } from './look.js';
 import { Backdrop, exportGuide } from './backdrop.js';
 import { TitleScene } from './titlescene.js';
+import { applyEdition } from './edition.js';
 
 // 도시를 바꿀 때 이전 도시가 쓰던 GPU 자원을 모두 풂. 다른 곳에서 같은 재질을 다시 쓰면 three.js 가 다시 올림
 function disposeTree(root) {
@@ -32,6 +33,7 @@ function disposeTree(root) {
 
 class App {
   constructor() {
+    applyEdition();   // 공개판/친구판: 홈 그림·자막을 판에 맞게 (data/settings.js editions)
     if (GF.SETTINGS.foldScreen == null) GF.SETTINGS.foldScreen = looksFolded();   // 처음 열 때 펼친 폴드면 꽉 채우기
     // 스테이지: 주소의 ?stage=newyork 또는 마지막으로 고른 스테이지, 없으면 서울
     let want = new URLSearchParams(location.search).get('stage');

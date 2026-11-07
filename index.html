@@ -375,7 +375,11 @@
   @keyframes tn-girl { 0% { opacity: 0; transform: translateY(160px) scale(.9); } 14% { opacity: 1; transform: none; } 85% { opacity: 1; transform: scale(1.04); } 100% { opacity: 1; transform: scale(1.05); } }
   .taunt .tn-box { left: 560px; border-color: rgba(255,80,80,.85); animation: in-box 7s forwards; }
   .taunt .tn-box p { color: #ffe9e9; font-size: 40px; }
+  .tn-girl.own { background-size: contain; background-position: center bottom; -webkit-mask-image: linear-gradient(transparent, #000 6%); mask-image: linear-gradient(transparent, #000 6%); }
+  .intro.solo .in-box { left: 60px; }
+  .mobile .intro.solo .in-box { left: 30px; }
   .mobile .tn-girl { left: 30px; width: 314px; height: 427px; background-size: 1524px 858px; background-position: -827px -207px; }
+  .mobile .tn-girl.own { background-size: contain; background-position: center bottom; }
   .mobile .taunt .tn-box { left: 360px; right: 30px; bottom: 30px; padding: 14px 18px; } .mobile .taunt .tn-box p { font-size: 26px; min-height: 62px; } .mobile .taunt .tn-box small { font-size: 12px; }
   /* 출격 자막 (3초) */
   .intro { position: absolute; inset: 0; z-index: 50; pointer-events: auto; background: linear-gradient(transparent 55%, rgba(0,0,0,.75)); animation: in-bg 3s forwards; }

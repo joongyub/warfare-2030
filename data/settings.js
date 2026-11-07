@@ -2,7 +2,7 @@
 window.GF = window.GF || {};
 
 GF.SETTINGS = {
-  version: '0.51.1 (베타 · 12개 도시)',
+  version: '0.52.0 (베타 · 12개 도시)',
   // true: 실제 무기 이름 (K9 썬더, 재블린 …) / false: 살짝 바꾼 이름 (K9-X 썬더, 재블런스 …)
   // 출시 직전 상표 검토 후 결정 (문서 10번 2장 참고)
   useRealWeaponNames: true,
@@ -35,9 +35,27 @@ GF.SETTINGS = {
   lockStages: true,         // 도시 잠금: 서울부터 순서대로 방어완료해야 다음 도시가 열림 (false 면 모두 열림)
   difficulty: 'easy',       // 난이도 기본값 (전투지역 화면에서 고름, gf_prefs 에 기억)
   comboWindow: 2.5,         // 이 시간(초) 안에 연속으로 처치하면 연쇄 격파 보너스
-  homeBg: 'img/home_bg.jpg',
-  // 전투 시작 자막 (3초). {name} 지휘관 이름, {city} 도시 이름, {ga} 받침에 맞춰 이/가
-  introLine: '{name}님! {city}{ga} 빨갱이새끼들한테 다 넘어갈지경입니다. 방어해주세요!', // 홈 화면 배경 그림 (지우면 3D 전장이 보임)
+  // ---- 판(에디션): 홈 그림·자막·초상을 한 번에 바꿈 (src/edition.js) ----
+  //   public  = 공개판 (스토어·공개 주소 기본값): 실존 인물·욕설 없는 가상 부카니스탄 열병식 그림
+  //   friends = 친구판: 예전 캐리커처 그림과 대사. 주소 끝에 ?edition=friends (되돌리기 ?edition=public)
+  //   항목: homeBg 홈 배경 그림(지우면 3D 전장) · homeScene 홈 그림 움직임 설정(src/homeanim.js SCENES)
+  //         introLine 전투 시작 자막({name} 지휘관 · {city} 도시 · {ga} 이/가) · introImg 'crop' 이면 홈 그림에서 인물을 오려 보여 줌, 없으면 자막만
+  //         halfLine·halfFrom 웨이브 절반 방송 자막·출처 · tauntImg 방송에 나오는 인물 그림(없으면 홈 그림에서 오림)
+  edition: 'public',
+  editions: {
+    public: {
+      homeBg: 'img/home_bg_public.jpg', homeScene: 'public', introImg: null, tauntImg: 'img/portrait_leader.png',
+      introLine: '{name}님! {city}{ga} 부카니스탄군에게 함락되기 직전입니다. 방어해주세요!',
+      halfLine: '총통 각하의 열병식을 막는 자들은 모두 불바다에 잠길 것이다!',
+      halfFrom: '부카니스탄 국영방송 · 긴급 성명'
+    },
+    friends: {
+      homeBg: 'img/home_bg.jpg', homeScene: 'friends', introImg: 'crop', tauntImg: null,
+      introLine: '{name}님! {city}{ga} 빨갱이새끼들한테 다 넘어갈지경입니다. 방어해주세요!',
+      halfLine: '미제앞잡이들은 우리 아바이를 괴롭히디 말라!',
+      halfFrom: '부카니스탄 조선중앙방송 · 긴급 성명'
+    }
+  },
   // 구글 로그인 저장 (Firebase 웹 앱 설정). null 이면 이 기기에만 저장
   // 안내서: tower-defense/06_구글로그인_저장_설정가이드.md
   firebase: {

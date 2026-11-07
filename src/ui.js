@@ -143,7 +143,7 @@ export class UI {
         <div class="help">조작: 마우스 끌기·방향키 지도 이동 · 휠 확대·축소 · 시점 각도는 오른쪽 위 ⟲ ⟳ ▲ ▼ 버튼(누르고 있기) · R 기본 시점 · 1~0 무기(Shift+1~0 아랫줄) · Q W E 작전 카드 · Z ICBM · X 전략핵 · 스페이스 일시정지 · N 다음 웨이브</div>
         <div class="disc">이 게임은 가상의 이야기입니다. 실제 국가·단체·사건과 관계없습니다. · v${GF.SETTINGS.version}</div>
       </div>`;
-    if (t.classList.contains('anim')) { this.homeAnim = new HomeAnim(t, GF.SETTINGS.homeBg); h('div', 'home-shade', null, t); t.prepend(t.lastChild); t.prepend(this.homeAnim.cv); }
+    if (t.classList.contains('anim')) { this.homeAnim = new HomeAnim(t, GF.SETTINGS.homeBg, GF.SETTINGS.homeScene); h('div', 'home-shade', null, t); t.prepend(t.lastChild); t.prepend(this.homeAnim.cv); }
     t.querySelector('.go').onclick = () => this.openZone();
     this.bindFold(t);
     t.querySelector('.pc-gq select').onchange = (e) => { GF.SETTINGS.graphics = e.target.value; this.app.applySettings(); this.toastAny('그래픽: ' + e.target.selectedOptions[0].textContent); };
@@ -401,10 +401,12 @@ export class UI {
   // 웨이브 절반 연출 (7초): 화면이 어두워지고 홈 그림의 여자 캐릭터만 떠올라 방송 자막 → 끝나면 done (미사일 공격)
   playHalfTaunt(done) {
     this.halfEl?.remove();
-    const line = GF.SETTINGS.halfLine || '미제앞잡이들은 우리 아바이를 괴롭히디 말라!';
-    const o = this.halfEl = h('div', 'taunt', `<div class="tn-girl"></div><div class="in-box tn-box"><small>부카니스탄 조선중앙방송 · 긴급 성명</small><p></p></div>`, this.root);
+    const S = GF.SETTINGS, line = S.halfLine || '총통 각하의 열병식을 막는 자들은 모두 불바다에 잠길 것이다!';
+    const o = this.halfEl = h('div', 'taunt', `<div class="tn-girl"></div><div class="in-box tn-box"><small>${S.halfFrom || '부카니스탄 국영방송 · 긴급 성명'}</small><p></p></div>`, this.root);
     const girl = o.querySelector('.tn-girl');
-    if (GF.SETTINGS.homeBg) girl.style.backgroundImage = `url("${GF.SETTINGS.homeBg}")`; else girl.remove();
+    // 방송 인물: 따로 그린 초상(tauntImg)이 있으면 그것, 없으면 홈 그림에서 오려 냄
+    if (S.tauntImg) { girl.classList.add('own'); girl.style.backgroundImage = `url("${S.tauntImg}")`; }
+    else if (S.homeBg) girl.style.backgroundImage = `url("${S.homeBg}")`; else girl.remove();
     const p = o.querySelector('p');
     if (this.app.sound) this.app.sound.play('wave');
     let i = 0;
@@ -429,11 +431,12 @@ export class UI {
     this.intro?.remove(); clearTimeout(this.introT);
     const S = this.app.stage, city = GF.SETTINGS.useCityAlias ? S.alias : S.name;
     const last = city.charCodeAt(city.length - 1), batchim = last >= 0xac00 && last <= 0xd7a3 && (last - 0xac00) % 28 !== 0;
-    const text = (GF.SETTINGS.introLine || '{name}님! {city}{ga} 빨갱이새끼들한테 다 넘어갈지경입니다. 방어해주세요!')
+    const text = (GF.SETTINGS.introLine || '{name}님! {city}{ga} 부카니스탄군에게 함락되기 직전입니다. 방어해주세요!')
       .replace('{name}', Profile.name).replace('{city}', city).replace('{ga}', batchim ? '이' : '가');
     const o = this.intro = h('div', 'intro wait', `<div class="in-chars"></div><div class="in-box"><small>긴급 보고 · ${S.nameEn}</small><p></p></div>`, this.root);
     const ch = o.querySelector('.in-chars');
-    if (GF.SETTINGS.homeBg) ch.style.backgroundImage = `url("${GF.SETTINGS.homeBg}")`; else ch.remove();
+    // 홈 그림의 인물을 오려 보여 주는 건 introImg: 'crop' 일 때만 (공개판은 자막 상자만)
+    if (GF.SETTINGS.homeBg && GF.SETTINGS.introImg === 'crop') ch.style.backgroundImage = `url("${GF.SETTINGS.homeBg}")`; else { ch.remove(); o.classList.add('solo'); }
     const p = o.querySelector('p');
     // 새 도시를 처음 그릴 때 몇 초 멈출 수 있어 화면이 부드럽게 돌기 시작한 뒤에 3초를 셈
     let prev = performance.now(), smooth = 0;
