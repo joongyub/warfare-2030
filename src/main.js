@@ -16,6 +16,8 @@ import { Look } from './look.js';
 import { Backdrop, exportGuide } from './backdrop.js';
 import { TitleScene } from './titlescene.js';
 import { applyEdition } from './edition.js';
+import { applyWeaponNames } from './names.js';
+import { Tutorial } from './tutorial.js';
 
 // 도시를 바꿀 때 이전 도시가 쓰던 GPU 자원을 모두 풂. 다른 곳에서 같은 재질을 다시 쓰면 three.js 가 다시 올림
 function disposeTree(root) {
@@ -34,6 +36,7 @@ function disposeTree(root) {
 class App {
   constructor() {
     applyEdition();   // 공개판/친구판: 홈 그림·자막을 판에 맞게 (data/settings.js editions)
+    applyWeaponNames();   // 무기 이름: 공개판 가상 이름 / 친구판 실제 이름 (설정에서 바꾼 값 우선)
     if (GF.SETTINGS.foldScreen == null) GF.SETTINGS.foldScreen = looksFolded();   // 처음 열 때 펼친 폴드면 꽉 채우기
     // 스테이지: 주소의 ?stage=newyork 또는 마지막으로 고른 스테이지, 없으면 서울
     let want = new URLSearchParams(location.search).get('stage');
@@ -138,6 +141,7 @@ class App {
     this.game.start();
     this.ui.buildHud();
     this.ui.playIntro();
+    this.ui.tut = null; this.ui.tutWait = Tutorial.wanted(this);   // 서울 첫 판이면 짧은 안내
   }
   // 저장한 게임 이어하기: 도시 × 난이도 칸 (diff 없으면 지금 고른 난이도)
   loadGame(id, diff) {

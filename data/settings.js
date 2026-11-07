@@ -2,10 +2,10 @@
 window.GF = window.GF || {};
 
 GF.SETTINGS = {
-  version: '0.52.0 (베타 · 12개 도시)',
+  version: '0.53.0 (베타 · 12개 도시)',
   // true: 실제 무기 이름 (K9 썬더, 재블린 …) / false: 살짝 바꾼 이름 (K9-X 썬더, 재블런스 …)
   // 출시 직전 상표 검토 후 결정 (문서 10번 2장 참고)
-  useRealWeaponNames: true,
+  realNames: null,          // 무기 실제 이름 (null = 판 기본값: 공개판 가상 이름 · 친구판 실제 이름). 설정 ⚙ 에서 바꾸면 기억
   // 구글 로그인한 사람만: 웨이브의 적을 모두 물리칠 때마다 자동 저장
   autoSave: true,
   // true 로 바꾸면 실제 도시 이름 대신 가명을 보여 줌
@@ -40,16 +40,19 @@ GF.SETTINGS = {
   //   friends = 친구판: 예전 캐리커처 그림과 대사. 주소 끝에 ?edition=friends (되돌리기 ?edition=public)
   //   항목: homeBg 홈 배경 그림(지우면 3D 전장) · homeScene 홈 그림 움직임 설정(src/homeanim.js SCENES)
   //         introLine 전투 시작 자막({name} 지휘관 · {city} 도시 · {ga} 이/가) · introImg 'crop' 이면 홈 그림에서 인물을 오려 보여 줌, 없으면 자막만
+  //         weaponNames 'alt' 가상 무기 이름 / 'real' 실제 이름 (src/names.js)
   //         halfLine·halfFrom 웨이브 절반 방송 자막·출처 · tauntImg 방송에 나오는 인물 그림(없으면 홈 그림에서 오림)
   edition: 'public',
   editions: {
     public: {
+      weaponNames: 'alt',
       homeBg: 'img/home_bg_public.jpg', homeScene: 'public', introImg: null, tauntImg: 'img/portrait_leader.png',
       introLine: '{name}님! {city}{ga} 부카니스탄군에게 함락되기 직전입니다. 방어해주세요!',
       halfLine: '총통 각하의 열병식을 막는 자들은 모두 불바다에 잠길 것이다!',
       halfFrom: '부카니스탄 국영방송 · 긴급 성명'
     },
     friends: {
+      weaponNames: 'real',
       homeBg: 'img/home_bg.jpg', homeScene: 'friends', introImg: 'crop', tauntImg: null,
       introLine: '{name}님! {city}{ga} 빨갱이새끼들한테 다 넘어갈지경입니다. 방어해주세요!',
       halfLine: '미제앞잡이들은 우리 아바이를 괴롭히디 말라!',
@@ -81,6 +84,6 @@ GF.NO_EASY_FROM = 5;   // 사용자 요청: 스테이지 5부터는 쉬움 없�
 GF.diffsFor = (S) => Object.keys(GF.DIFF).filter((k) => !(k === 'easy' && S && S.no >= GF.NO_EASY_FROM));
 GF.diffFor = (S, want) => { const ok = GF.diffsFor(S); return ok.includes(want) ? want : ok[0]; };
 // 사용자가 바꾼 설정(그래픽·난이도·효과음 등)은 이 기기에 기억
-GF.PREF_KEYS = ['graphics', 'difficulty', 'foldScreen', 'sound', 'shadows', 'showLandmarkLabels', 'useRealWeaponNames'];
+GF.PREF_KEYS = ['graphics', 'difficulty', 'foldScreen', 'sound', 'shadows', 'showLandmarkLabels', 'realNames'];
 try { Object.assign(GF.SETTINGS, JSON.parse(localStorage.getItem('gf_prefs') || '{}')); } catch (e) { /* 저장 불가 환경 */ }
 GF.savePrefs = () => { try { const o = {}; GF.PREF_KEYS.forEach((k) => { o[k] = GF.SETTINGS[k]; }); localStorage.setItem('gf_prefs', JSON.stringify(o)); } catch (e) { /* 저장 불가 환경 */ } };

@@ -381,6 +381,19 @@
   .mobile .tn-girl { left: 30px; width: 314px; height: 427px; background-size: 1524px 858px; background-position: -827px -207px; }
   .mobile .tn-girl.own { background-size: contain; background-position: center bottom; }
   .mobile .taunt .tn-box { left: 360px; right: 30px; bottom: 30px; padding: 14px 18px; } .mobile .taunt .tn-box p { font-size: 26px; min-height: 62px; } .mobile .taunt .tn-box small { font-size: 12px; }
+  /* 첫 판 안내 (src/tutorial.js) */
+  .tut { position: absolute; left: 50%; top: 118px; transform: translateX(-50%); width: 760px; max-width: calc(100% - 80px); z-index: 45; padding: 16px 22px 14px; border-radius: 14px;
+    background: rgba(10,16,24,.92); border: 2px solid #f2c14e; box-shadow: 0 10px 30px rgba(0,0,0,.5); color: #eef3f8; pointer-events: auto; }
+  .tut.pop { animation: tut-pop .35s cubic-bezier(.2,.8,.2,1); }
+  @keyframes tut-pop { from { opacity: 0; transform: translate(-50%, -14px); } to { opacity: 1; transform: translateX(-50%); } }
+  .tut-n { display: block; font-size: 13px; letter-spacing: 2px; color: #f2c14e; margin-bottom: 4px; }
+  .tut p { margin: 0; font-size: 22px; line-height: 1.45; } .tut p b { color: #ffd36a; }
+  .tut-b { display: flex; justify-content: flex-end; gap: 8px; margin-top: 10px; }
+  .tut-b button { height: 38px; padding: 0 16px; border-radius: 9px; border: 1px solid rgba(255,255,255,.25); background: rgba(255,255,255,.08); color: #dfe7ef; font-size: 15px; cursor: pointer; }
+  .tut-b .tut-ok { background: #f2c14e; color: #1a1406; border: 0; font-weight: 700; }
+  .tut-ring { position: absolute; z-index: 44; display: none; pointer-events: none; border: 3px solid #ffd36a; border-radius: 12px; box-shadow: 0 0 0 4px rgba(255,211,106,.25), 0 0 24px rgba(255,211,106,.6); animation: tut-ring 1.1s ease-in-out infinite; }
+  @keyframes tut-ring { 50% { box-shadow: 0 0 0 10px rgba(255,211,106,0), 0 0 30px rgba(255,211,106,.9); } }
+  .mobile .tut { top: 84px; width: 680px; padding: 12px 16px 10px; } .mobile .tut p { font-size: 20px; } .mobile .tut-b button { height: 40px; font-size: 16px; }
   /* 출격 자막 (3초) */
   .intro { position: absolute; inset: 0; z-index: 50; pointer-events: auto; background: linear-gradient(transparent 55%, rgba(0,0,0,.75)); animation: in-bg 3s forwards; }
   @keyframes in-bg { 0% { background-color: rgba(0,0,0,.65); } 25% { background-color: rgba(0,0,0,0); } 100% { background-color: rgba(0,0,0,0); } }
