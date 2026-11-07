@@ -331,3 +331,8 @@
 - 친구판: 주소 끝에 ?edition=friends → 예전 캐리커처 그림·대사. ?edition=public 으로 되돌림 (기기에 기억).
 - 판마다 그림·자막은 data/settings.js 의 editions 표에서 바꿈. 홈 그림 움직임(깃발·탐조등 위치)은 src/homeanim.js SCENES.
 - 공개판 그림 다시 그리기: npm run render-home (구도는 tools/home_render/run.js · scene.js)
+
+[v0.53.0 무기 가상 이름 · 첫 판 안내]
+- 무기 이름: 공개판은 가상 이름(altName), 친구판은 실제 이름. 설정 ⚙ '무기 실제 이름'으로 바꾸면 그 값이 우선 (src/names.js).
+  data/weapons.js 설명(desc) 안의 {무기id} 는 그때 이름으로 바뀜.
+- 첫 판 안내: 서울 첫 판에서 6단계 안내 (src/tutorial.js STEPS). 다시 보기: 주소 끝에 ?tutorial=1

@@ -11,6 +11,8 @@ import { HEROES, HERO_IDS, GACHA, heroTier, TIERS, cmdText, RECRUIT, heroOdds } 
 import { Saves, Clears } from './save.js';
 import { RECIPES, RECIPE_CATS, Codex, comboRate, comboFee } from './codex.js';
 import { HomeAnim } from './homeanim.js';
+import { applyWeaponNames, useRealNames } from './names.js';
+import { Tutorial } from './tutorial.js';
 // 화면 글자·위치가 바뀔 때만 실제로 씀 (매 프레임 다시 쓰면 휴대폰에서 끊김)
 const putCache = new WeakMap();
 function put(o, k, v) {
@@ -578,14 +580,15 @@ export class UI {
     const SET = GF.SETTINGS, s = this.settings;
     s.innerHTML = `<b>설정</b>
       <label><input type="checkbox" data-k="showLandmarkLabels" ${SET.showLandmarkLabels ? 'checked' : ''}> 랜드마크 이름표</label>
-      <label><input type="checkbox" data-k="useRealWeaponNames" ${SET.useRealWeaponNames ? 'checked' : ''}> 무기 실제 이름 <small>(끄면 살짝 바꾼 이름)</small></label>
+      <label><input type="checkbox" class="realn" ${useRealNames() ? 'checked' : ''}> 무기 실제 이름 <small>(끄면 가상 이름)</small></label>
       <label><input type="checkbox" data-k="sound" ${SET.sound ? 'checked' : ''}> 효과음</label>
       <label><input type="checkbox" data-k="shadows" ${SET.shadows ? 'checked' : ''}> 그림자 <small>(느리면 끄기)</small></label>
       <label>그래픽 ${this.gqSelect()}</label>
       ${this.foldBox()}
       <div class="row"><button class="save">💾 저장하기</button><button class="savex">저장하고 나가기</button></div>
       <div class="row"><button class="home">저장 안 하고 나가기</button><button class="close">닫기</button></div>`;
-    s.querySelectorAll('input').forEach((inp) => { inp.onchange = () => { SET[inp.dataset.k] = inp.checked; this.app.applySettings(); }; });
+    s.querySelectorAll('input[data-k]').forEach((inp) => { inp.onchange = () => { SET[inp.dataset.k] = inp.checked; this.app.applySettings(); }; });
+    s.querySelector('.realn').onchange = (e) => { SET.realNames = e.target.checked; applyWeaponNames(); this.app.applySettings(); this.toast(e.target.checked ? '무기 실제 이름으로 바꿨어요' : '무기 가상 이름으로 바꿨어요'); };
     this.bindFold(s);
     s.querySelector('.gq').onchange = (e) => { SET.graphics = e.target.value; this.app.applySettings(); };
     s.querySelector('.save').onclick = () => { if (this.app.saveGame(false)) this.toggleSettings(false); };
@@ -666,6 +669,9 @@ export class UI {
     this.updateLabels();
     const g = this.g;
     if (!this.hud || !g) return;
+    // 첫 판 안내: 출격 자막이 끝난 뒤 시작 (src/tutorial.js)
+    if (this.tutWait && !this.intro?.isConnected && !this.loadingEl) { this.tutWait = false; this.tut = new Tutorial(this); }
+    if (this.tut) this.tut.update(dt);
     const S = this.app.stage;
     put(this.eLives, 'innerHTML', `<i class="shield"></i><span>기지</span>${g.lives}/${S.lives}`);
     put(this.eMoney, 'innerHTML', `<i class="box"></i><span>보급</span>${Math.floor(g.money)}`);
@@ -978,7 +984,7 @@ export class UI {
       return `<div class="cdx-c${known ? ' known' : ''}${rd ? ' rd' : ''}${this.codexSel === R.key ? ' sel' : ''}${R.hero ? ' hero' : ''}" data-k="${R.key}">
         ${rd ? '<i class="cdx-badge">조합 가능!</i>' : ''}
         <div class="cdx-row">${mat(R.ta)}<s>+</s>${mat(R.tb)}<s>→</s>${known ? `<img class="res" src="${ico(R.into)}">` : '<i class="q res">?</i>'}</div>
-        <div class="cdx-t"><b>${known ? R.name : '???'}</b><small>${names}</small></div><span>${rate}%</span></div>`;
+        <div class="cdx-t"><b>${known ? (GF.WEAPONS[R.into]?.name || R.name) : '???'}</b><small>${names}</small></div><span>${rate}%</span></div>`;
     };
     // 세 갈래: 일반무기 조합 / 레전더리 영웅 조합(영웅 + 영웅) / 신화 영웅 조합(신화 영웅 + 조합 무기 → GOAT)
     const rule = { weapon: `둘 다 Lv.4 · 성공 ${Math.round(GF.COMBO_RULES.weaponRate * 100)}%`, legend: `영웅 Lv.1부터 · 성공 ${Math.round(GF.COMBO_RULES.heroRate * 100)}%`, myth: `신화 영웅 + 조합 무기 → GOAT · 성공 ${Math.round(GF.COMBO_RULES.goatRate * 100)}%` };
@@ -995,7 +1001,7 @@ export class UI {
     const known = Codex.has(R.key), rd = inBattle && (g.comboReady || []).some((p) => p.R.key === R.key), rate = comboRate(R), fee = comboFee(R);
     el.querySelector('.cdx-num').innerHTML = `성공 확률 <b>${Math.round(rate * 100)}%</b>`; ok.style.width = rate * 100 + '%'; mark.style.left = '-20px';
     if (known || rd) { orbL.src = this.icons[R.ta]; orbR.src = this.icons[R.tb]; orbL.style.opacity = orbR.style.opacity = 1; } else { orbL.style.opacity = orbR.style.opacity = 0; }
-    sel.innerHTML = known || rd ? `<b>${GF.wname(R.ta)}</b> + <b>${GF.wname(R.tb)}</b> → <b>${known ? R.name : '???'}</b>` : '아직 발견하지 못한 조합이에요';
+    sel.innerHTML = known || rd ? `<b>${GF.wname(R.ta)}</b> + <b>${GF.wname(R.tb)}</b> → <b>${known ? (GF.WEAPONS[R.into]?.name || R.name) : '???'}</b>` : '아직 발견하지 못한 조합이에요';
     if (!inBattle) { go.disabled = true; go.innerHTML = '전투 중에 조합할 수 있어요'; return; }
     if (!rd) { go.disabled = true; go.innerHTML = known || rd ? (R.goat ? '신화 영웅 옆에 조합 무기를 두세요' : R.hero ? '두 영웅을 가까이 배치하세요' : '두 무기를 Lv.4로 만들어 가까이 두세요') : '재료를 찾아 가까이 놓아 보세요'; return; }
     go.disabled = false; go.innerHTML = `이중엽에게 조합 맡기기 <small>수수료 보급 ${fee} · 성공 ${Math.round(rate * 100)}%</small>`;
@@ -1036,7 +1042,7 @@ export class UI {
             const first = Codex.add(R.key), p = r.pair;
             this.closeCodex();
             g.fuse(p.a, p.b, R, this.icons[R.into]);
-            if (first) setTimeout(() => this.toast(`📖 새 조합 발견! 무기도감에 ${R.name} 기록`, '#FFD36A', 3200), 4600);
+            if (first) setTimeout(() => this.toast(`📖 새 조합 발견! 무기도감에 ${GF.WEAPONS[R.into]?.name || R.name} 기록`, '#FFD36A', 3200), 4600);
           } else {
             this.toast(`조합 실패… 수수료 보급 ${r.fee}`, '#FF8A8E', 2400);
             g.refreshCombos(true); this.renderCodex();
