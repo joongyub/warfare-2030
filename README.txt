@@ -325,3 +325,9 @@
 이 게임은 가상의 이야기입니다. 실제 국가·단체·사건과 관계없습니다.
 3D 모델은 1단계용 임시 모델이며 이후 단계에서 실제 3D 모델로 바뀝니다.
 3D 엔진: three.js (MIT 라이선스, THIRD_PARTY_three_LICENSE.txt)
+
+[v0.52.0 공개판 / 친구판]
+- 기본은 공개판: 홈 그림 img/home_bg_public.jpg (가상 '부카니스탄 총통' 열병식), 방송 초상 img/portrait_leader.png, 순화한 자막.
+- 친구판: 주소 끝에 ?edition=friends → 예전 캐리커처 그림·대사. ?edition=public 으로 되돌림 (기기에 기억).
+- 판마다 그림·자막은 data/settings.js 의 editions 표에서 바꿈. 홈 그림 움직임(깃발·탐조등 위치)은 src/homeanim.js SCENES.
+- 공개판 그림 다시 그리기: npm run render-home (구도는 tools/home_render/run.js · scene.js)

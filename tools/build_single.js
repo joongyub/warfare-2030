@@ -12,7 +12,10 @@ html = html.replace(/<link rel="manifest"[^>]*>\n?/, '').replace(/href="icons\/i
 // 홈 배경 그림도 파일 안에 넣음
 const emb = path.join(root, 'icons/emblem.jpg');
 if (fs.existsSync(emb)) html = html.split('"icons/emblem.jpg"').join(`"data:image/jpeg;base64,${fs.readFileSync(emb).toString('base64')}"`);
-const bgPath = path.join(root, 'img/home_bg.jpg');
-if (fs.existsSync(bgPath)) html = html.split("'img/home_bg.jpg'").join(`'data:image/jpeg;base64,${fs.readFileSync(bgPath).toString('base64')}'`);
+// 설정(data/settings.js)에 적힌 그림('img/….jpg|png')을 모두 파일 안에 넣음 (홈 배경·초상 등)
+html = html.replace(/'(img\/[\w.-]+\.(jpg|png))'/g, (m, f, ext) => {
+  const p = path.join(root, f);
+  return fs.existsSync(p) ? `'data:image/${ext === 'jpg' ? 'jpeg' : 'png'};base64,${fs.readFileSync(p).toString('base64')}'` : m;
+});
 fs.writeFileSync(path.join(root, '2030Warfare1.html'), html);
 console.log('2030Warfare1.html', Math.round(html.length / 1024) + 'KB');
