@@ -2,7 +2,7 @@
 window.GF = window.GF || {};
 
 GF.SETTINGS = {
-  version: '0.53.0 (베타 · 12개 도시)',
+  version: '0.54.0 (베타 · 12개 도시)',
   // true: 실제 무기 이름 (K9 썬더, 재블린 …) / false: 살짝 바꾼 이름 (K9-X 썬더, 재블런스 …)
   // 출시 직전 상표 검토 후 결정 (문서 10번 2장 참고)
   realNames: null,          // 무기 실제 이름 (null = 판 기본값: 공개판 가상 이름 · 친구판 실제 이름). 설정 ⚙ 에서 바꾸면 기억
@@ -59,6 +59,8 @@ GF.SETTINGS = {
       halfFrom: '부카니스탄 조선중앙방송 · 긴급 성명'
     }
   },
+  // 안드로이드 앱 안 구글 로그인용 '웹 클라이언트 ID' (Firebase 콘솔 → Authentication → 로그인 방법 → Google → 웹 SDK 구성). null 이면 앱에서는 크롬 로그인 안내
+  googleWebClientId: null,
   // 구글 로그인 저장 (Firebase 웹 앱 설정). null 이면 이 기기에만 저장
   // 안내서: tower-defense/06_구글로그인_저장_설정가이드.md
   firebase: {
