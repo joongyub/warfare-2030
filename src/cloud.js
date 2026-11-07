@@ -30,7 +30,8 @@ export const Cloud = {
   async signIn() {
     if (!this.fb) return;
     // 안드로이드 APK(웹뷰)는 구글이 로그인 창을 막아서, 크롬 사이트에서 로그인하도록 안내
-    if (/W2030App/.test(navigator.userAgent)) { this.error = '앱에서는 구글 로그인이 막혀 있어요. 크롬에서 joongyub.github.io/warfare-2030 으로 로그인해 주세요'; this.emit(); return; }
+    // 안드로이드 앱(웹뷰): 구글이 웹뷰 로그인 창을 막음 → 앱의 안드로이드 구글 로그인 창으로 받은 토큰으로 로그인
+    if (/W2030App/.test(navigator.userAgent)) return this.signInApp();
     const { auth, A } = this.fb, p = new auth.GoogleAuthProvider();
     p.setCustomParameters({ prompt: 'select_account' });
     try { await auth.signInWithPopup(A, p); } catch (e) {
@@ -38,6 +39,22 @@ export const Cloud = {
       if (/popup-blocked|operation-not-supported/.test(e.code || '')) return auth.signInWithRedirect(A, p);
       if (!/popup-closed|cancelled-popup/.test(e.code || '')) { this.error = '로그인 실패: ' + (e.code || e.message); this.emit(); }
     }
+  },
+  // 앱 로그인: MainActivity.java 의 W2030.googleSignIn(웹 클라이언트 ID) → window.__w2030Auth(kind, 토큰) 으로 돌아옴
+  //   필요한 것: settings.googleWebClientId (Firebase 콘솔 → Authentication → Google → 웹 SDK 구성의 '웹 클라이언트 ID')
+  //            Firebase 에 안드로이드 앱(io.github.joongyub.warfare2030, 서명 SHA-1) 등록, 새 APK 설치
+  async signInApp() {
+    const id = GF.SETTINGS.googleWebClientId, B = window.W2030;
+    if (!B || !B.googleSignIn) { this.error = '새 앱이 필요해요. 📲 설치 버튼에서 APK를 다시 받아 설치해 주세요'; this.emit(); return; }
+    if (!id) { this.error = '앱 로그인 준비 중이에요. 지금은 크롬에서 joongyub.github.io/warfare-2030 으로 로그인해 주세요'; this.emit(); return; }
+    this.busy = true; this.error = ''; this.emit();
+    const [kind, val] = await new Promise((res) => { window.__w2030Auth = (k, v) => res([k, v]); B.googleSignIn(id); });
+    window.__w2030Auth = null; this.busy = false;
+    if (kind === 'ok') {
+      const { auth, A } = this.fb;
+      try { await auth.signInWithCredential(A, auth.GoogleAuthProvider.credential(val)); } catch (e) { this.error = '로그인 실패: ' + (e.code || e.message); }
+    } else if (kind !== 'cancel') this.error = '구글 로그인 실패: ' + val;
+    this.emit();
   },
   async signOut() { if (this.fb) await this.fb.auth.signOut(this.fb.A); },
 

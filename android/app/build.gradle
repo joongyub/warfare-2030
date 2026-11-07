@@ -17,3 +17,10 @@ android {
     buildTypes { release { minifyEnabled false; signingConfig signingConfigs.release } }
     compileOptions { sourceCompatibility JavaVersion.VERSION_17; targetCompatibility JavaVersion.VERSION_17 }
 }
+// 앱 안 구글 로그인 (안드로이드 '구글로 로그인' 창 → 받은 토큰을 웹 게임의 Firebase 로그인에 넘김)
+dependencies {
+    implementation 'androidx.core:core:1.13.1'
+    implementation 'androidx.credentials:credentials:1.3.0'
+    implementation 'androidx.credentials:credentials-play-services-auth:1.3.0'
+    implementation 'com.google.android.libraries.identity.googleid:googleid:1.1.1'
+}
